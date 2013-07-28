@@ -139,8 +139,7 @@ impl Parser {
             InCommentOpening => self.in_comment_opening(c),
             InComment1 => self.in_comment1(c),
             InComment2 => self.in_comment2(c),
-            // InDoctype => self.in_doctype(c),
-            _ => self.error(fmt!("Not implemented: %?", self.st))
+            InDoctype => self.in_doctype(c),
         }
     }
 
@@ -403,5 +402,29 @@ impl Parser {
             self.buf = ~"";
             Ok(Comment(buf))
         }
+    }
+
+    fn in_doctype(&mut self, c: char) -> Result<Event, Error> {
+        match self.level {
+            0 if c == 'O' => self.level += 1,
+            1 if c == 'C' => self.level += 1,
+            2 if c == 'T' => self.level += 1,
+            3 if c == 'Y' => self.level += 1,
+            4 if c == 'P' => self.level += 1,
+            5 if c == 'E' => self.level += 1,
+            6 => {
+                match c {
+                    ' ' | '\t' | '\r' | '\n' => (),
+                    _ => return self.error(~"Invalid DOCTYPE")
+                }
+                self.level += 1;
+            }
+            _ if c == '>' => {
+                self.level = 0;
+                self.st = OutsideTag;
+            }
+            _ => ()
+        }
+        Ok(Null)
     }
 }

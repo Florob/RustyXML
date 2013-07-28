@@ -5,6 +5,7 @@ fn main()
     let mut p = xml::Parser();
     p.push_str(
 "<?xml version='1.0'?>
+<!DOCTYPE rand>
 <hello type='greeting'>
   <![CDATA[some []]] stuff]]>
   <world size='big' location=\"milkyway\"/>
