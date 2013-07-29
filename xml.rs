@@ -5,7 +5,7 @@
 
 #[deriving(Clone)]
 pub enum XML {
-    Element(Element),
+    Element(~Element),
     CharacterNode(~str),
     CDATANode(~str),
     CommentNode(~str),
@@ -459,13 +459,11 @@ impl ElementBuilder {
                 Ok(None)
             }
             StartTag { name, attributes } => {
-                let elem = Element {
+                self.stack.push(~Element {
                     name: name.clone(),
                     attributes: attributes.clone(),
                     children: ~[]
-                };
-
-                self.stack.push(~elem);
+		});
 
                 Ok(None)
             }
@@ -480,7 +478,7 @@ impl ElementBuilder {
                 } else if l == 0 {
                     Ok(Some(*elem))
                 } else {
-                    (*self.stack[l-1]).children.push(Element(*elem));
+                    (*self.stack[l-1]).children.push(Element(elem));
                     Ok(None)
                 }
             }
