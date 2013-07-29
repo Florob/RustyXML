@@ -2,10 +2,16 @@
 
 #[forbid(non_camel_case_types)];
 
+#[deriving(Clone)]
 pub enum XML {
     Element(Element),
+    CharacterNode(~str),
+    CDATANode(~str),
+    CommentNode(~str),
+    PINode(~str)
 }
 
+#[deriving(Clone)]
 pub struct Element {
     name: ~str,
     attributes: ~[Attribute],
@@ -427,5 +433,103 @@ impl Parser {
             _ => ()
         }
         Ok(Null)
+    }
+}
+
+pub struct ElementBuilder {
+    priv root: ~Element,
+    priv stack: ~[*mut Element]
+}
+
+pub fn ElementBuilder() -> ElementBuilder {
+    let e = ElementBuilder {
+        root: ~Element { name: ~"", attributes: ~[], children: ~[] },
+        stack: ~[]
+    };
+    e
+}
+
+impl ElementBuilder {
+    pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, Error> {
+        match e {
+            PI(cont) => {
+                let l = self.stack.len();
+                unsafe {
+                    if l > 0 {
+                        (*self.stack[l-1]).children.push(PINode(cont));
+                    }
+                }
+                Ok(None)
+            }
+            StartTag { name, attributes } => {
+                let elem = Element {
+                    name: name.clone(),
+                    attributes: attributes.clone(),
+                    children: ~[]
+                };
+
+                let l = self.stack.len();
+                unsafe {
+                    if l > 0 {
+                        (*self.stack[l-1]).children.push(Element(elem));
+                        let tmp = &mut (*self.stack[l-1]).children[(*self.stack[l-1]).children.len()-1];
+                        match tmp {
+                            &Element(ref mut el) => {
+                                self.stack.push(&mut *el as *mut Element);
+                            }
+                            _ => fail!("WTF!")
+                        }
+                    } else {
+                        self.root = ~elem;
+                        self.stack.push(&mut *self.root as *mut Element);
+                    }
+                }
+                Ok(None)
+            }
+            EndTag { name } => {
+                unsafe {
+                    if self.stack.len() == 0 {
+                        return Ok(None);
+                    }
+                    let el = self.stack.pop();
+                    if (*el).name != name {
+                        Err(Error { line: 0, col: 0, msg: @~"Elements not properly nested" })
+                    } else if self.stack.len() == 0 {
+                        let res = (*self.root).clone();
+                        Ok(Some(res))
+                    } else {
+                        Ok(None)
+                    }
+                }
+            },
+            Characters(chars) => {
+                let l = self.stack.len();
+                unsafe {
+                    if l > 0 {
+                        (*self.stack[l-1]).children.push(CharacterNode(chars));
+                    }
+                }
+                Ok(None)
+            }
+            CDATA(chars) => {
+                let l = self.stack.len();
+                unsafe {
+                    if l > 0 {
+                        (*self.stack[l-1]).children.push(CDATANode(chars));
+                    }
+                }
+                Ok(None)
+            }
+            Comment(cont) => {
+                let l = self.stack.len();
+                unsafe {
+                    if l > 0 {
+                        (*self.stack[l-1]).children.push(CommentNode(cont));
+                    }
+                }
+                Ok(None)
+            }
+            Null => Ok(None)
+        }
     }
 }
