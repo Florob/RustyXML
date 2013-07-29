@@ -1,5 +1,6 @@
 #[link(name = "xml", vers = "0.1", author = "Florob")];
 
+#[ crate_type = "lib" ];
 #[forbid(non_camel_case_types)];
 
 #[deriving(Clone)]
@@ -437,13 +438,11 @@ impl Parser {
 }
 
 pub struct ElementBuilder {
-    priv root: ~Element,
-    priv stack: ~[*mut Element]
+    priv stack: ~[~Element]
 }
 
 pub fn ElementBuilder() -> ElementBuilder {
     let e = ElementBuilder {
-        root: ~Element { name: ~"", attributes: ~[], children: ~[] },
         stack: ~[]
     };
     e
@@ -454,10 +453,8 @@ impl ElementBuilder {
         match e {
             PI(cont) => {
                 let l = self.stack.len();
-                unsafe {
-                    if l > 0 {
-                        (*self.stack[l-1]).children.push(PINode(cont));
-                    }
+                if l > 0 {
+                    (*self.stack[l-1]).children.push(PINode(cont));
                 }
                 Ok(None)
             }
@@ -468,64 +465,43 @@ impl ElementBuilder {
                     children: ~[]
                 };
 
-                let l = self.stack.len();
-                unsafe {
-                    if l > 0 {
-                        (*self.stack[l-1]).children.push(Element(elem));
-                        let tmp = &mut (*self.stack[l-1]).children[(*self.stack[l-1]).children.len()-1];
-                        match tmp {
-                            &Element(ref mut el) => {
-                                self.stack.push(&mut *el as *mut Element);
-                            }
-                            _ => fail!("WTF!")
-                        }
-                    } else {
-                        self.root = ~elem;
-                        self.stack.push(&mut *self.root as *mut Element);
-                    }
-                }
+                self.stack.push(~elem);
+
                 Ok(None)
             }
             EndTag { name } => {
-                unsafe {
-                    if self.stack.len() == 0 {
-                        return Ok(None);
-                    }
-                    let el = self.stack.pop();
-                    if (*el).name != name {
-                        Err(Error { line: 0, col: 0, msg: @~"Elements not properly nested" })
-                    } else if self.stack.len() == 0 {
-                        let res = (*self.root).clone();
-                        Ok(Some(res))
-                    } else {
-                        Ok(None)
-                    }
+                if self.stack.len() == 0 {
+                    return Err(Error { line: 0, col: 0, msg: @~"Elements not properly nested" });
                 }
-            },
+                let elem = self.stack.pop();
+                let l = self.stack.len();
+                if elem.name != name {
+                    Err(Error { line: 0, col: 0, msg: @~"Elements not properly nested" })
+                } else if l == 0 {
+                    Ok(Some(*elem))
+                } else {
+                    (*self.stack[l-1]).children.push(Element(*elem));
+                    Ok(None)
+                }
+            }
             Characters(chars) => {
                 let l = self.stack.len();
-                unsafe {
-                    if l > 0 {
-                        (*self.stack[l-1]).children.push(CharacterNode(chars));
-                    }
+                if l > 0 {
+                    (*self.stack[l-1]).children.push(CharacterNode(chars));
                 }
                 Ok(None)
             }
             CDATA(chars) => {
                 let l = self.stack.len();
-                unsafe {
-                    if l > 0 {
-                        (*self.stack[l-1]).children.push(CDATANode(chars));
-                    }
+                if l > 0 {
+                    (*self.stack[l-1]).children.push(CDATANode(chars));
                 }
                 Ok(None)
             }
             Comment(cont) => {
                 let l = self.stack.len();
-                unsafe {
-                    if l > 0 {
-                        (*self.stack[l-1]).children.push(CommentNode(cont));
-                    }
+                if l > 0 {
+                    (*self.stack[l-1]).children.push(CommentNode(cont));
                 }
                 Ok(None)
             }
