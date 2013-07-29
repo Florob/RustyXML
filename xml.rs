@@ -337,6 +337,7 @@ impl Parser {
             'A' if self.level == 4 => self.level += 1,
             '[' if self.level == 5 => self.level += 1,
             _ if self.level == 6 => {
+                self.buf.push_char(c);
                 self.level = 0;
                 self.st = InCDATA;
             }
