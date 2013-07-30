@@ -336,19 +336,16 @@ impl Parser {
     }
 
     fn in_CDATA_opening(&mut self, c: char) -> Result<Event, Error> {
-        match c {
-            'C' if self.level == 0 => self.level += 1,
-            'D' if self.level == 1 => self.level += 1,
-            'A' if self.level == 2 => self.level += 1,
-            'T' if self.level == 3 => self.level += 1,
-            'A' if self.level == 4 => self.level += 1,
-            '[' if self.level == 5 => self.level += 1,
-            _ if self.level == 6 => {
-                self.buf.push_char(c);
-                self.level = 0;
-                self.st = InCDATA;
-            }
-            _ => return self.error(~"Invalid CDATA opening sequence")
+        static CDATAPattern: [char, ..6] = ['C', 'D', 'A', 'T', 'A', '['];
+        if c == CDATAPattern[self.level] {
+            self.level += 1;
+        } else {
+            return self.error(~"Invalid CDATA opening sequence")
+        }
+
+        if self.level == 6 {
+            self.level = 0;
+            self.st = InCDATA;
         }
         Ok(Null)
     }
@@ -413,13 +410,13 @@ impl Parser {
     }
 
     fn in_doctype(&mut self, c: char) -> Result<Event, Error> {
+        static DOCTYPEPattern: [char, ..6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {
-            0 if c == 'O' => self.level += 1,
-            1 if c == 'C' => self.level += 1,
-            2 if c == 'T' => self.level += 1,
-            3 if c == 'Y' => self.level += 1,
-            4 if c == 'P' => self.level += 1,
-            5 if c == 'E' => self.level += 1,
+            0..5 => if c == DOCTYPEPattern[self.level] {
+		    self.level += 1;
+	    } else {
+		    return self.error(~"Invalid DOCTYPE");
+	    },
             6 => {
                 match c {
                     ' ' | '\t' | '\r' | '\n' => (),
