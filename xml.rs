@@ -186,7 +186,7 @@ impl Parser {
             '>' if self.level == 1 => {
                 self.level = 0;
                 self.st = OutsideTag;
-                let buf = self.buf.slice_chars(0, self.buf.len()-1).to_owned();
+                let buf = self.buf.slice_chars(0, self.buf.char_len()-1).to_owned();
                 self.buf = ~"";
                 return Ok(PI(buf));
             }
@@ -362,7 +362,7 @@ impl Parser {
             '>' if self.level >= 2 => {
                 self.st = OutsideTag;
                 self.level = 0;
-                let buf = self.buf.slice_chars(0, self.buf.len()-2).to_owned();
+                let buf = self.buf.slice_chars(0, self.buf.char_len()-2).to_owned();
                 self.buf = ~"";
                 return Ok(CDATA(buf))
             }
@@ -406,7 +406,7 @@ impl Parser {
             self.error(~"Not more than one adjacent '-' allowed in a comment")
         } else {
             self.st = OutsideTag;
-            let buf = self.buf.slice_chars(0, self.buf.len()-2).to_owned();
+            let buf = self.buf.slice_chars(0, self.buf.char_len()-2).to_owned();
             self.buf = ~"";
             Ok(Comment(buf))
         }
