@@ -38,7 +38,7 @@ pub enum Event {
 }
 
 #[deriving(Eq)]
-/// If an error occurs while parsing some JSON, this is the structure which is
+/// If an error occurs while parsing some XML, this is the structure which is
 /// returned
 pub struct Error {
     /// The line number at which the error occurred
@@ -433,10 +433,10 @@ impl Parser {
         static DOCTYPEPattern: [char, ..6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {
             0..5 => if c == DOCTYPEPattern[self.level] {
-		    self.level += 1;
-	    } else {
-		    return self.error(~"Invalid DOCTYPE");
-	    },
+                self.level += 1;
+            } else {
+                return self.error(~"Invalid DOCTYPE");
+            },
             6 => {
                 match c {
                     ' ' | '\t' | '\r' | '\n' => (),
@@ -481,7 +481,7 @@ impl ElementBuilder {
                     name: name.clone(),
                     attributes: attributes.clone(),
                     children: ~[]
-		});
+                });
 
                 Ok(None)
             }
