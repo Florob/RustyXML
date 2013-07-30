@@ -3,6 +3,8 @@
 #[ crate_type = "lib" ];
 #[forbid(non_camel_case_types)];
 
+use std::str;
+
 #[deriving(Clone)]
 pub enum XML {
     Element(~Element),
@@ -47,6 +49,24 @@ pub struct Error {
     msg: @~str
 }
 
+// General functions
+pub fn escape(input: &str) -> ~str {
+    let tmp = str::replace(input, "&", "&amp;");
+    let tmp = str::replace(tmp, "<", "&lt;");
+    let tmp = str::replace(tmp, ">", "&gt;");
+    let tmp = str::replace(tmp, "'", "&apos;");
+    str::replace(tmp, "\"", "&quot;")
+}
+
+pub fn unescape(input: &str) -> ~str {
+    let tmp = str::replace(input, "&quot;", "\"");
+    let tmp = str::replace(tmp, "&apos;", "'");
+    let tmp = str::replace(tmp, "&gt;", ">");
+    let tmp = str::replace(tmp, "&lt;", "<");
+    str::replace(tmp, "&amp;", "&")
+}
+
+// Event based parser
 enum State {
     OutsideTag,
     TagOpened,
@@ -154,7 +174,7 @@ impl Parser {
         match c {
             '<' if self.buf.len() > 0 => {
                 self.st = TagOpened;
-                let buf = self.buf.clone();
+                let buf = unescape(self.buf);
                 self.buf = ~"";
                 return Ok(Characters(buf));
             }
@@ -281,7 +301,7 @@ impl Parser {
             self.st = InTag;
             let name = self.attrName.clone();
             self.attrName = ~"";
-            let value = self.buf.clone();
+            let value = unescape(self.buf);
             self.buf = ~"";
             self.attributes.push(Attribute { name: name, value: value });
         } else {
@@ -434,6 +454,7 @@ impl Parser {
     }
 }
 
+// DOM Builder
 pub struct ElementBuilder {
     priv stack: ~[~Element]
 }

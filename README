@@ -6,6 +6,5 @@ Right now it provides a basic SAX-like API, and an ElementBuilder based on that.
 
 The current limitations are:
 * Incomplete error checking
-* No entity support
 * No DOM API for element structs
 * Terrible API
