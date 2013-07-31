@@ -67,12 +67,12 @@ pub struct Error {
 
 impl XML {
     pub fn to_str(&self) -> ~str {
-        match self {
-            &Element(ref elem) => elem.to_str(),
-            &CharacterNode(ref data) => escape(*data),
-            &CDATANode(ref data) => fmt!("<![CDATA[%s]]>", *data),
-            &CommentNode(ref data) => fmt!("<!--%s-->", *data),
-            &PINode(ref data) => fmt!("<?%s?>", *data)
+        match *self {
+            Element(ref elem) => elem.to_str(),
+            CharacterNode(ref data) => escape(*data),
+            CDATANode(ref data) => fmt!("<![CDATA[%s]]>", *data),
+            CommentNode(ref data) => fmt!("<!--%s-->", *data),
+            PINode(ref data) => fmt!("<?%s?>", *data)
         }
     }
 }
@@ -100,9 +100,10 @@ impl Element {
     pub fn content_str(&self) -> ~str {
         let mut res = ~"";
         for self.children.iter().advance |child| {
-            match child {
-                &Element(ref elem) => res.push_str(elem.content_str()),
-                &CharacterNode(ref data) | &CDATANode(ref data) => res.push_str(*data),
+            match *child {
+                Element(ref elem) => res.push_str(elem.content_str()),
+                CharacterNode(ref data)
+                | CDATANode(ref data) => res.push_str(*data),
                 _ => ()
             }
         }

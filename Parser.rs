@@ -149,7 +149,8 @@ impl Parser {
 
     fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
-            '/' | '>' => {
+            '/'
+            | '>' => {
                 self.st = if c == '/' {
                     ExpectClose
                 } else {
@@ -160,7 +161,10 @@ impl Parser {
                 let name = self.name.clone();
                 return Ok(Some(StartTag { name: name, attributes: ~[] }));
             }
-            ' ' | '\t' | '\r' | '\n' => {
+            ' '
+            | '\t'
+            | '\r'
+            | '\n' => {
                 self.name = self.buf.clone();
                 self.buf = ~"";
                 self.st = InTag;
@@ -172,7 +176,11 @@ impl Parser {
 
     fn in_close_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
-            ' ' | '\t' | '\r' | '\n' | '>' => {
+            ' '
+            | '\t'
+            | '\r'
+            | '\n'
+            | '>' => {
                 let buf = self.buf.clone();
                 self.buf = ~"";
                 self.st = if c == '>' {
@@ -191,7 +199,8 @@ impl Parser {
 
     fn in_tag(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
-            '/' | '>' => {
+            '/'
+            | '>' => {
                 let name = self.name.clone();
                 self.st = if c == '/' {
                     ExpectClose
@@ -203,7 +212,10 @@ impl Parser {
                 self.attributes = ~[];
                 return Ok(Some(StartTag { name: name, attributes: attr }));
             }
-            ' ' | '\t' | '\r' | '\n' => (),
+            ' '
+            | '\t'
+            | '\r'
+            | '\n' => (),
             _ => {
                 self.buf.push_char(c);
                 self.st = InAttrName;
@@ -220,7 +232,10 @@ impl Parser {
                 self.buf = ~"";
                 self.st = ExpectDelimiter;
             }
-            ' ' | '\t' | '\r' | '\n' => self.level = 1,
+            ' '
+            | '\t'
+            | '\r'
+            | '\n' => self.level = 1,
             _ if self.level == 0 => self.buf.push_char(c),
             _ => return self.error(~"Space occured in attribute name")
         }
@@ -244,11 +259,15 @@ impl Parser {
 
     fn expect_delimiter(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
-            '"' | '\'' => {
+            '"'
+            | '\'' => {
                 self.delim = c;
                 self.st = InAttrValue;
             }
-            ' ' | '\t' | '\r' | '\n' => (),
+            ' '
+            | '\t'
+            | '\r'
+            | '\n' => (),
             _ => return self.error(~"Attribute value not enclosed in ' or \"")
         }
         Ok(None)
@@ -268,7 +287,10 @@ impl Parser {
 
     fn expect_space_or_close(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
-            ' ' | '\t' | '\r' | '\n' => Ok(None),
+            ' '
+            | '\t'
+            | '\r'
+            | '\n' => Ok(None),
             '>' => {
                 self.st = OutsideTag;
                 Ok(None)
@@ -288,8 +310,8 @@ impl Parser {
     }
 
     fn in_CDATA_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
-        static CDATAPattern: [char, ..6] = ['C', 'D', 'A', 'T', 'A', '['];
-        if c == CDATAPattern[self.level] {
+        static CDATA_PATTERN: [char, ..6] = ['C', 'D', 'A', 'T', 'A', '['];
+        if c == CDATA_PATTERN[self.level] {
             self.level += 1;
         } else {
             return self.error(~"Invalid CDATA opening sequence")
@@ -362,16 +384,19 @@ impl Parser {
     }
 
     fn in_doctype(&mut self, c: char) -> Result<Option<Event>, Error> {
-        static DOCTYPEPattern: [char, ..6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
+        static DOCTYPE_PATTERN: [char, ..6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {
-            0..5 => if c == DOCTYPEPattern[self.level] {
+            0..5 => if c == DOCTYPE_PATTERN[self.level] {
                 self.level += 1;
             } else {
                 return self.error(~"Invalid DOCTYPE");
             },
             6 => {
                 match c {
-                    ' ' | '\t' | '\r' | '\n' => (),
+                    ' '
+                    | '\t'
+                    | '\r'
+                    | '\n' => (),
                     _ => return self.error(~"Invalid DOCTYPE")
                 }
                 self.level += 1;
@@ -438,9 +463,9 @@ mod tests {
     fn test_CDATA() {
         let mut p = Parser();
         let mut i = 0;
-        do p.parse_str("<![CDATA[<message to='florob@babelmonkeys.de' type='chat'><body>Hello</body></message>]]>") |event| {
+        do p.parse_str("<![CDATA[<html><head><title>x</title></head><body/></html>]]>") |event| {
             i += 1;
-            assert_eq!(event, Ok(CDATA(~"<message to='florob@babelmonkeys.de' type='chat'><body>Hello</body></message>")));
+            assert_eq!(event, Ok(CDATA(~"<html><head><title>x</title></head><body/></html>")));
         }
         assert_eq!(i, 1);
     }
