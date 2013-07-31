@@ -9,7 +9,7 @@ fn main()
     loop {
         if stdin.eof() { return; }
         let input = stdin.read_line();
-        p.push_str(input);
+        p.push_str(input + "\n");
         loop {
             /*
             match p.parse() {
@@ -26,7 +26,7 @@ fn main()
                 Ok(xml::Characters(chars)) => print(chars),
                 Ok(xml::CDATA(chars)) => print(fmt!("<![CDATA[%s]]>", chars)),
                 Ok(xml::Comment(cont)) => print(fmt!("<!--%s-->", cont)),
-                //Ok(event) => println(fmt!("%?", event)),
+                // Ok(event) => println(fmt!("%?", event)),
                 Err(e) => { println(fmt!("%?", e)); break; }
             }
             /*/

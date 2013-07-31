@@ -1,0 +1,11 @@
+#[link(name = "xml", vers = "0.1", author = "Florob")];
+
+#[ crate_type = "lib" ];
+#[forbid(non_camel_case_types)];
+
+pub use base::*;
+pub use Parser::Parser;
+pub use ElementBuilder::ElementBuilder;
+pub mod base;
+pub mod Parser;
+pub mod ElementBuilder;
