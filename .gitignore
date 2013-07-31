@@ -1,0 +1,6 @@
+*.so
+*.dll
+*.dylib
+demo
+xmltest
+libxml.dummy

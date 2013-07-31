@@ -4,7 +4,7 @@ RUSTCFLAGS := -O -Z debug-info
 all: demo libxml.dummy
 
 
-libxml.dummy: xml.rc 
+libxml.dummy: xml.rc ${SRC}
 	rustc $< -o $@ ${RUSTCFLAGS}
 	touch $@
 
