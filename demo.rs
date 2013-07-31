@@ -2,8 +2,8 @@ extern mod xml;
 
 fn main()
 {
-    let mut p = xml::Parser();
-    let mut e = xml::ElementBuilder();
+    let mut p = xml::Parser::new();
+    let mut e = xml::ElementBuilder::new();
 
     let stdin = std::io::stdin();
     loop {

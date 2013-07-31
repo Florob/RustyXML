@@ -5,14 +5,14 @@ pub struct ElementBuilder {
     priv stack: ~[~Element]
 }
 
-pub fn ElementBuilder() -> ElementBuilder {
-    let e = ElementBuilder {
-        stack: ~[]
-    };
-    e
-}
-
 impl ElementBuilder {
+    pub fn new() -> ElementBuilder {
+        let e = ElementBuilder {
+            stack: ~[]
+        };
+        e
+    }
+
     pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, Error> {
         match e {
             PI(cont) => {

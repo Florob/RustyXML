@@ -34,22 +34,22 @@ pub struct Parser {
     priv level: uint
 }
 
-pub fn Parser() -> Parser {
-    let p = Parser {
-        line: 1,
-        col: 0,
-        buf: ~"",
-        name: ~"",
-        attrName: ~"",
-        attributes: ~[],
-        delim: 0 as char,
-        st: OutsideTag,
-        level: 0
-    };
-    p
-}
-
 impl Parser {
+    pub fn new() -> Parser {
+        let p = Parser {
+            line: 1,
+            col: 0,
+            buf: ~"",
+            name: ~"",
+            attrName: ~"",
+            attributes: ~[],
+            delim: 0 as char,
+            st: OutsideTag,
+            level: 0
+        };
+        p
+    }
+
     pub fn parse_str(&mut self, data: &str, cb: &fn(Result<Event, Error>)) {
         for data.iter().advance |c| {
             if c == '\n' {
@@ -418,7 +418,7 @@ mod tests {
 
     #[test]
     fn test_start_tag() {
-        let mut p = Parser();
+        let mut p = Parser::new();
         let mut i = 0;
         do p.parse_str("<a>") |event| {
             i += 1;
@@ -429,7 +429,7 @@ mod tests {
 
     #[test]
     fn test_end_tag() {
-        let mut p = Parser();
+        let mut p = Parser::new();
         let mut i = 0;
         do p.parse_str("</a>") |event| {
             i += 1;
@@ -440,7 +440,7 @@ mod tests {
 
     #[test]
     fn test_PI() {
-        let mut p = Parser();
+        let mut p = Parser::new();
         let mut i = 0;
         do p.parse_str("<?xml version='1.0' encoding='utf-8'?>") |event| {
             i += 1;
@@ -451,7 +451,7 @@ mod tests {
 
     #[test]
     fn test_comment() {
-        let mut p = Parser();
+        let mut p = Parser::new();
         let mut i = 0;
         do p.parse_str("<!--Nothing to see-->") |event| {
             i += 1;
@@ -461,7 +461,7 @@ mod tests {
     }
     #[test]
     fn test_CDATA() {
-        let mut p = Parser();
+        let mut p = Parser::new();
         let mut i = 0;
         do p.parse_str("<![CDATA[<html><head><title>x</title></head><body/></html>]]>") |event| {
             i += 1;
@@ -472,7 +472,7 @@ mod tests {
 
     #[test]
     fn test_characters() {
-        let mut p = Parser();
+        let mut p = Parser::new();
         let mut i = 0;
         do p.parse_str("<text>Hello World, it&apos;s a nice day</text>") |event| {
             i += 1;
@@ -485,7 +485,7 @@ mod tests {
 
     #[test]
     fn test_doctype() {
-        let mut p = Parser();
+        let mut p = Parser::new();
         let mut i = 0;
         do p.parse_str("<!DOCTYPE html>") |_| {
             i += 1;
