@@ -67,7 +67,6 @@ impl ElementBuilder {
                 }
                 Ok(None)
             }
-            Null => Ok(None)
         }
     }
 }

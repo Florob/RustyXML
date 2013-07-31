@@ -9,11 +9,9 @@ fn main()
     loop {
         if stdin.eof() { return; }
         let input = stdin.read_line();
-        p.push_str(input + "\n");
-        loop {
+        do p.parse_str(input + "\n") |event| {
             /*
-            match p.parse() {
-                Ok(xml::Null) => break,
+            match event {
                 Ok(xml::PI(cont)) => print(fmt!("<?%s?>", cont)),
                 Ok(xml::StartTag(name, attrs)) => {
                     print(fmt!("<%s", name));
@@ -27,17 +25,16 @@ fn main()
                 Ok(xml::CDATA(chars)) => print(fmt!("<![CDATA[%s]]>", chars)),
                 Ok(xml::Comment(cont)) => print(fmt!("<!--%s-->", cont)),
                 // Ok(event) => println(fmt!("%?", event)),
-                Err(e) => { println(fmt!("%?", e)); break; }
+                Err(e) => println(fmt!("%?", e))
             }
             /*/
-            match p.parse() {
-                Ok(xml::Null) => break,
+            match event {
                 Ok(event) => match e.push_event(event) {
-                    Ok(Some(e)) => { println(fmt!("%?", e)); break; }
-                    Ok(None) => loop,
-                    Err(e) => { println(fmt!("%?", e)); return; }
+                    Ok(Some(e)) => println(fmt!("%?", e)),
+                    Ok(None) => (),
+                    Err(e) => println(fmt!("%?", e)),
                 },
-                Err(e) => { println(fmt!("%?", e)); return; }
+                Err(e) => println(fmt!("%?", e))
             }
 	    //*/
         }

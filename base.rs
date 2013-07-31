@@ -46,8 +46,7 @@ pub enum Event {
     EndTag { name: ~str },
     Characters(~str),
     CDATA(~str),
-    Comment(~str),
-    Null
+    Comment(~str)
 }
 
 #[deriving(Eq)]

@@ -25,7 +25,6 @@ enum State {
 pub struct Parser {
     priv line: uint,
     priv col: uint,
-    priv data: ~str,
     priv buf: ~str,
     priv name: ~str,
     priv attrName: ~str,
@@ -39,7 +38,6 @@ pub fn Parser() -> Parser {
     let p = Parser {
         line: 1,
         col: 0,
-        data: ~"",
         buf: ~"",
         name: ~"",
         attrName: ~"",
@@ -52,12 +50,8 @@ pub fn Parser() -> Parser {
 }
 
 impl Parser {
-    pub fn push_str(&mut self, buf: &str) {
-        self.data.push_str(buf);
-    }
-    pub fn parse(&mut self) -> Result<Event, Error> {
-        while self.data.len() > 0 {
-            let c = self.data.shift_char();
+    pub fn parse_str(&mut self, data: &str, cb: &fn(Result<Event, Error>)) {
+        for data.iter().advance |c| {
             if c == '\n' {
                 self.line += 1u;
                 self.col = 0u;
@@ -66,21 +60,25 @@ impl Parser {
             }
 
             match self.parse_character(c) {
-                Ok(Null) => loop,
-                Err(e) => return Err(e),
-                Ok(event) => return Ok(event)
+                Ok(None) => loop,
+                Err(e) => {
+                    cb(Err(e));
+                    return;
+                }
+                Ok(Some(event)) => {
+                    cb(Ok(event));
+                }
             }
         }
-        Ok(Null)
     }
 }
 
 impl Parser {
-    fn error(&self, msg: ~str) -> Result<Event, Error> {
+    fn error(&self, msg: ~str) -> Result<Option<Event>, Error> {
         Err(Error { line: self.line, col: self.col, msg: @msg })
     }
 
-    fn parse_character(&mut self, c: char) -> Result<Event, Error> {
+    fn parse_character(&mut self, c: char) -> Result<Option<Event>, Error> {
         // println(fmt!("Now in state: %?", self.st));
         match self.st {
             OutsideTag => self.outside_tag(c),
@@ -104,21 +102,21 @@ impl Parser {
         }
     }
 
-    fn outside_tag(&mut self, c: char) -> Result<Event, Error> {
+    fn outside_tag(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '<' if self.buf.len() > 0 => {
                 self.st = TagOpened;
                 let buf = unescape(self.buf);
                 self.buf = ~"";
-                return Ok(Characters(buf));
+                return Ok(Some(Characters(buf)));
             }
             '<' => self.st = TagOpened,
             _ => self.buf.push_char(c)
         }
-        Ok(Null)
+        Ok(None)
     }
 
-    fn tag_opened(&mut self, c: char) -> Result<Event, Error> {
+    fn tag_opened(&mut self, c: char) -> Result<Option<Event>, Error> {
         self.st = match c {
             '?' => InProcessingInstructions,
             '!' => InExclamationMark,
@@ -128,10 +126,10 @@ impl Parser {
                 InTagName
             }
         };
-        Ok(Null)
+        Ok(None)
     }
 
-    fn in_processing_instructions(&mut self, c: char) -> Result<Event, Error> {
+    fn in_processing_instructions(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '?' => {
                 self.level = 1;
@@ -142,14 +140,14 @@ impl Parser {
                 self.st = OutsideTag;
                 let buf = self.buf.slice_chars(0, self.buf.char_len()-1).to_owned();
                 self.buf = ~"";
-                return Ok(PI(buf));
+                return Ok(Some(PI(buf)));
             }
             _ => self.buf.push_char(c)
         }
-        Ok(Null)
+        Ok(None)
     }
 
-    fn in_tag_name(&mut self, c: char) -> Result<Event, Error> {
+    fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '/' | '>' => {
                 self.st = if c == '/' {
@@ -160,7 +158,7 @@ impl Parser {
                 self.name = self.buf.clone();
                 self.buf = ~"";
                 let name = self.name.clone();
-                return Ok(StartTag { name: name, attributes: ~[] });
+                return Ok(Some(StartTag { name: name, attributes: ~[] }));
             }
             ' ' | '\t' | '\r' | '\n' => {
                 self.name = self.buf.clone();
@@ -169,10 +167,10 @@ impl Parser {
             }
             _ => self.buf.push_char(c)
         }
-        Ok(Null)
+        Ok(None)
     }
 
-    fn in_close_tag_name(&mut self, c: char) -> Result<Event, Error> {
+    fn in_close_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             ' ' | '\t' | '\r' | '\n' | '>' => {
                 let buf = self.buf.clone();
@@ -182,16 +180,16 @@ impl Parser {
                 } else {
                     ExpectSpaceOrClose
                 };
-                Ok(EndTag { name: buf })
+                Ok(Some(EndTag { name: buf }))
             }
             _ => {
                 self.buf.push_char(c);
-                Ok(Null)
+                Ok(None)
             }
         }
     }
 
-    fn in_tag(&mut self, c: char) -> Result<Event, Error> {
+    fn in_tag(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '/' | '>' => {
                 let name = self.name.clone();
@@ -203,7 +201,7 @@ impl Parser {
                 };
                 let attr = self.attributes.clone();
                 self.attributes = ~[];
-                return Ok(StartTag { name: name, attributes: attr });
+                return Ok(Some(StartTag { name: name, attributes: attr }));
             }
             ' ' | '\t' | '\r' | '\n' => (),
             _ => {
@@ -211,10 +209,10 @@ impl Parser {
                 self.st = InAttrName;
             }
         }
-        Ok(Null)
+        Ok(None)
     }
 
-    fn in_attr_name(&mut self, c: char) -> Result<Event, Error> {
+    fn in_attr_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '=' => {
                 self.level = 0;
@@ -226,10 +224,10 @@ impl Parser {
             _ if self.level == 0 => self.buf.push_char(c),
             _ => return self.error(~"Space occured in attribute name")
         }
-        Ok(Null)
+        Ok(None)
     }
 
-    fn in_attr_value(&mut self, c: char) -> Result<Event, Error> {
+    fn in_attr_value(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c == self.delim {
             self.delim = 0 as char;
             self.st = InTag;
@@ -241,10 +239,10 @@ impl Parser {
         } else {
             self.buf.push_char(c);
         }
-        Ok(Null)
+        Ok(None)
     }
 
-    fn expect_delimiter(&mut self, c: char) -> Result<Event, Error> {
+    fn expect_delimiter(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '"' | '\'' => {
                 self.delim = c;
@@ -253,43 +251,43 @@ impl Parser {
             ' ' | '\t' | '\r' | '\n' => (),
             _ => return self.error(~"Attribute value not enclosed in ' or \"")
         }
-        Ok(Null)
+        Ok(None)
     }
 
-    fn expect_close(&mut self, c: char) -> Result<Event, Error> {
+    fn expect_close(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '>' => {
                 self.st = OutsideTag;
                 let name = self.name.clone();
                 self.name = ~"";
-                Ok(EndTag { name: name })
+                Ok(Some(EndTag { name: name }))
             }
             _ => self.error(~"Expected '>' to close tag")
        }
     }
 
-    fn expect_space_or_close(&mut self, c: char) -> Result<Event, Error> {
+    fn expect_space_or_close(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
-            ' ' | '\t' | '\r' | '\n' => Ok(Null),
+            ' ' | '\t' | '\r' | '\n' => Ok(None),
             '>' => {
                 self.st = OutsideTag;
-                Ok(Null)
+                Ok(None)
             }
             _ => self.error(~"Expected '>' to close tag, or LWS")
        }
     }
 
-    fn in_exclamation_mark(&mut self, c: char) -> Result<Event, Error> {
+    fn in_exclamation_mark(&mut self, c: char) -> Result<Option<Event>, Error> {
         self.st = match c {
             '-' => InCommentOpening,
             '[' => InCDATAOpening,
             'D' => InDoctype,
             _ => return self.error(~"Malformed XML")
         };
-        Ok(Null)
+        Ok(None)
     }
 
-    fn in_CDATA_opening(&mut self, c: char) -> Result<Event, Error> {
+    fn in_CDATA_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
         static CDATAPattern: [char, ..6] = ['C', 'D', 'A', 'T', 'A', '['];
         if c == CDATAPattern[self.level] {
             self.level += 1;
@@ -301,10 +299,10 @@ impl Parser {
             self.level = 0;
             self.st = InCDATA;
         }
-        Ok(Null)
+        Ok(None)
     }
 
-    fn in_CDATA(&mut self, c: char) -> Result<Event, Error> {
+    fn in_CDATA(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             ']' => {
                 self.buf.push_char(c);
@@ -315,27 +313,27 @@ impl Parser {
                 self.level = 0;
                 let buf = self.buf.slice_chars(0, self.buf.char_len()-2).to_owned();
                 self.buf = ~"";
-                return Ok(CDATA(buf))
+                return Ok(Some(CDATA(buf)))
             }
             _ => {
                 self.buf.push_char(c);
                 self.level = 0;
             }
         }
-        Ok(Null)
+        Ok(None)
     }
 
-    fn in_comment_opening(&mut self, c: char) -> Result<Event, Error> {
+    fn in_comment_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c == '-' {
             self.st = InComment1;
             self.level = 0;
-            Ok(Null)
+            Ok(None)
         } else {
             self.error(~"Expected 2nd '-' to start comment")
         }
     }
 
-    fn in_comment1(&mut self, c: char) -> Result<Event, Error> {
+    fn in_comment1(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c == '-' {
             self.level += 1;
         } else {
@@ -349,21 +347,21 @@ impl Parser {
 
         self.buf.push_char(c);
 
-        Ok(Null)
+        Ok(None)
     }
 
-    fn in_comment2(&mut self, c: char) -> Result<Event, Error> {
+    fn in_comment2(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c != '>' {
             self.error(~"Not more than one adjacent '-' allowed in a comment")
         } else {
             self.st = OutsideTag;
             let buf = self.buf.slice_chars(0, self.buf.char_len()-2).to_owned();
             self.buf = ~"";
-            Ok(Comment(buf))
+            Ok(Some(Comment(buf)))
         }
     }
 
-    fn in_doctype(&mut self, c: char) -> Result<Event, Error> {
+    fn in_doctype(&mut self, c: char) -> Result<Option<Event>, Error> {
         static DOCTYPEPattern: [char, ..6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {
             0..5 => if c == DOCTYPEPattern[self.level] {
@@ -384,6 +382,6 @@ impl Parser {
             }
             _ => ()
         }
-        Ok(Null)
+        Ok(None)
     }
 }
