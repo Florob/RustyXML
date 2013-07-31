@@ -61,3 +61,19 @@ pub struct Error {
     /// A message describing the type of the error
     msg: @~str
 }
+
+#[cfg(test)]
+priv mod tests {
+    use super::*;
+    #[test]
+    fn test_escape() {
+        let esc = escape("&<>'\"");
+        assert_eq!(esc, ~"&amp;&lt;&gt;&apos;&quot;");
+    }
+
+    #[test]
+    fn test_unescape() {
+        let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;");
+        assert_eq!(unesc, ~"&lt;<>'\"");
+    }
+}
