@@ -1,9 +1,23 @@
-all: test lib
+SRC := base.rs Parser.rs ElementBuilder.rs
+RUSTCFLAGS := -O -Z debug-info
 
-test: test.rs lib
-	rustc test.rs -L . -O -Z debug-info
+all: demo libxml.dummy
 
-lib: xml.rc
-	rustc xml.rc -O -Z debug-info
 
-.PHONY: lib
+libxml.dummy: xml.rc 
+	rustc $< -o $@ ${RUSTCFLAGS}
+	touch $@
+
+demo: demo.rs libxml.dummy
+	rustc $< -o $@ -L . ${RUSTCFLAGS}
+
+xmltest: xml.rc ${SRC}
+	rustc $< -o $@ -L . ${RUSTCFLAGS} --test
+
+test: xmltest
+	./xmltest
+
+clean:
+	rm -f *.so *.dll *.dylib *.dummy demo xmltest
+
+.PHONY: clean test
