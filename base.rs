@@ -18,7 +18,7 @@ pub fn unescape(input: &str) -> ~str {
 }
 
 // General types
-#[deriving(Clone)]
+#[deriving(Clone,Eq)]
 pub enum XML {
     Element(~Element),
     CharacterNode(~str),
@@ -27,19 +27,20 @@ pub enum XML {
     PINode(~str)
 }
 
-#[deriving(Clone)]
+#[deriving(Clone,Eq)]
 pub struct Element {
     name: ~str,
     attributes: ~[Attribute],
     children: ~[XML]
 }
 
-#[deriving(Clone)]
+#[deriving(Clone,Eq)]
 pub struct Attribute {
     name: ~str,
     value: ~str
 }
 
+#[deriving(Eq)]
 pub enum Event {
     PI(~str),
     StartTag { name: ~str, attributes: ~[Attribute] },

@@ -385,3 +385,86 @@ impl Parser {
         Ok(None)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use base::*;
+
+    #[test]
+    fn test_start_tag() {
+        let mut p = Parser();
+        let mut i = 0;
+        do p.parse_str("<a>") |event| {
+            i += 1;
+            assert_eq!(event, Ok(StartTag { name: ~"a", attributes: ~[] }));
+        }
+        assert_eq!(i, 1);
+    }
+
+    #[test]
+    fn test_end_tag() {
+        let mut p = Parser();
+        let mut i = 0;
+        do p.parse_str("</a>") |event| {
+            i += 1;
+            assert_eq!(event, Ok(EndTag { name: ~"a" }));
+        }
+        assert_eq!(i, 1);
+    }
+
+    #[test]
+    fn test_PI() {
+        let mut p = Parser();
+        let mut i = 0;
+        do p.parse_str("<?xml version='1.0' encoding='utf-8'?>") |event| {
+            i += 1;
+            assert_eq!(event, Ok(PI(~"xml version='1.0' encoding='utf-8'")));
+        }
+        assert_eq!(i, 1);
+    }
+
+    #[test]
+    fn test_comment() {
+        let mut p = Parser();
+        let mut i = 0;
+        do p.parse_str("<!--Nothing to see-->") |event| {
+            i += 1;
+            assert_eq!(event, Ok(Comment(~"Nothing to see")));
+        }
+        assert_eq!(i, 1);
+    }
+    #[test]
+    fn test_CDATA() {
+        let mut p = Parser();
+        let mut i = 0;
+        do p.parse_str("<![CDATA[<message to='florob@babelmonkeys.de' type='chat'><body>Hello</body></message>]]>") |event| {
+            i += 1;
+            assert_eq!(event, Ok(CDATA(~"<message to='florob@babelmonkeys.de' type='chat'><body>Hello</body></message>")));
+        }
+        assert_eq!(i, 1);
+    }
+
+    #[test]
+    fn test_characters() {
+        let mut p = Parser();
+        let mut i = 0;
+        do p.parse_str("<text>Hello World, it&apos;s a nice day</text>") |event| {
+            i += 1;
+            if i == 2 {
+                assert_eq!(event, Ok(Characters(~"Hello World, it's a nice day")));
+            }
+        }
+        assert_eq!(i, 3);
+    }
+
+    #[test]
+    fn test_doctype() {
+        let mut p = Parser();
+        let mut i = 0;
+        do p.parse_str("<!DOCTYPE html>") |_| {
+            i += 1;
+        }
+        assert_eq!(i, 0);
+    }
+}
