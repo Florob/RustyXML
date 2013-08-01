@@ -1,3 +1,6 @@
+#[cfg(test)]
+extern mod extra;
+
 use std::str;
 use std::uint;
 
@@ -145,7 +148,7 @@ impl Element {
 }
 
 #[cfg(test)]
-priv mod tests {
+mod tests {
     use super::*;
 
     #[test]
@@ -233,5 +236,29 @@ priv mod tests {
             ]
         };
         assert_eq!(elem.content_str(), ~"<hello/>World");
+    }
+}
+
+#[cfg(test)]
+mod bench {
+    use super::*;
+    use super::extra::test::BenchHarness;
+
+    #[bench]
+    fn bench_escape(bh: &mut BenchHarness) {
+        let input = "&<>'\"".repeat(1000);
+        do bh.iter {
+            escape(input);
+        }
+        bh.bytes = input.len() as u64;
+    }
+
+    #[bench]
+    fn bench_unescape(bh: &mut BenchHarness) {
+        let input = "&amp;&lt;&gt;&apos;&quot;".repeat(1000);
+        do bh.iter {
+            unescape(input);
+        }
+        bh.bytes = input.len() as u64;
     }
 }
