@@ -13,7 +13,7 @@ impl ElementBuilder {
         e
     }
 
-    pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, Error> {
+    pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, ~str> {
         match e {
             PI(cont) => {
                 let l = self.stack.len();
@@ -33,12 +33,12 @@ impl ElementBuilder {
             }
             EndTag { name } => {
                 if self.stack.len() == 0 {
-                    return Err(Error { line: 0, col: 0, msg: @~"Elements not properly nested" });
+                    return Err(~"Elements not properly nested");
                 }
                 let elem = self.stack.pop();
                 let l = self.stack.len();
                 if elem.name != name {
-                    Err(Error { line: 0, col: 0, msg: @~"Elements not properly nested" })
+                    Err(~"Elements not properly nested")
                 } else if l == 0 {
                     Ok(Some(*elem))
                 } else {
