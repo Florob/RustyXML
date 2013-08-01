@@ -7,11 +7,19 @@ use std::uint;
 // General functions
 #[inline]
 pub fn escape(input: &str) -> ~str {
-    let tmp = str::replace(input, "&", "&amp;");
-    let tmp = str::replace(tmp, "<", "&lt;");
-    let tmp = str::replace(tmp, ">", "&gt;");
-    let tmp = str::replace(tmp, "'", "&apos;");
-    str::replace(tmp, "\"", "&quot;")
+    let mut result = str::with_capacity(input.len());
+
+    for input.iter().advance |c| {
+        match c {
+            '&' => result.push_str("&amp;"),
+            '<' => result.push_str("&lt;"),
+            '>' => result.push_str("&gt;"),
+            '\'' => result.push_str("&apos;"),
+            '"' => result.push_str("&quot;"),
+            o => result.push_char(o)
+        }
+    }
+    result
 }
 
 #[inline]

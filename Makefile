@@ -17,6 +17,9 @@ xmltest: xml.rc ${SRC}
 test: xmltest
 	./xmltest
 
+bench: xmltest
+	./xmltest --bench
+
 clean:
 	rm -f *.so *.dll *.dylib *.dummy demo xmltest
 
