@@ -1,3 +1,9 @@
+// RustyXML
+// Copyright (c) 2013 Florian Zeitz
+//
+// This project is MIT licensed.
+// Please see the COPYING file for more information.
+
 extern mod xml;
 
 fn main()

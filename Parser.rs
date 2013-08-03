@@ -1,3 +1,13 @@
+// RustyXML
+// Copyright (c) 2013 Florian Zeitz
+//
+// This project is MIT licensed.
+// Please see the COPYING file for more information.
+//
+// The parser herein is derived from OFXMLParser as included with
+// ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
+// Permission to license this derived work under MIT license has been granted by ObjFW's author.
+
 use base::*;
 
 // Event based parser

@@ -1,3 +1,9 @@
+// RustyXML
+// Copyright (c) 2013 Florian Zeitz
+//
+// This project is MIT licensed.
+// Please see the COPYING file for more information.
+
 #[cfg(test)]
 extern mod extra;
 
