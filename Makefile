@@ -1,7 +1,7 @@
 SRC := base.rs Parser.rs ElementBuilder.rs
 RUSTCFLAGS := -O -Z debug-info
 
-all: demo libxml.dummy
+all: demo libxml.dummy doc
 
 
 libxml.dummy: xml.rc ${SRC}
@@ -20,7 +20,12 @@ test: xmltest
 bench: xmltest
 	./xmltest --bench
 
-clean:
-	rm -f *.so *.dll *.dylib *.dummy demo xmltest
+doc: doc/xml.md
 
-.PHONY: clean test
+doc/xml.md: xml.rc ${SRC}
+	rustdoc --output-format markdown --output-dir doc --output-style doc-per-crate $<
+
+clean:
+	rm -f *.so *.dll *.dylib *.dummy demo xmltest doc/xml.md
+
+.PHONY: clean test doc

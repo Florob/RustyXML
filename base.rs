@@ -11,7 +11,9 @@ use std::str;
 use std::uint;
 
 // General functions
+
 #[inline]
+/// Escapes ', ", &, <, and > with the appropriate XML entities.
 pub fn escape(input: &str) -> ~str {
     let mut result = str::with_capacity(input.len());
 
@@ -29,6 +31,7 @@ pub fn escape(input: &str) -> ~str {
 }
 
 #[inline]
+/// Unescapes all valid XML entities in a string.
 pub fn unescape(input: &str) -> ~str {
     let tmp = str::replace(input, "&quot;", "\"");
     let tmp = str::replace(tmp, "&apos;", "'");
@@ -39,34 +42,54 @@ pub fn unescape(input: &str) -> ~str {
 
 // General types
 #[deriving(Clone,Eq)]
+/// An Enum describing a XML Node
 pub enum XML {
+    /// An XML Element
     Element(~Element),
+    /// Character Data
     CharacterNode(~str),
+    /// CDATA
     CDATANode(~str),
+    /// A XML Comment
     CommentNode(~str),
+    /// Processing Information
     PINode(~str)
 }
 
 #[deriving(Clone,Eq)]
+/// A struct representing an XML element
 pub struct Element {
+    /// The element's name
     name: ~str,
+    /// The element's `Attribute`s
     attributes: ~[Attribute],
+    /// The element's child `XML` nodes
     children: ~[XML]
 }
 
 #[deriving(Clone,Eq)]
+/// A struct representing an XML attribute
 pub struct Attribute {
+    /// The attribute's name
     name: ~str,
+    /// The attribute's value
     value: ~str
 }
 
 #[deriving(Eq)]
+/// Events returned by the `Parser`
 pub enum Event {
+    /// Event indicating processing information was found
     PI(~str),
+    /// Event indicating a start tag was found
     StartTag { name: ~str, attributes: ~[Attribute] },
+    /// Event indicating a end tag was found
     EndTag { name: ~str },
+    /// Event indicating character data was found
     Characters(~str),
+    /// Event indicating CDATA was found
     CDATA(~str),
+    /// Event indicating a comment was found
     Comment(~str)
 }
 
@@ -83,6 +106,7 @@ pub struct Error {
 }
 
 impl XML {
+    /// Returns a string representation of the XML Node.
     pub fn to_str(&self) -> ~str {
         match *self {
             Element(ref elem) => elem.to_str(),
@@ -95,6 +119,7 @@ impl XML {
 }
 
 impl Element {
+    /// Returns a string representation of the XML Element.
     pub fn to_str(&self) -> ~str {
         let mut res = fmt!("<%s", self.name);
 
@@ -114,6 +139,7 @@ impl Element {
         res
     }
 
+    /// Returns the character and CDATA conatined in the element.
     pub fn content_str(&self) -> ~str {
         let mut res = ~"";
         for self.children.iter().advance |child| {
@@ -127,6 +153,8 @@ impl Element {
         res
     }
 
+    /// Gets an `Attribute` with the specified name. When an attribute with the
+    /// specified name does not exist `None` is returned.
     pub fn attribute_with_name<'a>(&'a self, name: &str) -> Option<&'a Attribute> {
         for uint::range(0, self.attributes.len()) |i| {
             let attr: &'a Attribute = &self.attributes[i];
@@ -137,6 +165,8 @@ impl Element {
         None
     }
 
+    /// Gets the first child `Element` with the specified name. When no child
+    /// with the specified name exists `None` is returned.
     pub fn child_with_name<'a>(&'a self, name: &str) -> Option<&'a Element> {
         for uint::range(0, self.children.len()) |i| {
             let child: &'a XML = &self.children[i];
@@ -148,6 +178,8 @@ impl Element {
         None
     }
 
+    /// Get all children `Element` with the specified name. When no child
+    /// with the specified name exists an empty vetor is returned.
     pub fn children_with_name<'a>(&'a self, name: &str) -> ~[&'a Element] {
         let mut res: ~[&'a Element] = ~[];
         for uint::range(0, self.children.len()) |i| {

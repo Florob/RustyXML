@@ -32,6 +32,7 @@ enum State {
     InDoctype
 }
 
+/// A streaming XML parser
 pub struct Parser {
     priv line: uint,
     priv col: uint,
@@ -45,6 +46,7 @@ pub struct Parser {
 }
 
 impl Parser {
+    /// Returns a new `Parser`
     pub fn new() -> Parser {
         let p = Parser {
             line: 1,
@@ -60,6 +62,20 @@ impl Parser {
         p
     }
 
+    /**
+     * Parses the string `data`.
+     * The callback `cb` is called for each `Event`, or `Error` generated while parsing
+     * the string.
+     *
+     * ~~~
+     * let mut p = Parser::new();
+     * do p.parse_str("<a href='http://rust-lang.org'>Rust</a>") |event| {
+     *     match event {
+     *        [...]
+     *     }
+     * }
+     * ~~~
+     */
     pub fn parse_str(&mut self, data: &str, cb: &fn(Result<Event, Error>)) {
         for data.iter().advance |c| {
             if c == '\n' {

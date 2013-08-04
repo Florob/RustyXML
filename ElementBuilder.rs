@@ -7,11 +7,13 @@
 use base::*;
 
 // DOM Builder
+/// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`
 pub struct ElementBuilder {
     priv stack: ~[~Element]
 }
 
 impl ElementBuilder {
+    /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
         let e = ElementBuilder {
             stack: ~[]
@@ -19,6 +21,10 @@ impl ElementBuilder {
         e
     }
 
+    /// Hands an `Event` to the builder.
+    /// While no root element has been finished `Ok(None)` is returned.
+    /// Once sufficent data has been received an `Element` is returned as `Ok(elem)`.
+    /// Upon Error `Err("message")` is returned.
     pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, ~str> {
         match e {
             PI(cont) => {
