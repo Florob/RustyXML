@@ -5,7 +5,7 @@ all: demo libxml.dummy doc
 
 
 libxml.dummy: xml.rc ${SRC}
-	rustc $< -o $@ ${RUSTCFLAGS}
+	rustc $< ${RUSTCFLAGS}
 	touch $@
 
 demo: demo.rs libxml.dummy

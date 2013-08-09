@@ -77,7 +77,7 @@ impl Parser {
      * ~~~
      */
     pub fn parse_str(&mut self, data: &str, cb: &fn(Result<Event, Error>)) {
-        for data.iter().advance |c| {
+        for c in data.iter() {
             if c == '\n' {
                 self.line += 1u;
                 self.col = 0u;
@@ -133,7 +133,7 @@ impl Parser {
             '<' if self.buf.len() > 0 => {
                 self.st = TagOpened;
                 let buf = unescape(self.buf);
-                self.buf = ~"";
+                self.buf.clear();
                 return Ok(Some(Characters(buf)));
             }
             '<' => self.st = TagOpened,
@@ -165,7 +165,7 @@ impl Parser {
                 self.level = 0;
                 self.st = OutsideTag;
                 let buf = self.buf.slice_chars(0, self.buf.char_len()-1).to_owned();
-                self.buf = ~"";
+                self.buf.clear();
                 return Ok(Some(PI(buf)));
             }
             _ => self.buf.push_char(c)
@@ -183,7 +183,7 @@ impl Parser {
                     OutsideTag
                 };
                 self.name = self.buf.clone();
-                self.buf = ~"";
+                self.buf.clear();
                 let name = self.name.clone();
                 return Ok(Some(StartTag { name: name, attributes: ~[] }));
             }
@@ -192,7 +192,7 @@ impl Parser {
             | '\r'
             | '\n' => {
                 self.name = self.buf.clone();
-                self.buf = ~"";
+                self.buf.clear();
                 self.st = InTag;
             }
             _ => self.buf.push_char(c)
@@ -208,7 +208,7 @@ impl Parser {
             | '\n'
             | '>' => {
                 let buf = self.buf.clone();
-                self.buf = ~"";
+                self.buf.clear();
                 self.st = if c == '>' {
                     OutsideTag
                 } else {
@@ -231,7 +231,7 @@ impl Parser {
                 self.st = if c == '/' {
                     ExpectClose
                 } else {
-                    self.name = ~"";
+                    self.name.clear();
                     OutsideTag
                 };
                 let attr = self.attributes.clone();
@@ -255,7 +255,7 @@ impl Parser {
             '=' => {
                 self.level = 0;
                 self.attrName = self.buf.clone();
-                self.buf = ~"";
+                self.buf.clear();
                 self.st = ExpectDelimiter;
             }
             ' '
@@ -273,9 +273,9 @@ impl Parser {
             self.delim = 0 as char;
             self.st = InTag;
             let name = self.attrName.clone();
-            self.attrName = ~"";
+            self.attrName.clear();
             let value = unescape(self.buf);
-            self.buf = ~"";
+            self.buf.clear();
             self.attributes.push(Attribute { name: name, value: value });
         } else {
             self.buf.push_char(c);
@@ -304,7 +304,7 @@ impl Parser {
             '>' => {
                 self.st = OutsideTag;
                 let name = self.name.clone();
-                self.name = ~"";
+                self.name.clear();
                 Ok(Some(EndTag { name: name }))
             }
             _ => self.error(~"Expected '>' to close tag")
@@ -360,7 +360,7 @@ impl Parser {
                 self.st = OutsideTag;
                 self.level = 0;
                 let buf = self.buf.slice_chars(0, self.buf.char_len()-2).to_owned();
-                self.buf = ~"";
+                self.buf.clear();
                 return Ok(Some(CDATA(buf)))
             }
             _ => {
@@ -404,7 +404,7 @@ impl Parser {
         } else {
             self.st = OutsideTag;
             let buf = self.buf.slice_chars(0, self.buf.char_len()-2).to_owned();
-            self.buf = ~"";
+            self.buf.clear();
             Ok(Some(Comment(buf)))
         }
     }

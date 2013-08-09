@@ -8,7 +8,6 @@
 extern mod extra;
 
 use std::str;
-use std::uint;
 
 // General functions
 
@@ -17,7 +16,7 @@ use std::uint;
 pub fn escape(input: &str) -> ~str {
     let mut result = str::with_capacity(input.len());
 
-    for input.iter().advance |c| {
+    for c in input.iter() {
         match c {
             '&' => result.push_str("&amp;"),
             '<' => result.push_str("&lt;"),
@@ -123,7 +122,7 @@ impl Element {
     pub fn to_str(&self) -> ~str {
         let mut res = fmt!("<%s", self.name);
 
-        for self.attributes.iter().advance |attr| {
+        for attr in self.attributes.iter() {
             res.push_str(fmt!(" %s='%s'", attr.name, escape(attr.value)));
         }
 
@@ -131,7 +130,7 @@ impl Element {
             res.push_str("/>");
         } else {
             res.push_str(">");
-            for self.children.iter().advance |child| {
+            for child in self.children.iter() {
                 res.push_str(child.to_str());
             }
             res.push_str(fmt!("</%s>", self.name));
@@ -142,7 +141,7 @@ impl Element {
     /// Returns the character and CDATA conatined in the element.
     pub fn content_str(&self) -> ~str {
         let mut res = ~"";
-        for self.children.iter().advance |child| {
+        for child in self.children.iter() {
             match *child {
                 Element(ref elem) => res.push_str(elem.content_str()),
                 CharacterNode(ref data)
@@ -156,7 +155,7 @@ impl Element {
     /// Gets an `Attribute` with the specified name. When an attribute with the
     /// specified name does not exist `None` is returned.
     pub fn attribute_with_name<'a>(&'a self, name: &str) -> Option<&'a Attribute> {
-        for uint::range(0, self.attributes.len()) |i| {
+        for i in range(0, self.attributes.len()) {
             let attr: &'a Attribute = &self.attributes[i];
             if name == attr.name {
                 return Some(attr);
@@ -168,7 +167,7 @@ impl Element {
     /// Gets the first child `Element` with the specified name. When no child
     /// with the specified name exists `None` is returned.
     pub fn child_with_name<'a>(&'a self, name: &str) -> Option<&'a Element> {
-        for uint::range(0, self.children.len()) |i| {
+        for i in range(0, self.children.len()) {
             let child: &'a XML = &self.children[i];
             match *child {
                 Element(ref elem) if name == elem.name => return Some(&**elem),
@@ -182,7 +181,7 @@ impl Element {
     /// with the specified name exists an empty vetor is returned.
     pub fn children_with_name<'a>(&'a self, name: &str) -> ~[&'a Element] {
         let mut res: ~[&'a Element] = ~[];
-        for uint::range(0, self.children.len()) |i| {
+        for i in range(0, self.children.len()) {
             let child: &'a XML = &self.children[i];
             match *child {
                 Element(ref elem) if name == elem.name => res.push(&**elem),
