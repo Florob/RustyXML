@@ -40,7 +40,7 @@ pub struct Parser {
     priv name: ~str,
     priv attrName: ~str,
     priv attributes: ~[Attribute],
-    priv delim: char,
+    priv delim: Option<char>,
     priv st: State,
     priv level: uint
 }
@@ -55,7 +55,7 @@ impl Parser {
             name: ~"",
             attrName: ~"",
             attributes: ~[],
-            delim: 0 as char,
+            delim: None,
             st: OutsideTag,
             level: 0
         };
@@ -269,8 +269,8 @@ impl Parser {
     }
 
     fn in_attr_value(&mut self, c: char) -> Result<Option<Event>, Error> {
-        if c == self.delim {
-            self.delim = 0 as char;
+        if c == self.delim.expect("In attribute value, but no delimiter set") {
+            self.delim = None;
             self.st = InTag;
             let name = self.attrName.clone();
             self.attrName.clear();
@@ -287,7 +287,7 @@ impl Parser {
         match c {
             '"'
             | '\'' => {
-                self.delim = c;
+                self.delim = Some(c);
                 self.st = InAttrValue;
             }
             ' '
