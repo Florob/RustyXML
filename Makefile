@@ -23,9 +23,9 @@ bench: xmltest
 doc: doc/xml.md
 
 doc/xml.md: xml.rc ${SRC}
-	rustdoc --output-format markdown --output-dir doc --output-style doc-per-crate $<
+	rustdoc html -o doc $<
 
 clean:
-	rm -f *.so *.dll *.dylib *.dummy demo xmltest doc/xml.md
+	rm -f *.so *.dll *.dylib *.dummy demo xmltest
 
 .PHONY: clean test doc
