@@ -8,6 +8,7 @@
 extern mod extra;
 
 use std::str;
+use std::to_str::ToStr;
 
 // General functions
 
@@ -104,9 +105,9 @@ pub struct Error {
     msg: @~str
 }
 
-impl XML {
+impl ToStr for XML {
     /// Returns a string representation of the XML Node.
-    pub fn to_str(&self) -> ~str {
+    fn to_str(&self) -> ~str {
         match *self {
             Element(ref elem) => elem.to_str(),
             CharacterNode(ref data) => escape(*data),
@@ -117,9 +118,9 @@ impl XML {
     }
 }
 
-impl Element {
+impl ToStr for Element {
     /// Returns a string representation of the XML Element.
-    pub fn to_str(&self) -> ~str {
+    fn to_str(&self) -> ~str {
         let mut res = fmt!("<%s", self.name);
 
         for attr in self.attributes.iter() {
@@ -137,7 +138,9 @@ impl Element {
         }
         res
     }
+}
 
+impl Element {
     /// Returns the character and CDATA conatined in the element.
     pub fn content_str(&self) -> ~str {
         let mut res = ~"";
