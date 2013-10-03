@@ -145,9 +145,9 @@ impl ToStr for XML {
         match *self {
             Element(ref elem) => elem.to_str(),
             CharacterNode(ref data) => escape(*data),
-            CDATANode(ref data) => fmt!("<![CDATA[%s]]>", *data),
-            CommentNode(ref data) => fmt!("<!--%s-->", *data),
-            PINode(ref data) => fmt!("<?%s?>", *data)
+            CDATANode(ref data) => format!("<![CDATA[{}]]>", *data),
+            CommentNode(ref data) => format!("<!--{}-->", *data),
+            PINode(ref data) => format!("<?{}?>", *data)
         }
     }
 }
@@ -155,10 +155,10 @@ impl ToStr for XML {
 impl ToStr for Element {
     /// Returns a string representation of the XML Element.
     fn to_str(&self) -> ~str {
-        let mut res = fmt!("<%s", self.name);
+        let mut res = "<" + self.name;
 
         for attr in self.attributes.iter() {
-            res.push_str(fmt!(" %s='%s'", attr.name, escape(attr.value)));
+            res.push_str(format!(" {}='{}'", attr.name, escape(attr.value)));
         }
 
         if self.children.len() == 0 {
@@ -168,7 +168,7 @@ impl ToStr for Element {
             for child in self.children.iter() {
                 res.push_str(child.to_str());
             }
-            res.push_str(fmt!("</%s>", self.name));
+            res.push_str(format!("</{}>", self.name));
         }
         res
     }
