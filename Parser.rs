@@ -86,7 +86,7 @@ impl Parser {
             }
 
             match self.parse_character(c) {
-                Ok(None) => loop,
+                Ok(None) => continue,
                 Err(e) => {
                     cb(Err(e));
                     return;
