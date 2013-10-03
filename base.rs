@@ -10,6 +10,10 @@ extern mod extra;
 use std::str;
 use std::to_str::ToStr;
 
+condition! {
+    pub unrecognized_entity: (~str) -> ~str;
+}
+
 // General functions
 
 #[inline]
@@ -33,11 +37,41 @@ pub fn escape(input: &str) -> ~str {
 #[inline]
 /// Unescapes all valid XML entities in a string.
 pub fn unescape(input: &str) -> ~str {
-    let tmp = str::replace(input, "&quot;", "\"");
-    let tmp = str::replace(tmp, "&apos;", "'");
-    let tmp = str::replace(tmp, "&gt;", ">");
-    let tmp = str::replace(tmp, "&lt;", "<");
-    str::replace(tmp, "&amp;", "&")
+    let mut result = str::with_capacity(input.len());
+
+    let mut ent = ~"";
+    let mut in_entity = false;
+    for c in input.iter() {
+        if !in_entity {
+            if c != '&' {
+                result.push_char(c);
+            } else {
+                ent = ~"&";
+                in_entity = true;
+            }
+            continue;
+        }
+
+        ent.push_char(c);
+        if c == ';' {
+            let ent_s = ent.as_slice();
+            if ent_s == "&quot;" {
+                result.push_char('"');
+            } else if ent_s == "&apos;" {
+                result.push_char('\'');
+            } else if ent_s == "&gt;" {
+                result.push_char('>');
+            } else if ent_s == "&lt;" {
+                result.push_char('<');
+            } else if ent_s == "&amp;" {
+                result.push_char('&');
+            } else {
+                result.push_str(unrecognized_entity::cond.raise(ent.clone()));
+            }
+            in_entity = false;
+        }
+    }
+    result
 }
 
 // General types
@@ -209,6 +243,16 @@ mod tests {
     fn test_unescape() {
         let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;");
         assert_eq!(unesc, ~"&lt;<>'\"");
+    }
+
+    #[test]
+    fn test_unescape_cond() {
+        do unrecognized_entity::cond.trap(|ent| {
+            if ent.as_slice() == "&nbsp;" { ~"\u00a0" } else { ent }
+        }).inside {
+            let unesc = unescape("&nbsp;&foo;");
+            assert_eq!(unesc, ~"\u00a0&foo;");
+        }
     }
 
     #[test]
