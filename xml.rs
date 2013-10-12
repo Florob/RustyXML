@@ -4,9 +4,13 @@
 #[forbid(non_camel_case_types)];
 #[warn(missing_doc)];
 
-pub use base::*;
+pub use base::{escape, unescape, unrecognized_entity};
+pub use base::{XML, Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
+pub use base::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
+pub use base::Error;
 pub use Parser::Parser;
 pub use ElementBuilder::ElementBuilder;
+
 use std::from_str::FromStr;
 pub mod base;
 pub mod Parser;

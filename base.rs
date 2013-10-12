@@ -4,9 +4,6 @@
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
-#[cfg(test)]
-extern mod extra;
-
 use std::str;
 use std::to_str::ToStr;
 
@@ -116,15 +113,31 @@ pub enum Event {
     /// Event indicating processing information was found
     PI(~str),
     /// Event indicating a start tag was found
-    StartTag { name: ~str, attributes: ~[Attribute] },
+    StartTag(StartTag),
     /// Event indicating a end tag was found
-    EndTag { name: ~str },
+    EndTag(EndTag),
     /// Event indicating character data was found
     Characters(~str),
     /// Event indicating CDATA was found
     CDATA(~str),
     /// Event indicating a comment was found
     Comment(~str)
+}
+
+#[deriving(Eq)]
+/// Structure describint an opening tag
+pub struct StartTag {
+    /// The tag's name
+    name: ~str,
+    /// Attributes included in the tag
+    attributes: ~[Attribute]
+}
+
+#[deriving(Eq)]
+/// Structure describint n closing tag
+pub struct EndTag {
+    /// The tag's name
+    name: ~str
 }
 
 #[deriving(Eq)]
@@ -231,7 +244,8 @@ impl Element {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{escape, unescape, unrecognized_entity};
+    use super::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
 
     #[test]
     fn test_escape() {
@@ -333,8 +347,9 @@ mod tests {
 
 #[cfg(test)]
 mod bench {
-    use super::*;
-    use super::extra::test::BenchHarness;
+    extern mod extra;
+    use self::extra::test::BenchHarness;
+    use super::{escape, unescape};
 
     #[bench]
     fn bench_escape(bh: &mut BenchHarness) {

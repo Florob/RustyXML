@@ -8,7 +8,7 @@
 // ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
-use base::*;
+use base::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment, Error};
 
 // Event based parser
 enum State {
@@ -185,7 +185,7 @@ impl Parser {
                 self.name = self.buf.clone();
                 self.buf.clear();
                 let name = self.name.clone();
-                return Ok(Some(StartTag { name: name, attributes: ~[] }));
+                return Ok(Some(StartTag(StartTag { name: name, attributes: ~[] })));
             }
             ' '
             | '\t'
@@ -214,7 +214,7 @@ impl Parser {
                 } else {
                     ExpectSpaceOrClose
                 };
-                Ok(Some(EndTag { name: buf }))
+                Ok(Some(EndTag(EndTag { name: buf })))
             }
             _ => {
                 self.buf.push_char(c);
@@ -236,7 +236,7 @@ impl Parser {
                 };
                 let attr = self.attributes.clone();
                 self.attributes = ~[];
-                return Ok(Some(StartTag { name: name, attributes: attr }));
+                return Ok(Some(StartTag(StartTag { name: name, attributes: attr })));
             }
             ' '
             | '\t'
@@ -305,7 +305,7 @@ impl Parser {
                 self.st = OutsideTag;
                 let name = self.name.clone();
                 self.name.clear();
-                Ok(Some(EndTag { name: name }))
+                Ok(Some(EndTag(EndTag { name: name })))
             }
             _ => self.error(~"Expected '>' to close tag")
        }
@@ -439,8 +439,8 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use base::*;
+    use super::Parser;
+    use base::{StartTag, EndTag, PI, Comment, CDATA, Characters};
 
     #[test]
     fn test_start_tag() {
@@ -448,7 +448,7 @@ mod tests {
         let mut i = 0;
         do p.parse_str("<a>") |event| {
             i += 1;
-            assert_eq!(event, Ok(StartTag { name: ~"a", attributes: ~[] }));
+            assert_eq!(event, Ok(StartTag(StartTag { name: ~"a", attributes: ~[] })));
         }
         assert_eq!(i, 1);
     }
@@ -459,7 +459,7 @@ mod tests {
         let mut i = 0;
         do p.parse_str("</a>") |event| {
             i += 1;
-            assert_eq!(event, Ok(EndTag { name: ~"a" }));
+            assert_eq!(event, Ok(EndTag(EndTag { name: ~"a" })));
         }
         assert_eq!(i, 1);
     }

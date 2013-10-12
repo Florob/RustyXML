@@ -4,7 +4,8 @@
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
-use base::*;
+use base::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
+use base::{Element, CharacterNode, CDATANode, CommentNode, PINode};
 
 // DOM Builder
 /// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`
@@ -34,7 +35,7 @@ impl ElementBuilder {
                 }
                 Ok(None)
             }
-            StartTag { name, attributes } => {
+            StartTag(StartTag { name, attributes }) => {
                 self.stack.push(~Element {
                     name: name.clone(),
                     attributes: attributes.clone(),
@@ -43,7 +44,7 @@ impl ElementBuilder {
 
                 Ok(None)
             }
-            EndTag { name } => {
+            EndTag(EndTag { name }) => {
                 if self.stack.len() == 0 {
                     return Err(~"Elements not properly nested");
                 }

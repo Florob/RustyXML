@@ -22,11 +22,8 @@ test: xmltest
 bench: xmltest
 	./xmltest --bench
 
-doc: doc/xml.md
-
-doc/xml.md: xml.rs ${SRC}
-	rustdoc html -o doc $<
-	${RUSTDOC} html -o doc $<
+doc: xml.rs ${SRC}
+	${RUSTDOC} -w html -o doc $<
 
 clean:
 	rm -f *.so *.dll *.dylib *.dummy demo xmltest
