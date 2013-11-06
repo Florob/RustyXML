@@ -149,7 +149,7 @@ pub struct Error {
     /// The column number at which the error occurred
     col: uint,
     /// A message describing the type of the error
-    msg: @~str
+    msg: ~str
 }
 
 impl ToStr for XML {

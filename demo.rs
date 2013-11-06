@@ -5,44 +5,41 @@
 // Please see the COPYING file for more information.
 
 extern mod xml;
+use std::rt::io::File;
+use std::rt::io::Reader;
+use std::path::Path;
 
 fn main()
 {
+    let args = std::os::args();
+    if args.len() != 2 {
+        println!("Usage: {} <file>", args[0]);
+        return;
+    }
+
+    let f = &Path::new(args[1].clone());
+    if !f.exists() {
+        println!("File '{}' does not exist", args[1]);
+        return;
+    }
+    let mut rdr = File::open(f).expect("Couldn't open file");
+
     let mut p = xml::Parser::new();
     let mut e = xml::ElementBuilder::new();
 
-    let stdin = std::io::stdin();
-    loop {
-        if stdin.eof() { return; }
-        let input = stdin.read_line();
-        do p.parse_str(input + "\n") |event| {
-            /*
-            match event {
-                Ok(xml::PI(cont)) => print!("<?{}?>", cont),
-                Ok(xml::StartTag(xml::StartTag{name, attributes})) => {
-                    print("<" + name);
-                    for attr in attributes.iter() {
-                        print!(" {}='{}'", attr.name, attr.value);
-                    }
-                    print(">");
-                }
-                Ok(xml::EndTag(xml::EndTag{name})) => print!("</{}>", name),
-                Ok(xml::Characters(chars)) => print(chars),
-                Ok(xml::CDATA(chars)) => print!("<![CDATA[{}]]>", chars),
-                Ok(xml::Comment(cont)) => print!("<!--{}-->", cont),
-                // Ok(event) => println!("{}", event),
-                Err(e) => println!("Line: {} Column: {} Msg: {}", e.line, e.col, *e.msg),
-            }
-            /*/
+    while !rdr.eof() {
+        let mut buf = [0u8, 4096];
+        rdr.read(buf);
+        let string = std::str::from_utf8(buf);
+        do p.parse_str(string) |event| {
             match event {
                 Ok(event) => match e.push_event(event) {
                     Ok(Some(e)) => println(e.to_str()),
                     Ok(None) => (),
                     Err(e) => println!("{}", e),
                 },
-                Err(e) => println!("Line: {} Column: {} Msg: {}", e.line, e.col, *e.msg),
+                Err(e) => println!("Line: {} Column: {} Msg: {}", e.line, e.col, e.msg),
             }
-            //*/
         }
     }
 }

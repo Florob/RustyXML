@@ -4,8 +4,8 @@
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
-use base::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
-use base::{Element, CharacterNode, CDATANode, CommentNode, PINode};
+use super::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
+use super::{Element, CharacterNode, CDATANode, CommentNode, PINode};
 
 // DOM Builder
 /// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`

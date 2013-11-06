@@ -8,7 +8,7 @@
 // ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
-use base::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment, Error};
+use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment, Error};
 
 // Event based parser
 enum State {
@@ -101,7 +101,7 @@ impl Parser {
 
 impl Parser {
     fn error(&self, msg: ~str) -> Result<Option<Event>, Error> {
-        Err(Error { line: self.line, col: self.col, msg: @msg })
+        Err(Error { line: self.line, col: self.col, msg: msg })
     }
 
     fn parse_character(&mut self, c: char) -> Result<Option<Event>, Error> {

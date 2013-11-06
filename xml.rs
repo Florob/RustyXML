@@ -12,9 +12,9 @@ pub use Parser::Parser;
 pub use ElementBuilder::ElementBuilder;
 
 use std::from_str::FromStr;
-pub mod base;
-pub mod Parser;
-pub mod ElementBuilder;
+mod base;
+mod Parser;
+mod ElementBuilder;
 
 impl FromStr for Element {
     #[inline]
