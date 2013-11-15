@@ -1,6 +1,6 @@
-#[link(name = "xml", vers = "0.1", author = "Florob")];
+#[link(name = "xml", vers = "0.1", package_id = "xml", author = "Florob")];
 
-#[ crate_type = "lib" ];
+#[crate_type = "lib" ];
 #[forbid(non_camel_case_types)];
 #[warn(missing_doc)];
 

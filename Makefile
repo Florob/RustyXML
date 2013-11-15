@@ -1,31 +1,23 @@
-SRC := base.rs Parser.rs ElementBuilder.rs
-RUSTCFLAGS := -O -Z debug-info
-RUSTC ?= rustc
+RUSTPKGFLAGS := -O -Zdebug-info
+RUSTPKG ?= rustpkg
 RUSTDOC ?= rustdoc
 
-all: demo libxml.dummy doc
+all: demo doc
 
 
-libxml.dummy: xml.rs ${SRC}
-	${RUSTC} $< ${RUSTCFLAGS}
-	touch $@
+lib:
+	${RUSTPKG} build ${RUSTPKGFLAGS} xml
 
-demo: demo.rs libxml.dummy
-	${RUSTC} $< -o $@ -L . ${RUSTCFLAGS}
+demo:
+	${RUSTPKG} build ${RUSTPKGFLAGS} xmldemo
 
-xmltest: xml.rs ${SRC}
-	${RUSTC} $< -o $@ -L . ${RUSTCFLAGS} --test
+test:
+	${RUSTPKG} test xml
 
-test: xmltest
-	./xmltest
-
-bench: xmltest
-	./xmltest --bench
-
-doc: xml.rs ${SRC}
-	${RUSTDOC} -w html -o doc $<
+doc:
+	${RUSTDOC} src/xml/lib.rs
 
 clean:
-	rm -f *.so *.dll *.dylib *.dummy demo xmltest
+	${RUSTPKG} clean
 
-.PHONY: clean test doc
+.PHONY: all lib demo doc test clean 

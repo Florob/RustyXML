@@ -1,7 +1,7 @@
 *.so
 *.dll
 *.dylib
-demo
-xmltest
-libxml.dummy
+bin/
+build/
 doc/
+lib/

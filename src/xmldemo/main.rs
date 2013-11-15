@@ -5,8 +5,8 @@
 // Please see the COPYING file for more information.
 
 extern mod xml;
-use std::rt::io::File;
-use std::rt::io::Reader;
+use std::io::File;
+use std::io::Reader;
 use std::path::Path;
 
 fn main()
