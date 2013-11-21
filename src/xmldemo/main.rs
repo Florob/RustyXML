@@ -28,7 +28,7 @@ fn main()
     let mut e = xml::ElementBuilder::new();
 
     while !rdr.eof() {
-        let mut buf = [0u8, 4096];
+        let mut buf = [0u8, ..4096];
         rdr.read(buf);
         let string = std::str::from_utf8(buf);
         do p.parse_str(string) |event| {
