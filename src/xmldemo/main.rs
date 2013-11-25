@@ -29,9 +29,24 @@ fn main()
 
     while !rdr.eof() {
         let mut buf = [0u8, ..4096];
-        rdr.read(buf);
-        let string = std::str::from_utf8(buf);
-        do p.parse_str(string) |event| {
+        let mut len = match rdr.read(buf.mut_slice_to(4093)) {
+            None => 0,
+            Some(i) => i
+        };
+
+        if !std::str::is_utf8(buf) {
+            let mut pos = len-1;
+            while std::str::utf8_char_width(buf[pos]) == 0 {
+                pos -= 1
+            }
+            let width = std::str::utf8_char_width(buf[pos]);
+            let missing = pos+width-len;
+            rdr.read(buf.mut_slice(len, len+missing));
+            len += missing;
+        }
+
+        let string = std::str::from_utf8_slice(buf.slice_to(len));
+        p.parse_str(string, |event| {
             match event {
                 Ok(event) => match e.push_event(event) {
                     Ok(Some(e)) => println(e.to_str()),
@@ -40,6 +55,6 @@ fn main()
                 },
                 Err(e) => println!("Line: {} Column: {} Msg: {}", e.line, e.col, e.msg),
             }
-        }
+        });
     }
 }
