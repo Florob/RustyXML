@@ -76,7 +76,7 @@ impl Parser {
      * ~~~
      */
     pub fn parse_str(&mut self, data: &str, cb: &fn(Result<Event, Error>)) {
-        for c in data.iter() {
+        for c in data.chars() {
             if c == '\n' {
                 self.line += 1u;
                 self.col = 0u;

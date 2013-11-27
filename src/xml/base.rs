@@ -18,7 +18,7 @@ condition! {
 pub fn escape(input: &str) -> ~str {
     let mut result = str::with_capacity(input.len());
 
-    for c in input.iter() {
+    for c in input.chars() {
         match c {
             '&' => result.push_str("&amp;"),
             '<' => result.push_str("&lt;"),
@@ -38,7 +38,7 @@ pub fn unescape(input: &str) -> ~str {
 
     let mut ent = ~"";
     let mut in_entity = false;
-    for c in input.iter() {
+    for c in input.chars() {
         if !in_entity {
             if c != '&' {
                 result.push_char(c);
