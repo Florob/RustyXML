@@ -75,7 +75,7 @@ impl Parser {
      * }
      * ~~~
      */
-    pub fn parse_str(&mut self, data: &str, cb: &fn(Result<Event, Error>)) {
+    pub fn parse_str(&mut self, data: &str, cb: |Result<Event, Error>|) {
         for c in data.chars() {
             if c == '\n' {
                 self.line += 1u;

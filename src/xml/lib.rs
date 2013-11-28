@@ -23,7 +23,7 @@ impl FromStr for Element {
         let mut e = ElementBuilder::ElementBuilder::new();
         let mut result = None;
 
-        do p.parse_str(data) |event| {
+        p.parse_str(data, |event| {
             match event {
                 Ok(event) => match e.push_event(event) {
                     Ok(Some(elem)) => result = Some(elem),
@@ -31,7 +31,7 @@ impl FromStr for Element {
                 },
                 _ => ()
             }
-        }
+        });
         result
     }
 }
