@@ -11,3 +11,11 @@ The current limitations are:
 * Incomplete error checking
 * Missing documentation
 * No namespace support
+
+License
+-------
+
+This project is MIT licensed.
+
+Please see the COPYING file for more information.
+

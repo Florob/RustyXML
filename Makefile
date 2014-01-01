@@ -19,5 +19,6 @@ doc:
 
 clean:
 	${RUSTPKG} clean
+	$(RM) -r bin build doc lib
 
 .PHONY: all lib demo doc test clean 

@@ -45,7 +45,7 @@ fn main()
             len += missing;
         }
 
-        let string = std::str::from_utf8_slice(buf.slice_to(len));
+        let string = std::str::from_utf8(buf.slice_to(len));
         p.parse_str(string, |event| {
             match event {
                 Ok(event) => match e.push_event(event) {
