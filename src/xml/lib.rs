@@ -1,6 +1,7 @@
 #[crate_id = "xml#0.1"];
 #[crate_type = "lib" ];
 #[forbid(non_camel_case_types)];
+#[warn(missing_doc)]
 
 pub use base::{escape, unescape, unrecognized_entity};
 pub use base::{XML, Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};

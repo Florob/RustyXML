@@ -3,7 +3,7 @@ extern mod xml;
 
 #[cfg(test)]
 mod base_tests {
-    use xml::{escape, unescape};
+    use xml::{escape, unescape, unrecognized_entity};
     use xml::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
 
     #[test]
@@ -18,17 +18,15 @@ mod base_tests {
         assert_eq!(unesc, ~"&lt;<>'\"");
     }
 
-    /*
     #[test]
     fn test_unescape_cond() {
-        do unrecognized_entity::cond.trap(|ent| {
+        unrecognized_entity::cond.trap(|ent| {
             if ent.as_slice() == "&nbsp;" { ~"\u00a0" } else { ent }
-        }).inside {
+        }).inside(|| {
             let unesc = unescape("&nbsp;&foo;");
             assert_eq!(unesc, ~"\u00a0&foo;");
-        }
+        })
     }
-    */
 
     #[test]
     fn test_to_str_element() {
