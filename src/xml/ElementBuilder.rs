@@ -6,20 +6,22 @@
 
 use super::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
 use super::{Element, CharacterNode, CDATANode, CommentNode, PINode};
+use std::hashmap::HashMap;
 
 // DOM Builder
 /// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`
 pub struct ElementBuilder {
-    priv stack: ~[~Element]
+    priv stack: ~[Element],
+    priv default_ns: ~[Option<~str>]
 }
 
 impl ElementBuilder {
     /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
-        let e = ElementBuilder {
-            stack: ~[]
-        };
-        e
+        ElementBuilder {
+            stack: ~[],
+            default_ns: ~[]
+        }
     }
 
     /// Hands an `Event` to the builder.
@@ -31,52 +33,83 @@ impl ElementBuilder {
             PI(cont) => {
                 let l = self.stack.len();
                 if l > 0 {
-                    (*self.stack[l-1]).children.push(PINode(cont));
+                    self.stack[l-1].children.push(PINode(cont));
                 }
                 Ok(None)
             }
-            StartTag(StartTag { name, attributes }) => {
-                self.stack.push(~Element {
+            StartTag(StartTag { name, ns, prefix: _, attributes }) => {
+                let mut elem = Element {
                     name: name.clone(),
-                    attributes: attributes.clone(),
+                    ns: ns.clone(),
+                    default_ns: None,
+                    prefixes: HashMap::with_capacity(2),
+                    attributes: ~[],
                     children: ~[]
-                });
+                };
+
+                elem.prefixes.swap(~"http://www.w3.org/XML/1998/namespace", ~"xml");
+                elem.prefixes.swap(~"http://www.w3.org/2000/xmlns/", ~"xmlns");
+
+                if !self.default_ns.is_empty() {
+                    let cur_default = self.default_ns.last().clone();
+                    self.default_ns.push(cur_default);
+                }
+
+                for attr in attributes.iter() {
+                    if attr.ns == None && attr.name.as_slice() == "xmlns" {
+                        self.default_ns.pop_opt();
+                        if attr.value.len() == 0 {
+                            self.default_ns.push(None);
+                        } else {
+                            self.default_ns.push(Some(attr.value.clone()));
+                        }
+                        continue;
+                    }
+                    if attr.ns == Some(~"http://www.w3.org/2000/xmlns/") {
+                        elem.prefixes.swap(attr.value.clone(), attr.name.clone());
+                    }
+                    elem.attributes.push(attr.clone());
+                }
+                elem.default_ns = self.default_ns.last_opt().unwrap_or(&None).clone();
+
+                self.stack.push(elem);
 
                 Ok(None)
             }
-            EndTag(EndTag { name }) => {
+            EndTag(EndTag { name, ns, prefix: _ }) => {
                 if self.stack.len() == 0 {
                     return Err(~"Elements not properly nested");
                 }
+                self.default_ns.pop_opt();
                 let elem = self.stack.pop();
                 let l = self.stack.len();
-                if elem.name != name {
+                if elem.name != name || elem.ns != ns {
                     Err(~"Elements not properly nested")
                 } else if l == 0 {
-                    Ok(Some(*elem))
+                    Ok(Some(elem))
                 } else {
-                    (*self.stack[l-1]).children.push(Element(elem));
+                    self.stack[l-1].children.push(Element(elem));
                     Ok(None)
                 }
             }
             Characters(chars) => {
                 let l = self.stack.len();
                 if l > 0 {
-                    (*self.stack[l-1]).children.push(CharacterNode(chars));
+                    self.stack[l-1].children.push(CharacterNode(chars));
                 }
                 Ok(None)
             }
             CDATA(chars) => {
                 let l = self.stack.len();
                 if l > 0 {
-                    (*self.stack[l-1]).children.push(CDATANode(chars));
+                    self.stack[l-1].children.push(CDATANode(chars));
                 }
                 Ok(None)
             }
             Comment(cont) => {
                 let l = self.stack.len();
                 if l > 0 {
-                    (*self.stack[l-1]).children.push(CommentNode(cont));
+                    self.stack[l-1].children.push(CommentNode(cont));
                 }
                 Ok(None)
             }

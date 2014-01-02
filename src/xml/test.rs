@@ -5,6 +5,7 @@ extern mod xml;
 mod base_tests {
     use xml::{escape, unescape, unrecognized_entity};
     use xml::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
+    use std::hashmap::HashMap;
 
     #[test]
     fn test_escape() {
@@ -30,13 +31,23 @@ mod base_tests {
 
     #[test]
     fn test_to_str_element() {
-        let elem = Element { name: ~"a", attributes: ~[], children: ~[] };
+        let elem = Element {
+            name: ~"a",
+            ns: None,
+            default_ns: None,
+            prefixes: HashMap::new(),
+            attributes: ~[],
+            children: ~[]
+        };
         assert_eq!(elem.to_str(), ~"<a/>");
 
         let elem = Element {
             name: ~"a",
+            ns: None,
+            default_ns: None,
+            prefixes: HashMap::new(),
             attributes: ~[
-                Attribute { name: ~"href", value: ~"http://rust-lang.org" }
+                Attribute { name: ~"href", ns: None, value: ~"http://rust-lang.org" }
             ],
             children: ~[]
         };
@@ -44,20 +55,40 @@ mod base_tests {
 
         let elem = Element {
             name: ~"a",
+            ns: None,
+            default_ns: None,
+            prefixes: HashMap::new(),
             attributes: ~[],
             children: ~[
-                Element(~Element { name: ~"b", attributes: ~[], children: ~[] })
+                Element(Element {
+                    name: ~"b",
+                    ns: None,
+                    default_ns: None,
+                    prefixes: HashMap::new(),
+                    attributes: ~[],
+                    children: ~[]
+                })
             ]
         };
         assert_eq!(elem.to_str(), ~"<a><b/></a>");
 
         let elem = Element {
             name: ~"a",
+            ns: None,
+            default_ns: None,
+            prefixes: HashMap::new(),
             attributes: ~[
-                Attribute { name: ~"href", value: ~"http://rust-lang.org" }
+                Attribute { name: ~"href", ns: None, value: ~"http://rust-lang.org" }
             ],
             children: ~[
-                Element(~Element { name: ~"b", attributes: ~[], children: ~[] })
+                Element(Element {
+                    name: ~"b",
+                    ns: None,
+                    default_ns: None,
+                    prefixes: HashMap::new(),
+                    attributes: ~[],
+                    children: ~[]
+                })
             ]
         };
         assert_eq!(elem.to_str(), ~"<a href='http://rust-lang.org'><b/></a>");
@@ -91,11 +122,21 @@ mod base_tests {
     fn test_content_str() {
         let elem = Element {
             name: ~"a",
+            ns: None,
+            default_ns: None,
+            prefixes: HashMap::new(),
             attributes: ~[],
             children: ~[
                 PINode(~"processing information"),
                 CDATANode(~"<hello/>"),
-                Element(~Element{ name: ~"b", attributes: ~[], children: ~[] }),
+                Element(Element{
+                    name: ~"b",
+                    ns: None,
+                    default_ns: None,
+                    prefixes: HashMap::new(),
+                    attributes: ~[],
+                    children: ~[]
+                }),
                 CharacterNode(~"World"),
                 CommentNode(~"Nothing to see")
             ]
@@ -140,7 +181,12 @@ mod parser_tests {
         let mut i = 0;
         p.parse_str("<a>", |event| {
             i += 1;
-            assert_eq!(event, Ok(StartTag(StartTag { name: ~"a", attributes: ~[] })));
+            assert_eq!(event, Ok(StartTag(StartTag {
+                name: ~"a",
+                ns: None,
+                prefix:None,
+                attributes: ~[]
+            })));
         });
         assert_eq!(i, 1);
     }
@@ -151,7 +197,7 @@ mod parser_tests {
         let mut i = 0;
         p.parse_str("</a>", |event| {
             i += 1;
-            assert_eq!(event, Ok(EndTag(EndTag { name: ~"a" })));
+            assert_eq!(event, Ok(EndTag(EndTag { name: ~"a", ns: None, prefix: None })));
         });
         assert_eq!(i, 1);
     }

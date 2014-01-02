@@ -9,6 +9,7 @@
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
 use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment, Error};
+use std::hashmap::HashMap;
 
 // Event based parser
 enum State {
@@ -38,7 +39,10 @@ pub struct Parser {
     priv col: uint,
     priv buf: ~str,
     priv name: ~str,
-    priv attrName: ~str,
+    priv prefix: Option<~str>,
+    priv namespaces: ~[HashMap<~str, ~str>],
+    priv attr_name: ~str,
+    priv attr_prefix: Option<~str>,
     priv attributes: ~[Attribute],
     priv delim: Option<char>,
     priv st: State,
@@ -48,17 +52,23 @@ pub struct Parser {
 impl Parser {
     /// Returns a new `Parser`
     pub fn new() -> Parser {
-        Parser {
+        let mut p = Parser {
             line: 1,
             col: 0,
             buf: ~"",
             name: ~"",
-            attrName: ~"",
+            prefix: None,
+            namespaces: ~[HashMap::with_capacity(2)],
+            attr_name: ~"",
+            attr_prefix: None,
             attributes: ~[],
             delim: None,
             st: OutsideTag,
             level: 0
-        }
+        };
+        p.namespaces[0].swap(~"xml", ~"http://www.w3.org/XML/1998/namespace");
+        p.namespaces[0].swap(~"xmlns", ~"http://www.w3.org/2000/xmlns/");
+        p
     }
 
     /**
@@ -98,7 +108,35 @@ impl Parser {
     }
 }
 
+#[inline]
+fn parse_qname(qname: &str) -> (Option<~str>, ~str) {
+    match qname.find(':') {
+        None => {
+            (None, qname.to_owned())
+        },
+        Some(i) => {
+            (Some(qname.slice_to(i).to_owned()), qname.slice_from(i+1).to_owned())
+        }
+    }
+}
+
 impl Parser {
+    fn namespace_for_prefix(&self, prefix: &~str) -> Option<~str> {
+        for ns in self.namespaces.rev_iter() {
+            match ns.find(prefix) {
+                None => continue,
+                Some(namespace) => {
+                    if namespace.len() == 0 {
+                        return None;
+                    } else {
+                        return Some(namespace.to_owned());
+                    }
+                }
+            }
+        }
+        None
+    }
+
     fn error(&self, msg: ~str) -> Result<Option<Event>, Error> {
         Err(Error { line: self.line, col: self.col, msg: msg })
     }
@@ -173,25 +211,47 @@ impl Parser {
     }
 
     fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
+        fn set_name(p: &mut Parser) {
+            let (prefix, name) = parse_qname(p.buf);
+            p.prefix = prefix;
+            p.name = name;
+            p.buf.clear();
+        };
+
         match c {
             '/'
             | '>' => {
+                set_name(self);
+                let prefix = self.prefix.take();
+                let ns = match prefix {
+                    None => self.namespace_for_prefix(&~""),
+                    Some(ref pre) => {
+                        self.namespace_for_prefix(pre).or_else(|| {
+                            fail!("Unbound prefix: '{}'", *pre)
+                        })
+                    }
+                };
+
+                self.namespaces.push(HashMap::new());
                 self.st = if c == '/' {
                     ExpectClose
                 } else {
                     OutsideTag
                 };
-                self.name = self.buf.clone();
-                self.buf.clear();
-                let name = self.name.clone();
-                return Ok(Some(StartTag(StartTag { name: name, attributes: ~[] })));
+
+                return Ok(Some(StartTag(StartTag {
+                    name: self.name.clone(),
+                    ns: ns,
+                    prefix: prefix,
+                    attributes: ~[]
+                })));
             }
             ' '
             | '\t'
             | '\r'
             | '\n' => {
-                self.name = self.buf.clone();
-                self.buf.clear();
+                self.namespaces.push(HashMap::new());
+                set_name(self);
                 self.st = InTag;
             }
             _ => self.buf.push_char(c)
@@ -206,14 +266,26 @@ impl Parser {
             | '\r'
             | '\n'
             | '>' => {
-                let buf = self.buf.clone();
+                let (prefix, name) = parse_qname(self.buf);
                 self.buf.clear();
+
+                let ns = match prefix {
+                    None => self.namespace_for_prefix(&~""),
+                    Some(ref pre) => {
+                        self.namespace_for_prefix(pre).or_else(|| {
+                            fail!("Unbound prefix: '{}'", *pre)
+                        })
+                    }
+                };
+
+                self.namespaces.pop();
                 self.st = if c == '>' {
                     OutsideTag
                 } else {
                     ExpectSpaceOrClose
                 };
-                Ok(Some(EndTag(EndTag { name: buf })))
+
+                Ok(Some(EndTag(EndTag { name: name, ns: ns, prefix: prefix })))
             }
             _ => {
                 self.buf.push_char(c);
@@ -227,15 +299,40 @@ impl Parser {
             '/'
             | '>' => {
                 let name = self.name.clone();
+                let mut attributes = self.attributes.clone();
+                self.attributes = ~[];
+                let prefix = self.prefix.clone();
+                let ns = match prefix {
+                    None => self.namespace_for_prefix(&~""),
+                    Some(ref pre) => {
+                        self.namespace_for_prefix(pre).or_else(|| {
+                            fail!("Unbound prefix: '{}'", *pre)
+                        })
+                    }
+                };
+
+                for attr in attributes.mut_iter() {
+                    attr.ns.mutate( |ref pre| {
+                        self.namespace_for_prefix(pre).unwrap_or_else( || {
+                            fail!("Unbound prefix: '{}'", *pre)
+                        })
+                    });
+                }
+
                 self.st = if c == '/' {
                     ExpectClose
                 } else {
                     self.name.clear();
+                    self.prefix = None;
                     OutsideTag
                 };
-                let attr = self.attributes.clone();
-                self.attributes = ~[];
-                return Ok(Some(StartTag(StartTag { name: name, attributes: attr })));
+
+                return Ok(Some(StartTag(StartTag {
+                    name: name,
+                    ns: ns,
+                    prefix: prefix,
+                    attributes: attributes
+                })));
             }
             ' '
             | '\t'
@@ -253,7 +350,11 @@ impl Parser {
         match c {
             '=' => {
                 self.level = 0;
-                self.attrName = self.buf.clone();
+
+                let (prefix, name) = parse_qname(self.buf);
+                self.attr_prefix = prefix;
+                self.attr_name = name;
+
                 self.buf.clear();
                 self.st = ExpectDelimiter;
             }
@@ -271,11 +372,26 @@ impl Parser {
         if c == self.delim.expect("In attribute value, but no delimiter set") {
             self.delim = None;
             self.st = InTag;
-            let name = self.attrName.clone();
-            self.attrName.clear();
+            let name = self.attr_name.clone();
+            self.attr_name.clear();
             let value = unescape(self.buf);
             self.buf.clear();
-            self.attributes.push(Attribute { name: name, value: value });
+            let prefix = self.attr_prefix.clone();
+            self.attr_prefix = None;
+
+            match prefix {
+                None if name.as_slice() == "xmlns" => {
+                    let last = &mut self.namespaces[self.namespaces.len()-1];
+                    last.swap(~"", value.clone());
+                }
+                Some(ref prefix) if prefix.as_slice() == "xmlns" => {
+                    let last = &mut self.namespaces[self.namespaces.len()-1];
+                    last.swap(name.clone(), value.clone());
+                }
+                _ => ()
+            }
+
+            self.attributes.push(Attribute { name: name, ns: prefix, value: value });
         } else {
             self.buf.push_char(c);
         }
@@ -304,7 +420,17 @@ impl Parser {
                 self.st = OutsideTag;
                 let name = self.name.clone();
                 self.name.clear();
-                Ok(Some(EndTag(EndTag { name: name })))
+                let prefix = self.prefix.take();
+                let ns = match prefix {
+                    None => self.namespace_for_prefix(&~""),
+                    Some(ref pre) => {
+                        self.namespace_for_prefix(pre).or_else(|| {
+                            fail!("Unbound prefix: '{}'", *pre)
+                        })
+                    }
+                };
+                self.namespaces.pop();
+                Ok(Some(EndTag(EndTag { name: name, ns: ns, prefix: prefix })))
             }
             _ => self.error(~"Expected '>' to close tag")
        }

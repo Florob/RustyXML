@@ -49,12 +49,13 @@ fn main()
         p.parse_str(string, |event| {
             match event {
                 Ok(event) => match e.push_event(event) {
-                    Ok(Some(e)) => println(e.to_str()),
+                    Ok(Some(e)) => println!("{}", e),
                     Ok(None) => (),
                     Err(e) => println!("{}", e),
                 },
                 Err(e) => println!("Line: {} Column: {} Msg: {}", e.line, e.col, e.msg),
             }
+            //println!("{:?}", event);
         });
     }
 }

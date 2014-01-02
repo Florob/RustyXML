@@ -5,7 +5,9 @@
 // Please see the COPYING file for more information.
 
 use std::str;
+use std::fmt;
 use std::to_str::ToStr;
+use std::hashmap::HashMap;
 
 condition! {
     pub unrecognized_entity: (~str) -> ~str;
@@ -76,7 +78,7 @@ pub fn unescape(input: &str) -> ~str {
 /// An Enum describing a XML Node
 pub enum XML {
     /// An XML Element
-    Element(~Element),
+    Element(Element),
     /// Character Data
     CharacterNode(~str),
     /// CDATA
@@ -92,10 +94,16 @@ pub enum XML {
 pub struct Element {
     /// The element's name
     name: ~str,
+    /// The element's namespace
+    ns: Option<~str>,
+    /// The element's default namespace
+    default_ns: Option<~str>,
+    /// The prefixes set for known namespaces
+    prefixes: HashMap<~str, ~str>,
     /// The element's `Attribute`s
     attributes: ~[Attribute],
     /// The element's child `XML` nodes
-    children: ~[XML]
+    children: ~[XML],
 }
 
 #[deriving(Clone,Eq)]
@@ -103,6 +111,8 @@ pub struct Element {
 pub struct Attribute {
     /// The attribute's name
     name: ~str,
+    /// The attribute's namespace
+    ns: Option<~str>,
     /// The attribute's value
     value: ~str
 }
@@ -129,6 +139,10 @@ pub enum Event {
 pub struct StartTag {
     /// The tag's name
     name: ~str,
+    /// The tag's namespace
+    ns: Option<~str>,
+    /// The tag's prefix
+    prefix: Option<~str>,
     /// Attributes included in the tag
     attributes: ~[Attribute]
 }
@@ -137,7 +151,11 @@ pub struct StartTag {
 /// Structure describint n closing tag
 pub struct EndTag {
     /// The tag's name
-    name: ~str
+    name: ~str,
+    /// The tag's namespace
+    ns: Option<~str>,
+    /// The tag's prefix
+    prefix: Option<~str>
 }
 
 #[deriving(Eq)]
@@ -155,40 +173,92 @@ pub struct Error {
 impl ToStr for XML {
     /// Returns a string representation of the XML Node.
     fn to_str(&self) -> ~str {
-        match *self {
-            Element(ref elem) => elem.to_str(),
-            CharacterNode(ref data) => escape(*data),
-            CDATANode(ref data) => format!("<![CDATA[{}]]>", *data),
-            CommentNode(ref data) => format!("<!--{}-->", *data),
-            PINode(ref data) => format!("<?{}?>", *data)
-        }
+        format!("{}", *self)
     }
 }
 
 impl ToStr for Element {
     /// Returns a string representation of the XML Element.
     fn to_str(&self) -> ~str {
-        let mut res = "<" + self.name;
+        format!("{}", *self)
+    }
+}
 
-        for attr in self.attributes.iter() {
-            res.push_str(format!(" {}='{}'", attr.name, escape(attr.value)));
+impl fmt::Default for XML {
+    fn fmt(value: &XML, f: &mut fmt::Formatter) {
+        match *value {
+            Element(ref elem) => fmt::Default::fmt(elem, f),
+            CharacterNode(ref data) => write!(f.buf, "{}", escape(*data)),
+            CDATANode(ref data) => write!(f.buf, "<![CDATA[{}]]>", *data),
+            CommentNode(ref data) => write!(f.buf, "<!--{}-->", *data),
+            PINode(ref data) => write!(f.buf, "<?{}?>", *data)
         }
+    }
+}
 
-        if self.children.len() == 0 {
-            res.push_str("/>");
-        } else {
-            res.push_str(">");
-            for child in self.children.iter() {
-                res.push_str(child.to_str());
+fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~str, ~str>,
+            f: &mut fmt::Formatter) {
+    write!(f.buf, "<");
+
+    let mut all_prefixes = all_prefixes.clone();
+    all_prefixes.extend(&mut elem.prefixes.iter().map(|(k, v)| (k.clone(), v.clone()) ));
+
+    // Do we need a prefix?
+    if elem.ns != elem.default_ns {
+        let prefix = all_prefixes.find(elem.ns.get_ref()).expect("No namespace prefix bound");
+        write!(f.buf, "{}:", *prefix);
+    }
+
+    write!(f.buf, "{}", elem.name);
+
+    // Do we need to set the default namespace ?
+    if (parent.is_none() && elem.default_ns.is_some()) ||
+       (parent.is_some() && parent.unwrap().default_ns != elem.default_ns) {
+        match elem.default_ns {
+            None => write!(f.buf, " xmlns=''"),
+            Some(ref x) => write!(f.buf, " xmlns='{}'", *x)
+        }
+    }
+
+    for attr in elem.attributes.iter() {
+        write!(f.buf, " ");
+        match attr.ns {
+            Some(ref ns) => {
+                let prefix = all_prefixes.find(ns).expect("No namespace prefix bound");
+                write!(f.buf, "{}:", *prefix);
             }
-            res.push_str(format!("</{}>", self.name));
+            None => ()
+        };
+        write!(f.buf, "{}='{}'", attr.name, escape(attr.value));
+    }
+
+    if elem.children.len() == 0 {
+        write!(f.buf, "/>");
+    } else {
+        write!(f.buf, ">");
+        for child in elem.children.iter() {
+            match *child {
+                Element(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
+                ref o => fmt::Default::fmt(o, f)
+            }
         }
-        res
+        write!(f.buf, "</");
+        if elem.ns != elem.default_ns {
+            let prefix = all_prefixes.find(elem.ns.get_ref()).expect("No namespace prefix bound");
+            write!(f.buf, "{}:", *prefix);
+        }
+        write!(f.buf, "{}>", elem.name);
+    }
+}
+
+impl fmt::Default for Element{
+    fn fmt(value: &Element, f: &mut fmt::Formatter) {
+        fmt_elem(value, None, &HashMap::new(), f)
     }
 }
 
 impl Element {
-    /// Returns the character and CDATA conatined in the element.
+    /// Returns the character and CDATA contained in the element.
     pub fn content_str(&self) -> ~str {
         let mut res = ~"";
         for child in self.children.iter() {
@@ -205,9 +275,16 @@ impl Element {
     /// Gets an `Attribute` with the specified name. When an attribute with the
     /// specified name does not exist `None` is returned.
     pub fn attribute_with_name<'a>(&'a self, name: &str) -> Option<&'a Attribute> {
+        self.attribute_with_name_and_ns(name, None)
+    }
+
+    /// Gets an `Attribute` with the specified name and namespace. When an attribute with the
+    /// specified name does not exist `None` is returned.
+    pub fn attribute_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>)
+      -> Option<&'a Attribute> {
         for i in range(0, self.attributes.len()) {
             let attr: &'a Attribute = &self.attributes[i];
-            if name == attr.name {
+            if name == attr.name && ns == attr.ns {
                 return Some(attr);
             }
         }
@@ -217,10 +294,17 @@ impl Element {
     /// Gets the first child `Element` with the specified name. When no child
     /// with the specified name exists `None` is returned.
     pub fn child_with_name<'a>(&'a self, name: &str) -> Option<&'a Element> {
+        self.child_with_name_and_ns(name, None)
+    }
+
+    /// Gets the first child `Element` with the specified name and namespace. When no child
+    /// with the specified name exists `None` is returned.
+    pub fn child_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>)
+      -> Option<&'a Element> {
         for i in range(0, self.children.len()) {
             let child: &'a XML = &self.children[i];
             match *child {
-                Element(ref elem) if name == elem.name => return Some(&**elem),
+                Element(ref elem) if name == elem.name && ns == elem.ns => return Some(&*elem),
                 _ => ()
             }
         }
@@ -230,11 +314,17 @@ impl Element {
     /// Get all children `Element` with the specified name. When no child
     /// with the specified name exists an empty vetor is returned.
     pub fn children_with_name<'a>(&'a self, name: &str) -> ~[&'a Element] {
+        self.children_with_name_and_ns(name, None)
+    }
+
+    /// Get all children `Element` with the specified name and namespace. When no child
+    /// with the specified name exists an empty vetor is returned.
+    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>) -> ~[&'a Element] {
         let mut res: ~[&'a Element] = ~[];
         for i in range(0, self.children.len()) {
             let child: &'a XML = &self.children[i];
             match *child {
-                Element(ref elem) if name == elem.name => res.push(&**elem),
+                Element(ref elem) if name == elem.name && ns == elem.ns => res.push(&*elem),
                 _ => ()
             }
         }
