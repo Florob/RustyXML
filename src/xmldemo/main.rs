@@ -1,5 +1,5 @@
 // RustyXML
-// Copyright (c) 2013 Florian Zeitz
+// Copyright (c) 2013, 2014 Florian Zeitz
 //
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
@@ -27,35 +27,16 @@ fn main()
     let mut p = xml::Parser::new();
     let mut e = xml::ElementBuilder::new();
 
-    while !rdr.eof() {
-        let mut buf = [0u8, ..4096];
-        let mut len = match rdr.read(buf.mut_slice_to(4093)) {
-            None => 0,
-            Some(i) => i
-        };
-
-        if !std::str::is_utf8(buf) {
-            let mut pos = len-1;
-            while std::str::utf8_char_width(buf[pos]) == 0 {
-                pos -= 1
-            }
-            let width = std::str::utf8_char_width(buf[pos]);
-            let missing = pos+width-len;
-            rdr.read(buf.mut_slice(len, len+missing));
-            len += missing;
+    let string = rdr.read_to_str();
+    p.parse_str(string, |event| {
+        match event {
+            Ok(event) => match e.push_event(event) {
+                Ok(Some(e)) => println!("{}", e),
+                Ok(None) => (),
+                Err(e) => println!("{}", e),
+            },
+            Err(e) => println!("Line: {} Column: {} Msg: {}", e.line, e.col, e.msg),
         }
-
-        let string = std::str::from_utf8(buf.slice_to(len));
-        p.parse_str(string, |event| {
-            match event {
-                Ok(event) => match e.push_event(event) {
-                    Ok(Some(e)) => println!("{}", e),
-                    Ok(None) => (),
-                    Err(e) => println!("{}", e),
-                },
-                Err(e) => println!("Line: {} Column: {} Msg: {}", e.line, e.col, e.msg),
-            }
-            //println!("{:?}", event);
-        });
-    }
+        //println!("{:?}", event);
+    });
 }
