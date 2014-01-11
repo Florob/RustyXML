@@ -34,6 +34,10 @@ impl ElementBuilder {
         self.prefixes.swap(ns, prefix);
     }
 
+    pub fn set_default_ns(&mut self, ns: ~str) {
+        self.default_ns = ~[Some(ns)];
+    }
+
     /// Hands an `Event` to the builder.
     /// While no root element has been finished `Ok(None)` is returned.
     /// Once sufficent data has been received an `Element` is returned as `Ok(elem)`.
