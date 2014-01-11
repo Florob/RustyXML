@@ -12,16 +12,26 @@ use std::hashmap::HashMap;
 /// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`
 pub struct ElementBuilder {
     priv stack: ~[Element],
-    priv default_ns: ~[Option<~str>]
+    priv default_ns: ~[Option<~str>],
+    priv prefixes: HashMap<~str, ~str>
 }
 
 impl ElementBuilder {
     /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
-        ElementBuilder {
+        let mut e = ElementBuilder {
             stack: ~[],
-            default_ns: ~[]
-        }
+            default_ns: ~[],
+            prefixes: HashMap::with_capacity(2),
+        };
+        e.prefixes.swap(~"http://www.w3.org/XML/1998/namespace", ~"xml");
+        e.prefixes.swap(~"http://www.w3.org/2000/xmlns/", ~"xmlns");
+        e
+    }
+
+    /// Bind a prefix to a namespace
+    pub fn define_prefix(&mut self, prefix: ~str, ns: ~str) {
+        self.prefixes.swap(ns, prefix);
     }
 
     /// Hands an `Event` to the builder.
@@ -42,13 +52,10 @@ impl ElementBuilder {
                     name: name.clone(),
                     ns: ns.clone(),
                     default_ns: None,
-                    prefixes: HashMap::with_capacity(2),
+                    prefixes: self.prefixes.clone(),
                     attributes: ~[],
                     children: ~[]
                 };
-
-                elem.prefixes.swap(~"http://www.w3.org/XML/1998/namespace", ~"xml");
-                elem.prefixes.swap(~"http://www.w3.org/2000/xmlns/", ~"xmlns");
 
                 if !self.default_ns.is_empty() {
                     let cur_default = self.default_ns.last().clone();
