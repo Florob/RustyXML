@@ -62,13 +62,13 @@ impl ElementBuilder {
                 };
 
                 if !self.default_ns.is_empty() {
-                    let cur_default = self.default_ns.last().clone();
+                    let cur_default = self.default_ns.last().unwrap().clone();
                     self.default_ns.push(cur_default);
                 }
 
                 for attr in attributes.iter() {
                     if attr.ns == None && attr.name.as_slice() == "xmlns" {
-                        self.default_ns.pop_opt();
+                        self.default_ns.pop();
                         if attr.value.len() == 0 {
                             self.default_ns.push(None);
                         } else {
@@ -81,18 +81,18 @@ impl ElementBuilder {
                     }
                     elem.attributes.push(attr.clone());
                 }
-                elem.default_ns = self.default_ns.last_opt().unwrap_or(&None).clone();
+                elem.default_ns = self.default_ns.last().unwrap_or(&None).clone();
 
                 self.stack.push(elem);
 
                 Ok(None)
             }
             EndTag(EndTag { name, ns, prefix: _ }) => {
-                if self.stack.len() == 0 {
-                    return Err(~"Elements not properly nested");
-                }
-                self.default_ns.pop_opt();
-                let elem = self.stack.pop();
+                let elem = match self.stack.pop() {
+                    Some(elem) => elem,
+                    None => return Err(~"Elements not properly nested")
+                };
+                self.default_ns.pop();
                 let l = self.stack.len();
                 if elem.name != name || elem.ns != ns {
                     Err(~"Elements not properly nested")
