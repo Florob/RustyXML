@@ -1,24 +1,25 @@
-RUSTPKGFLAGS := -O -Zdebug-info
-RUSTPKG ?= rustpkg
+RUSTC ?= rustc
+RUSTCFLAGS := -O -Zdebug-info --out-dir build/
 RUSTDOC ?= rustdoc
 
 all: demo doc
 
+lib: build
+	${RUSTC} ${RUSTCFLAGS} src/xml/lib.rs
 
-lib:
-	${RUSTPKG} build ${RUSTPKGFLAGS} xml
+demo: lib
+	${RUSTC} ${RUSTCFLAGS} -L build src/xmldemo/main.rs
 
-demo:
-	${RUSTPKG} build ${RUSTPKGFLAGS} xmldemo
-
-test:
-	${RUSTPKG} test xml
+test: build
+	${RUSTC} ${RUSTCFLAGS} --test src/xml/lib.rs
 
 doc:
 	${RUSTDOC} src/xml/lib.rs
 
 clean:
-	${RUSTPKG} clean
-	$(RM) -r bin build doc lib
+	$(RM) -rf build doc
+
+build:
+	mkdir build
 
 .PHONY: all lib demo doc test clean 
