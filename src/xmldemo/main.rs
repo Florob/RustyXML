@@ -18,16 +18,27 @@ fn main()
     }
 
     let f = &Path::new(args[1].clone());
-    if !f.exists() {
-        println!("File '{}' does not exist", args[1]);
-        return;
-    }
-    let mut rdr = File::open(f).expect("Couldn't open file");
+    let mut rdr = match File::open(f) {
+        Ok(file) => file,
+        Err(err) => {
+            println!("Couldn't open file: {}", err);
+            std::os::set_exit_status(1);
+            return;
+        }
+    };
 
     let mut p = xml::Parser::new();
     let mut e = xml::ElementBuilder::new();
 
-    let string = rdr.read_to_str();
+    let string = match rdr.read_to_str() {
+        Ok(string) => string,
+        Err(err) => {
+            println!("Reading failed: {}", err);
+            std::os::set_exit_status(1);
+            return;
+        }
+    };
+
     p.parse_str(string, |event| {
         match event {
             Ok(event) => match e.push_event(event) {

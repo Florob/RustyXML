@@ -184,10 +184,10 @@ impl ToStr for Element {
     }
 }
 
-impl fmt::Default for XML {
-    fn fmt(value: &XML, f: &mut fmt::Formatter) {
+impl fmt::Show for XML {
+    fn fmt(value: &XML, f: &mut fmt::Formatter) -> fmt::Result {
         match *value {
-            Element(ref elem) => fmt::Default::fmt(elem, f),
+            Element(ref elem) => fmt::Show::fmt(elem, f),
             CharacterNode(ref data) => write!(f.buf, "{}", escape(*data)),
             CDATANode(ref data) => write!(f.buf, "<![CDATA[{}]]>", *data),
             CommentNode(ref data) => write!(f.buf, "<!--{}-->", *data),
@@ -197,62 +197,58 @@ impl fmt::Default for XML {
 }
 
 fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~str, ~str>,
-            f: &mut fmt::Formatter) {
-    write!(f.buf, "<");
-
+            f: &mut fmt::Formatter) -> fmt::Result {
     let mut all_prefixes = all_prefixes.clone();
     all_prefixes.extend(&mut elem.prefixes.iter().map(|(k, v)| (k.clone(), v.clone()) ));
 
     // Do we need a prefix?
-    if elem.ns != elem.default_ns {
+    if_ok!(if elem.ns != elem.default_ns {
         let prefix = all_prefixes.find(elem.ns.get_ref()).expect("No namespace prefix bound");
-        write!(f.buf, "{}:", *prefix);
-    }
-
-    write!(f.buf, "{}", elem.name);
+        write!(f.buf, "<{}:{}", *prefix, elem.name)
+    } else {
+        write!(f.buf, "<{}", elem.name)
+    });
 
     // Do we need to set the default namespace ?
     if (parent.is_none() && elem.default_ns.is_some()) ||
        (parent.is_some() && parent.unwrap().default_ns != elem.default_ns) {
-        match elem.default_ns {
+        if_ok!(match elem.default_ns {
             None => write!(f.buf, " xmlns=''"),
             Some(ref x) => write!(f.buf, " xmlns='{}'", *x)
-        }
+        });
     }
 
     for attr in elem.attributes.iter() {
-        write!(f.buf, " ");
-        match attr.ns {
+        if_ok!(match attr.ns {
             Some(ref ns) => {
                 let prefix = all_prefixes.find(ns).expect("No namespace prefix bound");
-                write!(f.buf, "{}:", *prefix);
+                write!(f.buf, " {}:{}='{}'", *prefix, attr.name, escape(attr.value))
             }
-            None => ()
-        };
-        write!(f.buf, "{}='{}'", attr.name, escape(attr.value));
+            None => write!(f.buf, " {}='{}'", attr.name, escape(attr.value))
+        });
     }
 
     if elem.children.len() == 0 {
-        write!(f.buf, "/>");
+        write!(f.buf, "/>")
     } else {
-        write!(f.buf, ">");
+        if_ok!(write!(f.buf, ">"));
         for child in elem.children.iter() {
-            match *child {
+            if_ok!(match *child {
                 Element(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
-                ref o => fmt::Default::fmt(o, f)
-            }
+                ref o => fmt::Show::fmt(o, f)
+            });
         }
-        write!(f.buf, "</");
         if elem.ns != elem.default_ns {
             let prefix = all_prefixes.find(elem.ns.get_ref()).expect("No namespace prefix bound");
-            write!(f.buf, "{}:", *prefix);
+            write!(f.buf, "</{}:{}>", *prefix, elem.name)
+        } else {
+            write!(f.buf, "</{}>", elem.name)
         }
-        write!(f.buf, "{}>", elem.name);
     }
 }
 
-impl fmt::Default for Element{
-    fn fmt(value: &Element, f: &mut fmt::Formatter) {
+impl fmt::Show for Element{
+    fn fmt(value: &Element, f: &mut fmt::Formatter) -> fmt::Result {
         fmt_elem(value, None, &HashMap::new(), f)
     }
 }
