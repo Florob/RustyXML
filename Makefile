@@ -1,17 +1,20 @@
 RUSTC ?= rustc
-RUSTCFLAGS := -O -Zdebug-info --out-dir build/
+RUSTCFLAGS := -O -Zdebug-info
 RUSTDOC ?= rustdoc
 
-all: demo doc
+all: build/xmldemo doc
 
 lib: build
-	${RUSTC} ${RUSTCFLAGS} src/xml/lib.rs
+	${RUSTC} ${RUSTCFLAGS} --out-dir build/ src/xml/lib.rs
 
-demo: lib
-	${RUSTC} ${RUSTCFLAGS} -L build src/xmldemo/main.rs
+build/xmldemo: lib
+	${RUSTC} ${RUSTCFLAGS} -L build -o $@ src/xmldemo/main.rs
 
-test: build
-	${RUSTC} ${RUSTCFLAGS} --test src/xml/lib.rs
+build/xmltest: lib
+	${RUSTC} ${RUSTCFLAGS} --test -L build -o $@ src/xml/test.rs
+
+test: build/xmltest
+	build/xmltest
 
 doc:
 	${RUSTDOC} src/xml/lib.rs
@@ -22,4 +25,4 @@ clean:
 build:
 	mkdir build
 
-.PHONY: all lib demo doc test clean 
+.PHONY: all lib doc test clean
