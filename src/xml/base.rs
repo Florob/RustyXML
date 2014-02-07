@@ -9,10 +9,6 @@ use std::fmt;
 use std::to_str::ToStr;
 use std::hashmap::HashMap;
 
-condition! {
-    pub unrecognized_entity: (~str) -> ~str;
-}
-
 // General functions
 
 #[inline]
@@ -35,7 +31,7 @@ pub fn escape(input: &str) -> ~str {
 
 #[inline]
 /// Unescapes all valid XML entities in a string.
-pub fn unescape(input: &str) -> ~str {
+pub fn unescape(input: &str) -> Result<~str, ~str> {
     let mut result = str::with_capacity(input.len());
 
     let mut ent = ~"";
@@ -53,24 +49,23 @@ pub fn unescape(input: &str) -> ~str {
 
         ent.push_char(c);
         if c == ';' {
-            let ent_s = ent.as_slice();
-            if ent_s == "&quot;" {
+            if "&quot;" == ent {
                 result.push_char('"');
-            } else if ent_s == "&apos;" {
+            } else if "&apos;" == ent {
                 result.push_char('\'');
-            } else if ent_s == "&gt;" {
+            } else if "&gt;" == ent {
                 result.push_char('>');
-            } else if ent_s == "&lt;" {
+            } else if "&lt;" == ent {
                 result.push_char('<');
-            } else if ent_s == "&amp;" {
+            } else if "&amp;" == ent {
                 result.push_char('&');
             } else {
-                result.push_str(unrecognized_entity::cond.raise(ent.clone()));
+                return Err(ent);
             }
             in_entity = false;
         }
     }
-    result
+    Ok(result)
 }
 
 // General types

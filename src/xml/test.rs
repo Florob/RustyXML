@@ -3,7 +3,7 @@ extern mod xml;
 
 #[cfg(test)]
 mod base_tests {
-    use xml::{escape, unescape, unrecognized_entity};
+    use xml::{escape, unescape};
     use xml::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
     use std::hashmap::HashMap;
 
@@ -16,17 +16,13 @@ mod base_tests {
     #[test]
     fn test_unescape() {
         let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;");
-        assert_eq!(unesc, ~"&lt;<>'\"");
+        assert_eq!(unesc, Ok(~"&lt;<>'\""));
     }
 
     #[test]
     fn test_unescape_cond() {
-        unrecognized_entity::cond.trap(|ent| {
-            if ent.as_slice() == "&nbsp;" { ~"\u00a0" } else { ent }
-        }).inside(|| {
-            let unesc = unescape("&nbsp;&foo;");
-            assert_eq!(unesc, ~"\u00a0&foo;");
-        })
+        let unesc = unescape("&amp;&nbsp;");
+        assert_eq!(unesc, Err(~"&nbsp;"));
     }
 
     #[test]
@@ -164,7 +160,7 @@ mod base_bench {
     fn bench_unescape(bh: &mut BenchHarness) {
         let input = "&amp;&lt;&gt;&apos;&quot;".repeat(50);
         bh.iter(|| {
-            unescape(input);
+            let _ = unescape(input);
         });
         bh.bytes = input.len() as u64;
     }

@@ -3,7 +3,7 @@
 #[forbid(non_camel_case_types)];
 #[warn(missing_doc)]
 
-pub use base::{escape, unescape, unrecognized_entity};
+pub use base::{escape, unescape};
 pub use base::{XML, Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
 pub use base::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
 pub use base::Error;

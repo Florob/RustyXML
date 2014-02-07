@@ -169,7 +169,10 @@ impl Parser {
         match c {
             '<' if self.buf.len() > 0 => {
                 self.st = TagOpened;
-                let buf = unescape(self.buf);
+                let buf = match unescape(self.buf) {
+                    Ok(unescaped) => unescaped,
+                    Err(entity) => return self.error(format!("Invalid entity: {}", entity))
+                };
                 self.buf.clear();
                 return Ok(Some(Characters(buf)));
             }
@@ -374,7 +377,10 @@ impl Parser {
             self.st = InTag;
             let name = self.attr_name.clone();
             self.attr_name.clear();
-            let value = unescape(self.buf);
+            let value = match unescape(self.buf) {
+                Ok(unescaped) => unescaped,
+                Err(entity) => return self.error(format!("Invalid entity: {}", entity))
+            };
             self.buf.clear();
             let prefix = self.attr_prefix.clone();
             self.attr_prefix = None;
