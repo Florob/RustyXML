@@ -6,6 +6,7 @@
 
 use std::str;
 use std::fmt;
+use std::fmt::Show;
 use std::to_str::ToStr;
 use std::hashmap::HashMap;
 
@@ -179,10 +180,10 @@ impl ToStr for Element {
     }
 }
 
-impl fmt::Show for XML {
-    fn fmt(value: &XML, f: &mut fmt::Formatter) -> fmt::Result {
-        match *value {
-            Element(ref elem) => fmt::Show::fmt(elem, f),
+impl Show for XML {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Element(ref elem) => elem.fmt(f),
             CharacterNode(ref data) => write!(f.buf, "{}", escape(*data)),
             CDATANode(ref data) => write!(f.buf, "<![CDATA[{}]]>", *data),
             CommentNode(ref data) => write!(f.buf, "<!--{}-->", *data),
@@ -230,7 +231,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~st
         for child in elem.children.iter() {
             if_ok!(match *child {
                 Element(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
-                ref o => fmt::Show::fmt(o, f)
+                ref o => o.fmt(f)
             });
         }
         if elem.ns != elem.default_ns {
@@ -242,9 +243,9 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~st
     }
 }
 
-impl fmt::Show for Element{
-    fn fmt(value: &Element, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt_elem(value, None, &HashMap::new(), f)
+impl Show for Element{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt_elem(self, None, &HashMap::new(), f)
     }
 }
 

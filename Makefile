@@ -1,5 +1,5 @@
 RUSTC ?= rustc
-RUSTCFLAGS := -O -Zdebug-info
+RUSTCFLAGS := -O -g
 RUSTDOC ?= rustdoc
 
 all: build/xmldemo doc
