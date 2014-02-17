@@ -1,5 +1,4 @@
-extern mod xml;
-
+extern crate xml;
 
 #[cfg(test)]
 mod base_tests {
@@ -143,7 +142,7 @@ mod base_tests {
 
 #[cfg(test)]
 mod base_bench {
-    extern mod extra;
+    extern crate extra;
     use self::extra::test::BenchHarness;
     use xml::{escape, unescape};
 

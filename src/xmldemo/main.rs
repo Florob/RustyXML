@@ -4,7 +4,7 @@
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
-extern mod xml;
+extern crate xml;
 use std::io::File;
 use std::io::Reader;
 use std::path::Path;
