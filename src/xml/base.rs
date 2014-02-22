@@ -198,7 +198,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~st
     all_prefixes.extend(&mut elem.prefixes.iter().map(|(k, v)| (k.clone(), v.clone()) ));
 
     // Do we need a prefix?
-    if_ok!(if elem.ns != elem.default_ns {
+    try!(if elem.ns != elem.default_ns {
         let prefix = all_prefixes.find(elem.ns.get_ref()).expect("No namespace prefix bound");
         write!(f.buf, "<{}:{}", *prefix, elem.name)
     } else {
@@ -208,14 +208,14 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~st
     // Do we need to set the default namespace ?
     if (parent.is_none() && elem.default_ns.is_some()) ||
        (parent.is_some() && parent.unwrap().default_ns != elem.default_ns) {
-        if_ok!(match elem.default_ns {
+        try!(match elem.default_ns {
             None => write!(f.buf, " xmlns=''"),
             Some(ref x) => write!(f.buf, " xmlns='{}'", *x)
         });
     }
 
     for attr in elem.attributes.iter() {
-        if_ok!(match attr.ns {
+        try!(match attr.ns {
             Some(ref ns) => {
                 let prefix = all_prefixes.find(ns).expect("No namespace prefix bound");
                 write!(f.buf, " {}:{}='{}'", *prefix, attr.name, escape(attr.value))
@@ -227,9 +227,9 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~st
     if elem.children.len() == 0 {
         write!(f.buf, "/>")
     } else {
-        if_ok!(write!(f.buf, ">"));
+        try!(write!(f.buf, ">"));
         for child in elem.children.iter() {
-            if_ok!(match *child {
+            try!(match *child {
                 Element(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
                 ref o => o.fmt(f)
             });

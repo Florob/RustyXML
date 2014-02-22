@@ -142,8 +142,8 @@ mod base_tests {
 
 #[cfg(test)]
 mod base_bench {
-    extern crate extra;
-    use self::extra::test::BenchHarness;
+    extern crate test;
+    use self::test::BenchHarness;
     use xml::{escape, unescape};
 
     #[bench]
