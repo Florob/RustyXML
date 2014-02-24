@@ -6,7 +6,7 @@
 
 use super::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
 use super::{Element, CharacterNode, CDATANode, CommentNode, PINode};
-use std::hashmap::HashMap;
+use collections::HashMap;
 
 // DOM Builder
 /// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`

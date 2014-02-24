@@ -2,9 +2,11 @@ extern crate xml;
 
 #[cfg(test)]
 mod base_tests {
+    extern crate collections;
+
     use xml::{escape, unescape};
     use xml::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
-    use std::hashmap::HashMap;
+    use self::collections::HashMap;
 
     #[test]
     fn test_escape() {

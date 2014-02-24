@@ -9,7 +9,7 @@
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
 use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment, Error};
-use std::hashmap::HashMap;
+use collections::HashMap;
 
 // Event based parser
 enum State {

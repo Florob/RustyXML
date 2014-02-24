@@ -8,7 +8,7 @@ use std::str;
 use std::fmt;
 use std::fmt::Show;
 use std::to_str::ToStr;
-use std::hashmap::HashMap;
+use collections::HashMap;
 
 // General functions
 

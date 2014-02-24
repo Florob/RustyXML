@@ -3,6 +3,8 @@
 #[forbid(non_camel_case_types)];
 #[warn(missing_doc)]
 
+extern crate collections;
+
 pub use base::{escape, unescape};
 pub use base::{XML, Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
 pub use base::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
