@@ -7,7 +7,6 @@
 use std::str;
 use std::fmt;
 use std::fmt::Show;
-use std::to_str::ToStr;
 use collections::HashMap;
 
 // General functions
@@ -164,20 +163,6 @@ pub struct Error {
     col: uint,
     /// A message describing the type of the error
     msg: ~str
-}
-
-impl ToStr for XML {
-    /// Returns a string representation of the XML Node.
-    fn to_str(&self) -> ~str {
-        format!("{}", *self)
-    }
-}
-
-impl ToStr for Element {
-    /// Returns a string representation of the XML Element.
-    fn to_str(&self) -> ~str {
-        format!("{}", *self)
-    }
 }
 
 impl Show for XML {
