@@ -7,6 +7,7 @@ mod base_tests {
     use xml::{escape, unescape};
     use xml::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
     use self::collections::HashMap;
+    use std::vec_ng::Vec;
 
     #[test]
     fn test_escape() {
@@ -33,8 +34,8 @@ mod base_tests {
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
-            attributes: ~[],
-            children: ~[]
+            attributes: Vec::new(),
+            children: Vec::new()
         };
         assert_eq!(elem.to_str(), ~"<a/>");
 
@@ -43,10 +44,10 @@ mod base_tests {
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
-            attributes: ~[
+            attributes: vec!(
                 Attribute { name: ~"href", ns: None, value: ~"http://rust-lang.org" }
-            ],
-            children: ~[]
+            ),
+            children: Vec::new()
         };
         assert_eq!(elem.to_str(), ~"<a href='http://rust-lang.org'/>");
 
@@ -55,17 +56,17 @@ mod base_tests {
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
-            attributes: ~[],
-            children: ~[
+            attributes: Vec::new(),
+            children: vec!(
                 Element(Element {
                     name: ~"b",
                     ns: None,
                     default_ns: None,
                     prefixes: HashMap::new(),
-                    attributes: ~[],
-                    children: ~[]
+                    attributes: Vec::new(),
+                    children: Vec::new()
                 })
-            ]
+            )
         };
         assert_eq!(elem.to_str(), ~"<a><b/></a>");
 
@@ -74,19 +75,19 @@ mod base_tests {
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
-            attributes: ~[
+            attributes: vec!(
                 Attribute { name: ~"href", ns: None, value: ~"http://rust-lang.org" }
-            ],
-            children: ~[
+            ),
+            children: vec!(
                 Element(Element {
                     name: ~"b",
                     ns: None,
                     default_ns: None,
                     prefixes: HashMap::new(),
-                    attributes: ~[],
-                    children: ~[]
+                    attributes: Vec::new(),
+                    children: Vec::new()
                 })
-            ]
+            )
         };
         assert_eq!(elem.to_str(), ~"<a href='http://rust-lang.org'><b/></a>");
     }
@@ -122,8 +123,8 @@ mod base_tests {
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
-            attributes: ~[],
-            children: ~[
+            attributes: Vec::new(),
+            children: vec!(
                 PINode(~"processing information"),
                 CDATANode(~"<hello/>"),
                 Element(Element{
@@ -131,12 +132,12 @@ mod base_tests {
                     ns: None,
                     default_ns: None,
                     prefixes: HashMap::new(),
-                    attributes: ~[],
-                    children: ~[]
+                    attributes: Vec::new(),
+                    children: Vec::new()
                 }),
                 CharacterNode(~"World"),
                 CommentNode(~"Nothing to see")
-            ]
+            )
         };
         assert_eq!(elem.content_str(), ~"<hello/>World");
     }
@@ -171,6 +172,7 @@ mod base_bench {
 mod parser_tests {
     use xml::Parser;
     use xml::{StartTag, EndTag, PI, Comment, CDATA, Characters};
+    use std::vec_ng::Vec;
 
     #[test]
     fn test_start_tag() {
@@ -182,7 +184,7 @@ mod parser_tests {
                 name: ~"a",
                 ns: None,
                 prefix:None,
-                attributes: ~[]
+                attributes: Vec::new()
             })));
         });
         assert_eq!(i, 1);

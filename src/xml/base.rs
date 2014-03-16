@@ -1,5 +1,5 @@
 // RustyXML
-// Copyright (c) 2013 Florian Zeitz
+// Copyright (c) 2013, 2014 Florian Zeitz
 //
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
@@ -7,6 +7,7 @@
 use std::str;
 use std::fmt;
 use std::fmt::Show;
+use std::vec_ng::Vec;
 use collections::HashMap;
 
 // General functions
@@ -96,12 +97,12 @@ pub struct Element {
     /// The prefixes set for known namespaces
     prefixes: HashMap<~str, ~str>,
     /// The element's `Attribute`s
-    attributes: ~[Attribute],
+    attributes: Vec<Attribute>,
     /// The element's child `XML` nodes
-    children: ~[XML],
+    children: Vec<XML>,
 }
 
-#[deriving(Clone,Eq)]
+#[deriving(Clone,Eq,Show)]
 /// A struct representing an XML attribute
 pub struct Attribute {
     /// The attribute's name
@@ -112,7 +113,7 @@ pub struct Attribute {
     value: ~str
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Show)]
 /// Events returned by the `Parser`
 pub enum Event {
     /// Event indicating processing information was found
@@ -129,7 +130,7 @@ pub enum Event {
     Comment(~str)
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Show)]
 /// Structure describint an opening tag
 pub struct StartTag {
     /// The tag's name
@@ -139,10 +140,10 @@ pub struct StartTag {
     /// The tag's prefix
     prefix: Option<~str>,
     /// Attributes included in the tag
-    attributes: ~[Attribute]
+    attributes: Vec<Attribute>
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Show)]
 /// Structure describint n closing tag
 pub struct EndTag {
     /// The tag's name
@@ -153,7 +154,7 @@ pub struct EndTag {
     prefix: Option<~str>
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, Show)]
 /// If an error occurs while parsing some XML, this is the structure which is
 /// returned
 pub struct Error {
@@ -259,8 +260,7 @@ impl Element {
     /// specified name does not exist `None` is returned.
     pub fn attribute_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>)
       -> Option<&'a Attribute> {
-        for i in range(0, self.attributes.len()) {
-            let attr: &'a Attribute = &self.attributes[i];
+        for attr in self.attributes.iter() {
             if name == attr.name && ns == attr.ns {
                 return Some(attr);
             }
@@ -278,8 +278,7 @@ impl Element {
     /// with the specified name exists `None` is returned.
     pub fn child_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>)
       -> Option<&'a Element> {
-        for i in range(0, self.children.len()) {
-            let child: &'a XML = &self.children[i];
+        for child in self.children.iter() {
             match *child {
                 Element(ref elem) if name == elem.name && ns == elem.ns => return Some(&*elem),
                 _ => ()
@@ -290,16 +289,16 @@ impl Element {
 
     /// Get all children `Element` with the specified name. When no child
     /// with the specified name exists an empty vetor is returned.
-    pub fn children_with_name<'a>(&'a self, name: &str) -> ~[&'a Element] {
+    pub fn children_with_name<'a>(&'a self, name: &str) -> Vec<&'a Element> {
         self.children_with_name_and_ns(name, None)
     }
 
     /// Get all children `Element` with the specified name and namespace. When no child
     /// with the specified name exists an empty vetor is returned.
-    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>) -> ~[&'a Element] {
-        let mut res: ~[&'a Element] = ~[];
-        for i in range(0, self.children.len()) {
-            let child: &'a XML = &self.children[i];
+    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>)
+      -> Vec<&'a Element> {
+        let mut res: Vec<&'a Element> = Vec::new();
+        for child in self.children.iter() {
             match *child {
                 Element(ref elem) if name == elem.name && ns == elem.ns => res.push(&*elem),
                 _ => ()

@@ -1,5 +1,5 @@
 // RustyXML
-// Copyright (c) 2013 Florian Zeitz
+// Copyright (c) 2013, 2014 Florian Zeitz
 //
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
@@ -9,6 +9,7 @@
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
 use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment, Error};
+use std::vec_ng::Vec;
 use collections::HashMap;
 
 // Event based parser
@@ -40,10 +41,10 @@ pub struct Parser {
     priv buf: ~str,
     priv name: ~str,
     priv prefix: Option<~str>,
-    priv namespaces: ~[HashMap<~str, ~str>],
+    priv namespaces: Vec<HashMap<~str, ~str>>,
     priv attr_name: ~str,
     priv attr_prefix: Option<~str>,
-    priv attributes: ~[Attribute],
+    priv attributes: Vec<Attribute>,
     priv delim: Option<char>,
     priv st: State,
     priv level: uint
@@ -58,16 +59,19 @@ impl Parser {
             buf: ~"",
             name: ~"",
             prefix: None,
-            namespaces: ~[HashMap::with_capacity(2)],
+            namespaces: vec!(HashMap::with_capacity(2)),
             attr_name: ~"",
             attr_prefix: None,
-            attributes: ~[],
+            attributes: Vec::new(),
             delim: None,
             st: OutsideTag,
             level: 0
         };
-        p.namespaces[0].swap(~"xml", ~"http://www.w3.org/XML/1998/namespace");
-        p.namespaces[0].swap(~"xmlns", ~"http://www.w3.org/2000/xmlns/");
+        {
+            let x = p.namespaces.get_mut(0);
+            x.swap(~"xml", ~"http://www.w3.org/XML/1998/namespace");
+            x.swap(~"xmlns", ~"http://www.w3.org/2000/xmlns/");
+        }
         p
     }
 
@@ -246,7 +250,7 @@ impl Parser {
                     name: self.name.clone(),
                     ns: ns,
                     prefix: prefix,
-                    attributes: ~[]
+                    attributes: Vec::new()
                 })));
             }
             ' '
@@ -303,7 +307,7 @@ impl Parser {
             | '>' => {
                 let name = self.name.clone();
                 let mut attributes = self.attributes.clone();
-                self.attributes = ~[];
+                self.attributes = Vec::new();
                 let prefix = self.prefix.clone();
                 let ns = match prefix {
                     None => self.namespace_for_prefix(&~""),
@@ -385,13 +389,12 @@ impl Parser {
             let prefix = self.attr_prefix.clone();
             self.attr_prefix = None;
 
+            let last = self.namespaces.mut_last().unwrap();
             match prefix {
                 None if name.as_slice() == "xmlns" => {
-                    let last = &mut self.namespaces[self.namespaces.len()-1];
                     last.swap(~"", value.clone());
                 }
                 Some(ref prefix) if prefix.as_slice() == "xmlns" => {
-                    let last = &mut self.namespaces[self.namespaces.len()-1];
                     last.swap(name.clone(), value.clone());
                 }
                 _ => ()

@@ -1,18 +1,19 @@
 // RustyXML
-// Copyright (c) 2013 Florian Zeitz
+// Copyright (c) 2013, 2014 Florian Zeitz
 //
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
 use super::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
 use super::{Element, CharacterNode, CDATANode, CommentNode, PINode};
+use std::vec_ng::Vec;
 use collections::HashMap;
 
 // DOM Builder
 /// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`
 pub struct ElementBuilder {
-    priv stack: ~[Element],
-    priv default_ns: ~[Option<~str>],
+    priv stack: Vec<Element>,
+    priv default_ns: Vec<Option<~str>>,
     priv prefixes: HashMap<~str, ~str>
 }
 
@@ -20,8 +21,8 @@ impl ElementBuilder {
     /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
         let mut e = ElementBuilder {
-            stack: ~[],
-            default_ns: ~[],
+            stack: Vec::new(),
+            default_ns: Vec::new(),
             prefixes: HashMap::with_capacity(2),
         };
         e.prefixes.swap(~"http://www.w3.org/XML/1998/namespace", ~"xml");
@@ -35,7 +36,7 @@ impl ElementBuilder {
     }
 
     pub fn set_default_ns(&mut self, ns: ~str) {
-        self.default_ns = ~[Some(ns)];
+        self.default_ns = vec!(Some(ns));
     }
 
     /// Hands an `Event` to the builder.
@@ -45,9 +46,9 @@ impl ElementBuilder {
     pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, ~str> {
         match e {
             PI(cont) => {
-                let l = self.stack.len();
-                if l > 0 {
-                    self.stack[l-1].children.push(PINode(cont));
+                match self.stack.mut_last() {
+                    None => (),
+                    Some(elem) => elem.children.push(PINode(cont))
                 }
                 Ok(None)
             }
@@ -57,8 +58,8 @@ impl ElementBuilder {
                     ns: ns.clone(),
                     default_ns: None,
                     prefixes: self.prefixes.clone(),
-                    attributes: ~[],
-                    children: ~[]
+                    attributes: Vec::new(),
+                    children: Vec::new()
                 };
 
                 if !self.default_ns.is_empty() {
@@ -93,34 +94,36 @@ impl ElementBuilder {
                     None => return Err(~"Elements not properly nested")
                 };
                 self.default_ns.pop();
-                let l = self.stack.len();
                 if elem.name != name || elem.ns != ns {
                     Err(~"Elements not properly nested")
-                } else if l == 0 {
-                    Ok(Some(elem))
                 } else {
-                    self.stack[l-1].children.push(Element(elem));
-                    Ok(None)
+                    match self.stack.mut_last() {
+                        None => Ok(Some(elem)),
+                        Some(e) => {
+                            e.children.push(Element(elem));
+                            Ok(None)
+                        }
+                    }
                 }
             }
             Characters(chars) => {
-                let l = self.stack.len();
-                if l > 0 {
-                    self.stack[l-1].children.push(CharacterNode(chars));
+                match self.stack.mut_last() {
+                    None => (),
+                    Some(elem) => elem.children.push(CharacterNode(chars))
                 }
                 Ok(None)
             }
             CDATA(chars) => {
-                let l = self.stack.len();
-                if l > 0 {
-                    self.stack[l-1].children.push(CDATANode(chars));
+                match self.stack.mut_last() {
+                    None => (),
+                    Some(elem) => elem.children.push(CDATANode(chars))
                 }
                 Ok(None)
             }
             Comment(cont) => {
-                let l = self.stack.len();
-                if l > 0 {
-                    self.stack[l-1].children.push(CommentNode(cont));
+                match self.stack.mut_last() {
+                    None => (),
+                    Some(elem) => elem.children.push(CommentNode(cont))
                 }
                 Ok(None)
             }
