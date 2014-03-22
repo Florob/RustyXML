@@ -9,7 +9,6 @@
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
 use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment, Error};
-use std::vec_ng::Vec;
 use collections::HashMap;
 
 // Event based parser
@@ -126,7 +125,7 @@ fn parse_qname(qname: &str) -> (Option<~str>, ~str) {
 
 impl Parser {
     fn namespace_for_prefix(&self, prefix: &~str) -> Option<~str> {
-        for ns in self.namespaces.rev_iter() {
+        for ns in self.namespaces.as_slice().rev_iter() {
             match ns.find(prefix) {
                 None => continue,
                 Some(namespace) => {

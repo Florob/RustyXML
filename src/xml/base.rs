@@ -7,7 +7,6 @@
 use std::str;
 use std::fmt;
 use std::fmt::Show;
-use std::vec_ng::Vec;
 use collections::HashMap;
 
 // General functions

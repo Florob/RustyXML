@@ -6,7 +6,6 @@
 
 use super::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
 use super::{Element, CharacterNode, CDATANode, CommentNode, PINode};
-use std::vec_ng::Vec;
 use collections::HashMap;
 
 // DOM Builder

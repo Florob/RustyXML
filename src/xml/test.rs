@@ -7,7 +7,6 @@ mod base_tests {
     use xml::{escape, unescape};
     use xml::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
     use self::collections::HashMap;
-    use std::vec_ng::Vec;
 
     #[test]
     fn test_escape() {
@@ -172,7 +171,6 @@ mod base_bench {
 mod parser_tests {
     use xml::Parser;
     use xml::{StartTag, EndTag, PI, Comment, CDATA, Characters};
-    use std::vec_ng::Vec;
 
     #[test]
     fn test_start_tag() {
