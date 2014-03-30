@@ -34,6 +34,7 @@ impl ElementBuilder {
         self.prefixes.swap(ns, prefix);
     }
 
+    /// Set the default namespace
     pub fn set_default_ns(&mut self, ns: ~str) {
         self.default_ns = vec!(Some(ns));
     }

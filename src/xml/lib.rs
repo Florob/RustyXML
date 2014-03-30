@@ -3,6 +3,10 @@
 #![forbid(non_camel_case_types)]
 #![warn(missing_doc)]
 
+/*!
+  An XML parsing library
+  */
+
 extern crate collections;
 
 pub use base::{escape, unescape};
