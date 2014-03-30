@@ -180,7 +180,7 @@ impl Show for XML {
 fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~str, ~str>,
             f: &mut fmt::Formatter) -> fmt::Result {
     let mut all_prefixes = all_prefixes.clone();
-    all_prefixes.extend(&mut elem.prefixes.iter().map(|(k, v)| (k.clone(), v.clone()) ));
+    all_prefixes.extend(elem.prefixes.iter().map(|(k, v)| (k.clone(), v.clone()) ));
 
     // Do we need a prefix?
     try!(if elem.ns != elem.default_ns {

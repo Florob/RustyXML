@@ -1,7 +1,7 @@
-#[crate_id = "xml#0.1"];
-#[crate_type = "lib" ];
-#[forbid(non_camel_case_types)];
-#[warn(missing_doc)]
+#![crate_id = "xml#0.1"]
+#![crate_type = "lib" ]
+#![forbid(non_camel_case_types)]
+#![warn(missing_doc)]
 
 extern crate collections;
 
