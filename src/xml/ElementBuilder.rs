@@ -11,9 +11,9 @@ use collections::HashMap;
 // DOM Builder
 /// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`
 pub struct ElementBuilder {
-    priv stack: Vec<Element>,
-    priv default_ns: Vec<Option<~str>>,
-    priv prefixes: HashMap<~str, ~str>
+    stack: Vec<Element>,
+    default_ns: Vec<Option<~str>>,
+    prefixes: HashMap<~str, ~str>
 }
 
 impl ElementBuilder {

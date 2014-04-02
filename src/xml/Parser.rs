@@ -8,8 +8,20 @@
 // ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
-use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment, Error};
+use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
 use collections::HashMap;
+
+#[deriving(Eq, Show)]
+/// If an error occurs while parsing some XML, this is the structure which is
+/// returned
+pub struct Error {
+    /// The line number at which the error occurred
+    pub line: uint,
+    /// The column number at which the error occurred
+    pub col: uint,
+    /// A message describing the type of the error
+    pub msg: ~str
+}
 
 // Event based parser
 enum State {
@@ -35,18 +47,18 @@ enum State {
 
 /// A streaming XML parser
 pub struct Parser {
-    priv line: uint,
-    priv col: uint,
-    priv buf: ~str,
-    priv name: ~str,
-    priv prefix: Option<~str>,
-    priv namespaces: Vec<HashMap<~str, ~str>>,
-    priv attr_name: ~str,
-    priv attr_prefix: Option<~str>,
-    priv attributes: Vec<Attribute>,
-    priv delim: Option<char>,
-    priv st: State,
-    priv level: uint
+    line: uint,
+    col: uint,
+    buf: ~str,
+    name: ~str,
+    prefix: Option<~str>,
+    namespaces: Vec<HashMap<~str, ~str>>,
+    attr_name: ~str,
+    attr_prefix: Option<~str>,
+    attributes: Vec<Attribute>,
+    delim: Option<char>,
+    st: State,
+    level: uint
 }
 
 impl Parser {

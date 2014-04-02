@@ -12,7 +12,7 @@ extern crate collections;
 pub use base::{escape, unescape};
 pub use base::{XML, Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
 pub use base::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
-pub use base::Error;
+pub use Parser::Error;
 pub use Parser::Parser;
 pub use ElementBuilder::ElementBuilder;
 

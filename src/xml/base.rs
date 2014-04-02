@@ -88,28 +88,28 @@ pub enum XML {
 /// A struct representing an XML element
 pub struct Element {
     /// The element's name
-    name: ~str,
+    pub name: ~str,
     /// The element's namespace
-    ns: Option<~str>,
+    pub ns: Option<~str>,
     /// The element's default namespace
-    default_ns: Option<~str>,
+    pub default_ns: Option<~str>,
     /// The prefixes set for known namespaces
-    prefixes: HashMap<~str, ~str>,
+    pub prefixes: HashMap<~str, ~str>,
     /// The element's `Attribute`s
-    attributes: Vec<Attribute>,
+    pub attributes: Vec<Attribute>,
     /// The element's child `XML` nodes
-    children: Vec<XML>,
+    pub children: Vec<XML>,
 }
 
 #[deriving(Clone,Eq,Show)]
 /// A struct representing an XML attribute
 pub struct Attribute {
     /// The attribute's name
-    name: ~str,
+    pub name: ~str,
     /// The attribute's namespace
-    ns: Option<~str>,
+    pub ns: Option<~str>,
     /// The attribute's value
-    value: ~str
+    pub value: ~str
 }
 
 #[deriving(Eq, Show)]
@@ -133,36 +133,24 @@ pub enum Event {
 /// Structure describint an opening tag
 pub struct StartTag {
     /// The tag's name
-    name: ~str,
+    pub name: ~str,
     /// The tag's namespace
-    ns: Option<~str>,
+    pub ns: Option<~str>,
     /// The tag's prefix
-    prefix: Option<~str>,
+    pub prefix: Option<~str>,
     /// Attributes included in the tag
-    attributes: Vec<Attribute>
+    pub attributes: Vec<Attribute>
 }
 
 #[deriving(Eq, Show)]
 /// Structure describint n closing tag
 pub struct EndTag {
     /// The tag's name
-    name: ~str,
+    pub name: ~str,
     /// The tag's namespace
-    ns: Option<~str>,
+    pub ns: Option<~str>,
     /// The tag's prefix
-    prefix: Option<~str>
-}
-
-#[deriving(Eq, Show)]
-/// If an error occurs while parsing some XML, this is the structure which is
-/// returned
-pub struct Error {
-    /// The line number at which the error occurred
-    line: uint,
-    /// The column number at which the error occurred
-    col: uint,
-    /// A message describing the type of the error
-    msg: ~str
+    pub prefix: Option<~str>
 }
 
 impl Show for XML {
