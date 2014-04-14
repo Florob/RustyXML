@@ -4,7 +4,6 @@
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
-use std::str;
 use std::fmt;
 use std::fmt::Show;
 use collections::HashMap;
@@ -14,7 +13,7 @@ use collections::HashMap;
 #[inline]
 /// Escapes ', ", &, <, and > with the appropriate XML entities.
 pub fn escape(input: &str) -> ~str {
-    let mut result = str::with_capacity(input.len());
+    let mut result = StrBuf::with_capacity(input.len());
 
     for c in input.chars() {
         match c {
@@ -26,22 +25,22 @@ pub fn escape(input: &str) -> ~str {
             o => result.push_char(o)
         }
     }
-    result
+    result.into_owned()
 }
 
 #[inline]
 /// Unescapes all valid XML entities in a string.
 pub fn unescape(input: &str) -> Result<~str, ~str> {
-    let mut result = str::with_capacity(input.len());
+    let mut result = StrBuf::with_capacity(input.len());
 
-    let mut ent = ~"";
+    let mut ent = StrBuf::new();
     let mut in_entity = false;
     for c in input.chars() {
         if !in_entity {
             if c != '&' {
                 result.push_char(c);
             } else {
-                ent = ~"&";
+                ent = StrBuf::from_str("&");
                 in_entity = true;
             }
             continue;
@@ -49,23 +48,18 @@ pub fn unescape(input: &str) -> Result<~str, ~str> {
 
         ent.push_char(c);
         if c == ';' {
-            if "&quot;" == ent {
-                result.push_char('"');
-            } else if "&apos;" == ent {
-                result.push_char('\'');
-            } else if "&gt;" == ent {
-                result.push_char('>');
-            } else if "&lt;" == ent {
-                result.push_char('<');
-            } else if "&amp;" == ent {
-                result.push_char('&');
-            } else {
-                return Err(ent);
+            match ent.as_slice() {
+                "&quot;" => result.push_char('"'),
+                "&apos;" => result.push_char('\''),
+                "&gt;"   => result.push_char('>'),
+                "&lt;"   => result.push_char('<'),
+                "&amp;"  => result.push_char('&'),
+                _ => return Err(ent.into_owned())
             }
             in_entity = false;
         }
     }
-    Ok(result)
+    Ok(result.into_owned())
 }
 
 // General types
@@ -225,7 +219,7 @@ impl Show for Element{
 impl Element {
     /// Returns the character and CDATA contained in the element.
     pub fn content_str(&self) -> ~str {
-        let mut res = ~"";
+        let mut res = StrBuf::new();
         for child in self.children.iter() {
             match *child {
                 Element(ref elem) => res.push_str(elem.content_str()),
@@ -234,7 +228,7 @@ impl Element {
                 _ => ()
             }
         }
-        res
+        res.into_owned()
     }
 
     /// Gets an `Attribute` with the specified name. When an attribute with the

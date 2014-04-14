@@ -49,7 +49,7 @@ enum State {
 pub struct Parser {
     line: uint,
     col: uint,
-    buf: ~str,
+    buf: StrBuf,
     name: ~str,
     prefix: Option<~str>,
     namespaces: Vec<HashMap<~str, ~str>>,
@@ -67,7 +67,7 @@ impl Parser {
         let mut p = Parser {
             line: 1,
             col: 0,
-            buf: ~"",
+            buf: StrBuf::new(),
             name: ~"",
             prefix: None,
             namespaces: vec!(HashMap::with_capacity(2)),
@@ -184,11 +184,11 @@ impl Parser {
         match c {
             '<' if self.buf.len() > 0 => {
                 self.st = TagOpened;
-                let buf = match unescape(self.buf) {
+                let buf = match unescape(self.buf.as_slice()) {
                     Ok(unescaped) => unescaped,
                     Err(entity) => return self.error(format!("Invalid entity: {}", entity))
                 };
-                self.buf.clear();
+                self.buf.truncate(0);
                 return Ok(Some(Characters(buf)));
             }
             '<' => self.st = TagOpened,
@@ -219,8 +219,11 @@ impl Parser {
             '>' if self.level == 1 => {
                 self.level = 0;
                 self.st = OutsideTag;
-                let buf = self.buf.slice_chars(0, self.buf.char_len()-1).to_owned();
-                self.buf.clear();
+                let buf = {
+                    let buf = self.buf.as_slice();
+                    buf.slice_chars(0, buf.char_len()-1).to_owned()
+                };
+                self.buf.truncate(0);
                 return Ok(Some(PI(buf)));
             }
             _ => self.buf.push_char(c)
@@ -230,10 +233,10 @@ impl Parser {
 
     fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         fn set_name(p: &mut Parser) {
-            let (prefix, name) = parse_qname(p.buf);
+            let (prefix, name) = parse_qname(p.buf.as_slice());
             p.prefix = prefix;
             p.name = name;
-            p.buf.clear();
+            p.buf.truncate(0);
         };
 
         match c {
@@ -284,8 +287,8 @@ impl Parser {
             | '\r'
             | '\n'
             | '>' => {
-                let (prefix, name) = parse_qname(self.buf);
-                self.buf.clear();
+                let (prefix, name) = parse_qname(self.buf.as_slice());
+                self.buf.truncate(0);
 
                 let ns = match prefix {
                     None => self.namespace_for_prefix(&~""),
@@ -340,7 +343,7 @@ impl Parser {
                 self.st = if c == '/' {
                     ExpectClose
                 } else {
-                    self.name.clear();
+                    self.name.truncate(0);
                     self.prefix = None;
                     OutsideTag
                 };
@@ -369,11 +372,11 @@ impl Parser {
             '=' => {
                 self.level = 0;
 
-                let (prefix, name) = parse_qname(self.buf);
+                let (prefix, name) = parse_qname(self.buf.as_slice());
                 self.attr_prefix = prefix;
                 self.attr_name = name;
 
-                self.buf.clear();
+                self.buf.truncate(0);
                 self.st = ExpectDelimiter;
             }
             ' '
@@ -391,12 +394,12 @@ impl Parser {
             self.delim = None;
             self.st = InTag;
             let name = self.attr_name.clone();
-            self.attr_name.clear();
-            let value = match unescape(self.buf) {
+            self.attr_name.truncate(0);
+            let value = match unescape(self.buf.as_slice()) {
                 Ok(unescaped) => unescaped,
                 Err(entity) => return self.error(format!("Invalid entity: {}", entity))
             };
-            self.buf.clear();
+            self.buf.truncate(0);
             let prefix = self.attr_prefix.clone();
             self.attr_prefix = None;
 
@@ -439,7 +442,7 @@ impl Parser {
             '>' => {
                 self.st = OutsideTag;
                 let name = self.name.clone();
-                self.name.clear();
+                self.name.truncate(0);
                 let prefix = self.prefix.take();
                 let ns = match prefix {
                     None => self.namespace_for_prefix(&~""),
@@ -504,8 +507,11 @@ impl Parser {
             '>' if self.level >= 2 => {
                 self.st = OutsideTag;
                 self.level = 0;
-                let buf = self.buf.slice_chars(0, self.buf.char_len()-2).to_owned();
-                self.buf.clear();
+                let buf = {
+                    let buf = self.buf.as_slice();
+                    buf.slice_chars(0, buf.char_len()-2).to_owned()
+                };
+                self.buf.truncate(0);
                 return Ok(Some(CDATA(buf)))
             }
             _ => {
@@ -548,8 +554,11 @@ impl Parser {
             self.error(~"Not more than one adjacent '-' allowed in a comment")
         } else {
             self.st = OutsideTag;
-            let buf = self.buf.slice_chars(0, self.buf.char_len()-2).to_owned();
-            self.buf.clear();
+            let buf = {
+                let buf = self.buf.as_slice();
+                buf.slice_chars(0, buf.char_len()-2).to_owned()
+            };
+            self.buf.truncate(0);
             Ok(Some(Comment(buf)))
         }
     }

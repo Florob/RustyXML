@@ -145,11 +145,11 @@ mod base_tests {
 #[cfg(test)]
 mod base_bench {
     extern crate test;
-    use self::test::BenchHarness;
+    use self::test::Bencher;
     use xml::{escape, unescape};
 
     #[bench]
-    fn bench_escape(bh: &mut BenchHarness) {
+    fn bench_escape(bh: &mut Bencher) {
         let input = "&<>'\"".repeat(100);
         bh.iter( || {
             escape(input)
@@ -158,7 +158,7 @@ mod base_bench {
     }
 
     #[bench]
-    fn bench_unescape(bh: &mut BenchHarness) {
+    fn bench_unescape(bh: &mut Bencher) {
         let input = "&amp;&lt;&gt;&apos;&quot;".repeat(50);
         bh.iter(|| {
             unescape(input)
