@@ -137,7 +137,7 @@ fn parse_qname(qname: &str) -> (Option<~str>, ~str) {
 
 impl Parser {
     fn namespace_for_prefix(&self, prefix: &~str) -> Option<~str> {
-        for ns in self.namespaces.as_slice().rev_iter() {
+        for ns in self.namespaces.as_slice().iter().rev() {
             match ns.find(prefix) {
                 None => continue,
                 Some(namespace) => {
