@@ -343,7 +343,6 @@ impl Parser {
                 self.st = if c == '/' {
                     ExpectClose
                 } else {
-                    self.name.truncate(0);
                     self.prefix = None;
                     OutsideTag
                 };
@@ -394,7 +393,6 @@ impl Parser {
             self.delim = None;
             self.st = InTag;
             let name = self.attr_name.clone();
-            self.attr_name.truncate(0);
             let value = match unescape(self.buf.as_slice()) {
                 Ok(unescaped) => unescaped,
                 Err(entity) => return self.error(format!("Invalid entity: {}", entity))
@@ -442,7 +440,6 @@ impl Parser {
             '>' => {
                 self.st = OutsideTag;
                 let name = self.name.clone();
-                self.name.truncate(0);
                 let prefix = self.prefix.take();
                 let ns = match prefix {
                     None => self.namespace_for_prefix(&~""),
