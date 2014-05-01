@@ -9,8 +9,10 @@ The parser itself is derived from OFXMLParser as found in ObjFW
 
 The current limitations are:
 * Incomplete error checking
-* Missing documentation
-* No namespace support
+* Unstable API
+* Incomplete entity support
+
+This project tracks Rust's master branch.
 
 License
 -------
