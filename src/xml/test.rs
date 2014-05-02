@@ -11,54 +11,58 @@ mod base_tests {
     #[test]
     fn test_escape() {
         let esc = escape("&<>'\"");
-        assert_eq!(esc, ~"&amp;&lt;&gt;&apos;&quot;");
+        assert_eq!(esc, "&amp;&lt;&gt;&apos;&quot;".to_owned());
     }
 
     #[test]
     fn test_unescape() {
         let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;");
-        assert_eq!(unesc, Ok(~"&lt;<>'\""));
+        assert_eq!(unesc, Ok("&lt;<>'\"".to_owned()));
     }
 
     #[test]
     fn test_unescape_cond() {
         let unesc = unescape("&amp;&nbsp;");
-        assert_eq!(unesc, Err(~"&nbsp;"));
+        assert_eq!(unesc, Err("&nbsp;".to_owned()));
     }
 
     #[test]
     fn test_to_str_element() {
         let elem = Element {
-            name: ~"a",
+            name: "a".to_owned(),
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
             attributes: Vec::new(),
             children: Vec::new()
         };
-        assert_eq!(elem.to_str(), ~"<a/>");
+        assert_eq!(elem.to_str(), "<a/>".to_owned());
 
         let elem = Element {
-            name: ~"a",
+            name: "a".to_owned(),
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
             attributes: vec!(
-                Attribute { name: ~"href", ns: None, value: ~"http://rust-lang.org" }
+                Attribute {
+                    name: "href".to_owned(),
+                    ns: None,
+                    value: "http://rust-lang.org".to_owned()
+                }
             ),
             children: Vec::new()
         };
-        assert_eq!(elem.to_str(), ~"<a href='http://rust-lang.org'/>");
+        assert_eq!(elem.to_str(), "<a href='http://rust-lang.org'/>".to_owned());
 
         let elem = Element {
-            name: ~"a",
+            name: "a".to_owned(),
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
             attributes: Vec::new(),
             children: vec!(
                 Element(Element {
-                    name: ~"b",
+                    name: "b".to_owned(),
                     ns: None,
                     default_ns: None,
                     prefixes: HashMap::new(),
@@ -67,19 +71,23 @@ mod base_tests {
                 })
             )
         };
-        assert_eq!(elem.to_str(), ~"<a><b/></a>");
+        assert_eq!(elem.to_str(), "<a><b/></a>".to_owned());
 
         let elem = Element {
-            name: ~"a",
+            name: "a".to_owned(),
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
             attributes: vec!(
-                Attribute { name: ~"href", ns: None, value: ~"http://rust-lang.org" }
+                Attribute {
+                    name: "href".to_owned(),
+                    ns: None,
+                    value: "http://rust-lang.org".to_owned()
+                }
             ),
             children: vec!(
                 Element(Element {
-                    name: ~"b",
+                    name: "b".to_owned(),
                     ns: None,
                     default_ns: None,
                     prefixes: HashMap::new(),
@@ -88,57 +96,57 @@ mod base_tests {
                 })
             )
         };
-        assert_eq!(elem.to_str(), ~"<a href='http://rust-lang.org'><b/></a>");
+        assert_eq!(elem.to_str(), "<a href='http://rust-lang.org'><b/></a>".to_owned());
     }
 
     #[test]
     fn test_to_str_characters() {
-        let chars = CharacterNode(~"some text");
-        assert_eq!(chars.to_str(), ~"some text");
+        let chars = CharacterNode("some text".to_owned());
+        assert_eq!(chars.to_str(), "some text".to_owned());
     }
 
     #[test]
     fn test_to_str_CDATA() {
-        let chars = CDATANode(~"some text");
-        assert_eq!(chars.to_str(), ~"<![CDATA[some text]]>");
+        let chars = CDATANode("some text".to_owned());
+        assert_eq!(chars.to_str(), "<![CDATA[some text]]>".to_owned());
     }
 
     #[test]
     fn test_to_str_comment() {
-        let chars = CommentNode(~"some text");
-        assert_eq!(chars.to_str(), ~"<!--some text-->");
+        let chars = CommentNode("some text".to_owned());
+        assert_eq!(chars.to_str(), "<!--some text-->".to_owned());
     }
 
     #[test]
     fn test_to_str_pi() {
-        let chars = PINode(~"xml version='1.0'");
-        assert_eq!(chars.to_str(), ~"<?xml version='1.0'?>");
+        let chars = PINode("xml version='1.0'".to_owned());
+        assert_eq!(chars.to_str(), "<?xml version='1.0'?>".to_owned());
     }
 
     #[test]
     fn test_content_str() {
         let elem = Element {
-            name: ~"a",
+            name: "a".to_owned(),
             ns: None,
             default_ns: None,
             prefixes: HashMap::new(),
             attributes: Vec::new(),
             children: vec!(
-                PINode(~"processing information"),
-                CDATANode(~"<hello/>"),
+                PINode("processing information".to_owned()),
+                CDATANode("<hello/>".to_owned()),
                 Element(Element{
-                    name: ~"b",
+                    name: "b".to_owned(),
                     ns: None,
                     default_ns: None,
                     prefixes: HashMap::new(),
                     attributes: Vec::new(),
                     children: Vec::new()
                 }),
-                CharacterNode(~"World"),
-                CommentNode(~"Nothing to see")
+                CharacterNode("World".to_owned()),
+                CommentNode("Nothing to see".to_owned())
             )
         };
-        assert_eq!(elem.content_str(), ~"<hello/>World");
+        assert_eq!(elem.content_str(), "<hello/>World".to_owned());
     }
 }
 
@@ -179,7 +187,7 @@ mod parser_tests {
         p.parse_str("<a>", |event| {
             i += 1;
             assert_eq!(event, Ok(StartTag(StartTag {
-                name: ~"a",
+                name: "a".to_owned(),
                 ns: None,
                 prefix:None,
                 attributes: Vec::new()
@@ -194,7 +202,7 @@ mod parser_tests {
         let mut i = 0;
         p.parse_str("</a>", |event| {
             i += 1;
-            assert_eq!(event, Ok(EndTag(EndTag { name: ~"a", ns: None, prefix: None })));
+            assert_eq!(event, Ok(EndTag(EndTag { name: "a".to_owned(), ns: None, prefix: None })));
         });
         assert_eq!(i, 1);
     }
@@ -205,7 +213,7 @@ mod parser_tests {
         let mut i = 0;
         p.parse_str("<?xml version='1.0' encoding='utf-8'?>", |event| {
             i += 1;
-            assert_eq!(event, Ok(PI(~"xml version='1.0' encoding='utf-8'")));
+            assert_eq!(event, Ok(PI("xml version='1.0' encoding='utf-8'".to_owned())));
         });
         assert_eq!(i, 1);
     }
@@ -216,7 +224,7 @@ mod parser_tests {
         let mut i = 0;
         p.parse_str("<!--Nothing to see-->", |event| {
             i += 1;
-            assert_eq!(event, Ok(Comment(~"Nothing to see")));
+            assert_eq!(event, Ok(Comment("Nothing to see".to_owned())));
         });
         assert_eq!(i, 1);
     }
@@ -226,7 +234,8 @@ mod parser_tests {
         let mut i = 0;
         p.parse_str("<![CDATA[<html><head><title>x</title></head><body/></html>]]>", |event| {
             i += 1;
-            assert_eq!(event, Ok(CDATA(~"<html><head><title>x</title></head><body/></html>")));
+            assert_eq!(event,
+                       Ok(CDATA("<html><head><title>x</title></head><body/></html>".to_owned())));
         });
         assert_eq!(i, 1);
     }
@@ -238,7 +247,7 @@ mod parser_tests {
         p.parse_str("<text>Hello World, it&apos;s a nice day</text>", |event| {
             i += 1;
             if i == 2 {
-                assert_eq!(event, Ok(Characters(~"Hello World, it's a nice day")));
+                assert_eq!(event, Ok(Characters("Hello World, it's a nice day".to_owned())));
             }
         });
         assert_eq!(i, 3);

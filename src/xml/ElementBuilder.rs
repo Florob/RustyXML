@@ -24,8 +24,8 @@ impl ElementBuilder {
             default_ns: Vec::new(),
             prefixes: HashMap::with_capacity(2),
         };
-        e.prefixes.swap(~"http://www.w3.org/XML/1998/namespace", ~"xml");
-        e.prefixes.swap(~"http://www.w3.org/2000/xmlns/", ~"xmlns");
+        e.prefixes.swap("http://www.w3.org/XML/1998/namespace".to_owned(), "xml".to_owned());
+        e.prefixes.swap("http://www.w3.org/2000/xmlns/".to_owned(), "xmlns".to_owned());
         e
     }
 
@@ -77,7 +77,7 @@ impl ElementBuilder {
                         }
                         continue;
                     }
-                    if attr.ns == Some(~"http://www.w3.org/2000/xmlns/") {
+                    if attr.ns == Some("http://www.w3.org/2000/xmlns/".to_owned()) {
                         elem.prefixes.swap(attr.value.clone(), attr.name.clone());
                     }
                     elem.attributes.push(attr.clone());
@@ -91,11 +91,11 @@ impl ElementBuilder {
             EndTag(EndTag { name, ns, prefix: _ }) => {
                 let elem = match self.stack.pop() {
                     Some(elem) => elem,
-                    None => return Err(~"Elements not properly nested")
+                    None => return Err("Elements not properly nested".to_owned())
                 };
                 self.default_ns.pop();
                 if elem.name != name || elem.ns != ns {
-                    Err(~"Elements not properly nested")
+                    Err("Elements not properly nested".to_owned())
                 } else {
                     match self.stack.mut_last() {
                         None => Ok(Some(elem)),

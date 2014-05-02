@@ -68,10 +68,10 @@ impl Parser {
             line: 1,
             col: 0,
             buf: StrBuf::new(),
-            name: ~"",
+            name: "".to_owned(),
             prefix: None,
             namespaces: vec!(HashMap::with_capacity(2)),
-            attr_name: ~"",
+            attr_name: "".to_owned(),
             attr_prefix: None,
             attributes: Vec::new(),
             delim: None,
@@ -80,8 +80,8 @@ impl Parser {
         };
         {
             let x = p.namespaces.get_mut(0);
-            x.swap(~"xml", ~"http://www.w3.org/XML/1998/namespace");
-            x.swap(~"xmlns", ~"http://www.w3.org/2000/xmlns/");
+            x.swap("xml".to_owned(), "http://www.w3.org/XML/1998/namespace".to_owned());
+            x.swap("xmlns".to_owned(), "http://www.w3.org/2000/xmlns/".to_owned());
         }
         p
     }
@@ -245,7 +245,7 @@ impl Parser {
                 set_name(self);
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&~""),
+                    None => self.namespace_for_prefix(&"".to_owned()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -291,7 +291,7 @@ impl Parser {
                 self.buf.truncate(0);
 
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&~""),
+                    None => self.namespace_for_prefix(&"".to_owned()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -324,7 +324,7 @@ impl Parser {
                 self.attributes = Vec::new();
                 let prefix = self.prefix.clone();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&~""),
+                    None => self.namespace_for_prefix(&"".to_owned()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -383,7 +383,7 @@ impl Parser {
             | '\r'
             | '\n' => self.level = 1,
             _ if self.level == 0 => self.buf.push_char(c),
-            _ => return self.error(~"Space occured in attribute name")
+            _ => return self.error("Space occured in attribute name".to_owned())
         }
         Ok(None)
     }
@@ -404,7 +404,7 @@ impl Parser {
             let last = self.namespaces.mut_last().unwrap();
             match prefix {
                 None if name.as_slice() == "xmlns" => {
-                    last.swap(~"", value.clone());
+                    last.swap("".to_owned(), value.clone());
                 }
                 Some(ref prefix) if prefix.as_slice() == "xmlns" => {
                     last.swap(name.clone(), value.clone());
@@ -430,7 +430,7 @@ impl Parser {
             | '\t'
             | '\r'
             | '\n' => (),
-            _ => return self.error(~"Attribute value not enclosed in ' or \"")
+            _ => return self.error("Attribute value not enclosed in ' or \"".to_owned())
         }
         Ok(None)
     }
@@ -442,7 +442,7 @@ impl Parser {
                 let name = self.name.clone();
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&~""),
+                    None => self.namespace_for_prefix(&"".to_owned()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -452,7 +452,7 @@ impl Parser {
                 self.namespaces.pop();
                 Ok(Some(EndTag(EndTag { name: name, ns: ns, prefix: prefix })))
             }
-            _ => self.error(~"Expected '>' to close tag")
+            _ => self.error("Expected '>' to close tag".to_owned())
        }
     }
 
@@ -466,7 +466,7 @@ impl Parser {
                 self.st = OutsideTag;
                 Ok(None)
             }
-            _ => self.error(~"Expected '>' to close tag, or LWS")
+            _ => self.error("Expected '>' to close tag, or LWS".to_owned())
        }
     }
 
@@ -475,7 +475,7 @@ impl Parser {
             '-' => InCommentOpening,
             '[' => InCDATAOpening,
             'D' => InDoctype,
-            _ => return self.error(~"Malformed XML")
+            _ => return self.error("Malformed XML".to_owned())
         };
         Ok(None)
     }
@@ -485,7 +485,7 @@ impl Parser {
         if c == CDATA_PATTERN[self.level] {
             self.level += 1;
         } else {
-            return self.error(~"Invalid CDATA opening sequence")
+            return self.error("Invalid CDATA opening sequence".to_owned())
         }
 
         if self.level == 6 {
@@ -525,7 +525,7 @@ impl Parser {
             self.level = 0;
             Ok(None)
         } else {
-            self.error(~"Expected 2nd '-' to start comment")
+            self.error("Expected 2nd '-' to start comment".to_owned())
         }
     }
 
@@ -548,7 +548,7 @@ impl Parser {
 
     fn in_comment2(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c != '>' {
-            self.error(~"Not more than one adjacent '-' allowed in a comment")
+            self.error("Not more than one adjacent '-' allowed in a comment".to_owned())
         } else {
             self.st = OutsideTag;
             let buf = {
@@ -566,7 +566,7 @@ impl Parser {
             0..5 => if c == DOCTYPE_PATTERN[self.level] {
                 self.level += 1;
             } else {
-                return self.error(~"Invalid DOCTYPE");
+                return self.error("Invalid DOCTYPE".to_owned());
             },
             6 => {
                 match c {
@@ -574,7 +574,7 @@ impl Parser {
                     | '\t'
                     | '\r'
                     | '\n' => (),
-                    _ => return self.error(~"Invalid DOCTYPE")
+                    _ => return self.error("Invalid DOCTYPE".to_owned())
                 }
                 self.level += 1;
             }
