@@ -54,6 +54,10 @@ pub fn unescape(input: &str) -> Result<~str, ~str> {
                 "&gt;"   => result.push_char('>'),
                 "&lt;"   => result.push_char('<'),
                 "&amp;"  => result.push_char('&'),
+                "&#x26;" => result.push_char('&'),
+                "&#x22;" => result.push_char('"'),
+                "&#x3C;" => result.push_char('<'),
+                "&#x3E;" => result.push_char('>'),
                 _ => return Err(ent.into_owned())
             }
             in_entity = false;
