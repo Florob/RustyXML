@@ -20,7 +20,7 @@ pub struct Error {
     /// The column number at which the error occurred
     pub col: uint,
     /// A message describing the type of the error
-    pub msg: ~str
+    pub msg: &'static str
 }
 
 // Event based parser
@@ -152,7 +152,7 @@ impl Parser {
         None
     }
 
-    fn error(&self, msg: ~str) -> Result<Option<Event>, Error> {
+    fn error(&self, msg: &'static str) -> Result<Option<Event>, Error> {
         Err(Error { line: self.line, col: self.col, msg: msg })
     }
 
@@ -186,7 +186,7 @@ impl Parser {
                 self.st = TagOpened;
                 let buf = match unescape(self.buf.as_slice()) {
                     Ok(unescaped) => unescaped,
-                    Err(entity) => return self.error(format!("Invalid entity: {}", entity))
+                    Err(_) => return self.error("Found invalid entity")
                 };
                 self.buf.truncate(0);
                 return Ok(Some(Characters(buf)));
@@ -383,7 +383,7 @@ impl Parser {
             | '\r'
             | '\n' => self.level = 1,
             _ if self.level == 0 => self.buf.push_char(c),
-            _ => return self.error("Space occured in attribute name".to_owned())
+            _ => return self.error("Space occured in attribute name")
         }
         Ok(None)
     }
@@ -395,7 +395,7 @@ impl Parser {
             let name = self.attr_name.clone();
             let value = match unescape(self.buf.as_slice()) {
                 Ok(unescaped) => unescaped,
-                Err(entity) => return self.error(format!("Invalid entity: {}", entity))
+                Err(_) => return self.error("Found invalid entity")
             };
             self.buf.truncate(0);
             let prefix = self.attr_prefix.clone();
@@ -430,7 +430,7 @@ impl Parser {
             | '\t'
             | '\r'
             | '\n' => (),
-            _ => return self.error("Attribute value not enclosed in ' or \"".to_owned())
+            _ => return self.error("Attribute value not enclosed in ' or \"")
         }
         Ok(None)
     }
@@ -452,7 +452,7 @@ impl Parser {
                 self.namespaces.pop();
                 Ok(Some(EndTag(EndTag { name: name, ns: ns, prefix: prefix })))
             }
-            _ => self.error("Expected '>' to close tag".to_owned())
+            _ => self.error("Expected '>' to close tag")
        }
     }
 
@@ -466,7 +466,7 @@ impl Parser {
                 self.st = OutsideTag;
                 Ok(None)
             }
-            _ => self.error("Expected '>' to close tag, or LWS".to_owned())
+            _ => self.error("Expected '>' to close tag, or LWS")
        }
     }
 
@@ -475,7 +475,7 @@ impl Parser {
             '-' => InCommentOpening,
             '[' => InCDATAOpening,
             'D' => InDoctype,
-            _ => return self.error("Malformed XML".to_owned())
+            _ => return self.error("Malformed XML")
         };
         Ok(None)
     }
@@ -485,7 +485,7 @@ impl Parser {
         if c == CDATA_PATTERN[self.level] {
             self.level += 1;
         } else {
-            return self.error("Invalid CDATA opening sequence".to_owned())
+            return self.error("Invalid CDATA opening sequence")
         }
 
         if self.level == 6 {
@@ -525,7 +525,7 @@ impl Parser {
             self.level = 0;
             Ok(None)
         } else {
-            self.error("Expected 2nd '-' to start comment".to_owned())
+            self.error("Expected 2nd '-' to start comment")
         }
     }
 
@@ -548,7 +548,7 @@ impl Parser {
 
     fn in_comment2(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c != '>' {
-            self.error("Not more than one adjacent '-' allowed in a comment".to_owned())
+            self.error("Not more than one adjacent '-' allowed in a comment")
         } else {
             self.st = OutsideTag;
             let buf = {
@@ -566,7 +566,7 @@ impl Parser {
             0..5 => if c == DOCTYPE_PATTERN[self.level] {
                 self.level += 1;
             } else {
-                return self.error("Invalid DOCTYPE".to_owned());
+                return self.error("Invalid DOCTYPE");
             },
             6 => {
                 match c {
@@ -574,7 +574,7 @@ impl Parser {
                     | '\t'
                     | '\r'
                     | '\n' => (),
-                    _ => return self.error("Invalid DOCTYPE".to_owned())
+                    _ => return self.error("Invalid DOCTYPE")
                 }
                 self.level += 1;
             }
