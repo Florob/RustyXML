@@ -6,6 +6,8 @@
 
 use std::fmt;
 use std::fmt::Show;
+use std::char;
+use std::num;
 use collections::HashMap;
 
 // General functions
@@ -54,7 +56,25 @@ pub fn unescape(input: &str) -> Result<~str, ~str> {
                 "&gt;"   => result.push_char('>'),
                 "&lt;"   => result.push_char('<'),
                 "&amp;"  => result.push_char('&'),
-                _ => return Err(ent.into_owned())
+                ent => {
+                    let len = ent.len();
+                    let val = if ent.starts_with("&#x") {
+                        num::from_str_radix(ent.slice(3, len-1), 16)
+                    } else if ent.starts_with("&#") {
+                        num::from_str_radix(ent.slice(2, len-1), 10)
+                    } else {
+                        None
+                    };
+                    match val.and_then(|x| char::from_u32(x)) {
+                        Some(c) => {
+                            result.push_char(c);
+                        },
+                        None => {
+                            println!("{}", ent);
+                            return Err(ent.into_owned())
+                        }
+                    }
+                }
             }
             in_entity = false;
         }

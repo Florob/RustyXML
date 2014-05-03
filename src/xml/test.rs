@@ -16,12 +16,12 @@ mod base_tests {
 
     #[test]
     fn test_unescape() {
-        let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;");
-        assert_eq!(unesc, Ok("&lt;<>'\"".to_owned()));
+        let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;&#x201c;&#x201d;&#38;&#34;");
+        assert_eq!(unesc, Ok("&lt;<>'\"\u201c\u201d&\"".to_owned()));
     }
 
     #[test]
-    fn test_unescape_cond() {
+    fn test_unescape_invalid() {
         let unesc = unescape("&amp;&nbsp;");
         assert_eq!(unesc, Err("&nbsp;".to_owned()));
     }
