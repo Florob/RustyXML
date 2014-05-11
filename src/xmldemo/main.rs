@@ -12,12 +12,14 @@ use std::path::Path;
 fn main()
 {
     let args = std::os::args();
-    if args.len() != 2 {
-        println!("Usage: {} <file>", args[0]);
-        return;
-    }
-
-    let f = &Path::new(args[1].clone());
+    let f = &match args.as_slice() {
+        [_, ref path] => Path::new(path.as_slice()),
+        [ref name, ..] => {
+            println!("Usage: {} <file>", name);
+            return;
+        }
+        _ => fail!("argv had length 0")
+    };
     let mut rdr = match File::open(f) {
         Ok(file) => file,
         Err(err) => {
