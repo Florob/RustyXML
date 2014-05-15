@@ -10,6 +10,7 @@
 
 use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
 use collections::HashMap;
+use std::mem;
 
 #[deriving(Eq, Show)]
 /// If an error occurs while parsing some XML, this is the structure which is
@@ -50,11 +51,11 @@ pub struct Parser {
     line: uint,
     col: uint,
     buf: StrBuf,
-    name: ~str,
-    prefix: Option<~str>,
-    namespaces: Vec<HashMap<~str, ~str>>,
-    attr_name: ~str,
-    attr_prefix: Option<~str>,
+    name: StrBuf,
+    prefix: Option<StrBuf>,
+    namespaces: Vec<HashMap<StrBuf, StrBuf>>,
+    attr_name: StrBuf,
+    attr_prefix: Option<StrBuf>,
     attributes: Vec<Attribute>,
     delim: Option<char>,
     st: State,
@@ -68,10 +69,10 @@ impl Parser {
             line: 1,
             col: 0,
             buf: StrBuf::new(),
-            name: "".to_owned(),
+            name: StrBuf::new(),
             prefix: None,
             namespaces: vec!(HashMap::with_capacity(2)),
-            attr_name: "".to_owned(),
+            attr_name: StrBuf::new(),
             attr_prefix: None,
             attributes: Vec::new(),
             delim: None,
@@ -80,8 +81,8 @@ impl Parser {
         };
         {
             let x = p.namespaces.get_mut(0);
-            x.swap("xml".to_owned(), "http://www.w3.org/XML/1998/namespace".to_owned());
-            x.swap("xmlns".to_owned(), "http://www.w3.org/2000/xmlns/".to_owned());
+            x.swap("xml".to_strbuf(), "http://www.w3.org/XML/1998/namespace".to_strbuf());
+            x.swap("xmlns".to_strbuf(), "http://www.w3.org/2000/xmlns/".to_strbuf());
         }
         p
     }
@@ -124,19 +125,19 @@ impl Parser {
 }
 
 #[inline]
-fn parse_qname(qname: &str) -> (Option<~str>, ~str) {
+fn parse_qname(qname: &str) -> (Option<StrBuf>, StrBuf) {
     match qname.find(':') {
         None => {
-            (None, qname.to_owned())
+            (None, qname.to_strbuf())
         },
         Some(i) => {
-            (Some(qname.slice_to(i).to_owned()), qname.slice_from(i+1).to_owned())
+            (Some(qname.slice_to(i).to_strbuf()), qname.slice_from(i+1).to_strbuf())
         }
     }
 }
 
 impl Parser {
-    fn namespace_for_prefix(&self, prefix: &~str) -> Option<~str> {
+    fn namespace_for_prefix(&self, prefix: &StrBuf) -> Option<StrBuf> {
         for ns in self.namespaces.as_slice().iter().rev() {
             match ns.find(prefix) {
                 None => continue,
@@ -144,7 +145,7 @@ impl Parser {
                     if namespace.len() == 0 {
                         return None;
                     } else {
-                        return Some(namespace.to_owned());
+                        return Some(namespace.clone());
                     }
                 }
             }
@@ -219,11 +220,8 @@ impl Parser {
             '>' if self.level == 1 => {
                 self.level = 0;
                 self.st = OutsideTag;
-                let buf = {
-                    let buf = self.buf.as_slice();
-                    buf.slice_chars(0, buf.char_len()-1).to_owned()
-                };
-                self.buf.truncate(0);
+                let _ = self.buf.pop_char();
+                let buf = mem::replace(&mut self.buf, StrBuf::new());
                 return Ok(Some(PI(buf)));
             }
             _ => self.buf.push_char(c)
@@ -245,7 +243,7 @@ impl Parser {
                 set_name(self);
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&"".to_owned()),
+                    None => self.namespace_for_prefix(&StrBuf::new()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -291,7 +289,7 @@ impl Parser {
                 self.buf.truncate(0);
 
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&"".to_owned()),
+                    None => self.namespace_for_prefix(&StrBuf::new()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -319,12 +317,11 @@ impl Parser {
         match c {
             '/'
             | '>' => {
-                let name = self.name.clone();
-                let mut attributes = self.attributes.clone();
-                self.attributes = Vec::new();
-                let prefix = self.prefix.clone();
+                let name = mem::replace(&mut self.name, StrBuf::new());
+                let mut attributes = mem::replace(&mut self.attributes, Vec::new());
+                let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&"".to_owned()),
+                    None => self.namespace_for_prefix(&StrBuf::new()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -392,19 +389,18 @@ impl Parser {
         if c == self.delim.expect("In attribute value, but no delimiter set") {
             self.delim = None;
             self.st = InTag;
-            let name = self.attr_name.clone();
+            let name = mem::replace(&mut self.attr_name, StrBuf::new());
             let value = match unescape(self.buf.as_slice()) {
                 Ok(unescaped) => unescaped,
                 Err(_) => return self.error("Found invalid entity")
             };
             self.buf.truncate(0);
-            let prefix = self.attr_prefix.clone();
-            self.attr_prefix = None;
+            let prefix = self.attr_prefix.take();
 
             let last = self.namespaces.mut_last().unwrap();
             match prefix {
                 None if name.as_slice() == "xmlns" => {
-                    last.swap("".to_owned(), value.clone());
+                    last.swap(StrBuf::new(), value.clone());
                 }
                 Some(ref prefix) if prefix.as_slice() == "xmlns" => {
                     last.swap(name.clone(), value.clone());
@@ -439,10 +435,10 @@ impl Parser {
         match c {
             '>' => {
                 self.st = OutsideTag;
-                let name = self.name.clone();
+                let name = mem::replace(&mut self.name, StrBuf::new());
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&"".to_owned()),
+                    None => self.namespace_for_prefix(&StrBuf::new()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -504,11 +500,9 @@ impl Parser {
             '>' if self.level >= 2 => {
                 self.st = OutsideTag;
                 self.level = 0;
-                let buf = {
-                    let buf = self.buf.as_slice();
-                    buf.slice_chars(0, buf.char_len()-2).to_owned()
-                };
-                self.buf.truncate(0);
+                let len = self.buf.len();
+                self.buf.truncate(len - 2);
+                let buf = mem::replace(&mut self.buf, StrBuf::new());
                 return Ok(Some(CDATA(buf)))
             }
             _ => {
@@ -551,11 +545,9 @@ impl Parser {
             self.error("Not more than one adjacent '-' allowed in a comment")
         } else {
             self.st = OutsideTag;
-            let buf = {
-                let buf = self.buf.as_slice();
-                buf.slice_chars(0, buf.char_len()-2).to_owned()
-            };
-            self.buf.truncate(0);
+            let len = self.buf.len();
+            self.buf.truncate(len - 2);
+            let buf = mem::replace(&mut self.buf, StrBuf::new());
             Ok(Some(Comment(buf)))
         }
     }

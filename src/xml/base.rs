@@ -14,7 +14,7 @@ use collections::HashMap;
 
 #[inline]
 /// Escapes ', ", &, <, and > with the appropriate XML entities.
-pub fn escape(input: &str) -> ~str {
+pub fn escape(input: &str) -> StrBuf {
     let mut result = StrBuf::with_capacity(input.len());
 
     for c in input.chars() {
@@ -27,12 +27,12 @@ pub fn escape(input: &str) -> ~str {
             o => result.push_char(o)
         }
     }
-    result.into_owned()
+    result
 }
 
 #[inline]
 /// Unescapes all valid XML entities in a string.
-pub fn unescape(input: &str) -> Result<~str, ~str> {
+pub fn unescape(input: &str) -> Result<StrBuf, StrBuf> {
     let mut result = StrBuf::with_capacity(input.len());
 
     let mut ent = StrBuf::new();
@@ -71,7 +71,7 @@ pub fn unescape(input: &str) -> Result<~str, ~str> {
                         },
                         None => {
                             println!("{}", ent);
-                            return Err(ent.into_owned())
+                            return Err(ent.to_strbuf())
                         }
                     }
                 }
@@ -79,7 +79,7 @@ pub fn unescape(input: &str) -> Result<~str, ~str> {
             in_entity = false;
         }
     }
-    Ok(result.into_owned())
+    Ok(result)
 }
 
 // General types
@@ -89,26 +89,26 @@ pub enum XML {
     /// An XML Element
     Element(Element),
     /// Character Data
-    CharacterNode(~str),
+    CharacterNode(StrBuf),
     /// CDATA
-    CDATANode(~str),
+    CDATANode(StrBuf),
     /// A XML Comment
-    CommentNode(~str),
+    CommentNode(StrBuf),
     /// Processing Information
-    PINode(~str)
+    PINode(StrBuf)
 }
 
 #[deriving(Clone,Eq)]
 /// A struct representing an XML element
 pub struct Element {
     /// The element's name
-    pub name: ~str,
+    pub name: StrBuf,
     /// The element's namespace
-    pub ns: Option<~str>,
+    pub ns: Option<StrBuf>,
     /// The element's default namespace
-    pub default_ns: Option<~str>,
+    pub default_ns: Option<StrBuf>,
     /// The prefixes set for known namespaces
-    pub prefixes: HashMap<~str, ~str>,
+    pub prefixes: HashMap<StrBuf, StrBuf>,
     /// The element's `Attribute`s
     pub attributes: Vec<Attribute>,
     /// The element's child `XML` nodes
@@ -119,39 +119,39 @@ pub struct Element {
 /// A struct representing an XML attribute
 pub struct Attribute {
     /// The attribute's name
-    pub name: ~str,
+    pub name: StrBuf,
     /// The attribute's namespace
-    pub ns: Option<~str>,
+    pub ns: Option<StrBuf>,
     /// The attribute's value
-    pub value: ~str
+    pub value: StrBuf
 }
 
 #[deriving(Eq, Show)]
 /// Events returned by the `Parser`
 pub enum Event {
     /// Event indicating processing information was found
-    PI(~str),
+    PI(StrBuf),
     /// Event indicating a start tag was found
     StartTag(StartTag),
     /// Event indicating a end tag was found
     EndTag(EndTag),
     /// Event indicating character data was found
-    Characters(~str),
+    Characters(StrBuf),
     /// Event indicating CDATA was found
-    CDATA(~str),
+    CDATA(StrBuf),
     /// Event indicating a comment was found
-    Comment(~str)
+    Comment(StrBuf)
 }
 
 #[deriving(Eq, Show)]
 /// Structure describint an opening tag
 pub struct StartTag {
     /// The tag's name
-    pub name: ~str,
+    pub name: StrBuf,
     /// The tag's namespace
-    pub ns: Option<~str>,
+    pub ns: Option<StrBuf>,
     /// The tag's prefix
-    pub prefix: Option<~str>,
+    pub prefix: Option<StrBuf>,
     /// Attributes included in the tag
     pub attributes: Vec<Attribute>
 }
@@ -160,26 +160,26 @@ pub struct StartTag {
 /// Structure describint n closing tag
 pub struct EndTag {
     /// The tag's name
-    pub name: ~str,
+    pub name: StrBuf,
     /// The tag's namespace
-    pub ns: Option<~str>,
+    pub ns: Option<StrBuf>,
     /// The tag's prefix
-    pub prefix: Option<~str>
+    pub prefix: Option<StrBuf>
 }
 
 impl Show for XML {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Element(ref elem) => elem.fmt(f),
-            CharacterNode(ref data) => write!(f.buf, "{}", escape(*data)),
-            CDATANode(ref data) => write!(f.buf, "<![CDATA[{}]]>", *data),
-            CommentNode(ref data) => write!(f.buf, "<!--{}-->", *data),
-            PINode(ref data) => write!(f.buf, "<?{}?>", *data)
+            CharacterNode(ref data) => write!(f.buf, "{}", escape(data.as_slice())),
+            CDATANode(ref data) => write!(f.buf, "<![CDATA[{}]]>", data.as_slice()),
+            CommentNode(ref data) => write!(f.buf, "<!--{}-->", data.as_slice()),
+            PINode(ref data) => write!(f.buf, "<?{}?>", data.as_slice())
         }
     }
 }
 
-fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~str, ~str>,
+fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<StrBuf, StrBuf>,
             f: &mut fmt::Formatter) -> fmt::Result {
     let mut all_prefixes = all_prefixes.clone();
     all_prefixes.extend(elem.prefixes.iter().map(|(k, v)| (k.clone(), v.clone()) ));
@@ -205,9 +205,9 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<~st
         try!(match attr.ns {
             Some(ref ns) => {
                 let prefix = all_prefixes.find(ns).expect("No namespace prefix bound");
-                write!(f.buf, " {}:{}='{}'", *prefix, attr.name, escape(attr.value))
+                write!(f.buf, " {}:{}='{}'", *prefix, attr.name, escape(attr.value.as_slice()))
             }
-            None => write!(f.buf, " {}='{}'", attr.name, escape(attr.value))
+            None => write!(f.buf, " {}='{}'", attr.name, escape(attr.value.as_slice()))
         });
     }
 
@@ -238,17 +238,17 @@ impl Show for Element{
 
 impl Element {
     /// Returns the character and CDATA contained in the element.
-    pub fn content_str(&self) -> ~str {
+    pub fn content_str(&self) -> StrBuf {
         let mut res = StrBuf::new();
         for child in self.children.iter() {
             match *child {
-                Element(ref elem) => res.push_str(elem.content_str()),
+                Element(ref elem) => res.push_str(elem.content_str().as_slice()),
                 CharacterNode(ref data)
-                | CDATANode(ref data) => res.push_str(*data),
+                | CDATANode(ref data) => res.push_str(data.as_slice()),
                 _ => ()
             }
         }
-        res.into_owned()
+        res
     }
 
     /// Gets an `Attribute` with the specified name. When an attribute with the
@@ -259,10 +259,10 @@ impl Element {
 
     /// Gets an `Attribute` with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
-    pub fn attribute_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>)
+    pub fn attribute_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<StrBuf>)
       -> Option<&'a Attribute> {
         for attr in self.attributes.iter() {
-            if name == attr.name && ns == attr.ns {
+            if name.equiv(&attr.name) && ns == attr.ns {
                 return Some(attr);
             }
         }
@@ -277,11 +277,11 @@ impl Element {
 
     /// Gets the first child `Element` with the specified name and namespace. When no child
     /// with the specified name exists `None` is returned.
-    pub fn child_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>)
+    pub fn child_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<StrBuf>)
       -> Option<&'a Element> {
         for child in self.children.iter() {
             match *child {
-                Element(ref elem) if name == elem.name && ns == elem.ns => return Some(&*elem),
+                Element(ref elem) if name.equiv(&elem.name) && ns == elem.ns => return Some(&*elem),
                 _ => ()
             }
         }
@@ -296,12 +296,12 @@ impl Element {
 
     /// Get all children `Element` with the specified name and namespace. When no child
     /// with the specified name exists an empty vetor is returned.
-    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<~str>)
+    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<StrBuf>)
       -> Vec<&'a Element> {
         let mut res: Vec<&'a Element> = Vec::new();
         for child in self.children.iter() {
             match *child {
-                Element(ref elem) if name == elem.name && ns == elem.ns => res.push(&*elem),
+                Element(ref elem) if name.equiv(&elem.name) && ns == elem.ns => res.push(&*elem),
                 _ => ()
             }
         }

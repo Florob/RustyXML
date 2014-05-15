@@ -12,8 +12,8 @@ use collections::HashMap;
 /// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`
 pub struct ElementBuilder {
     stack: Vec<Element>,
-    default_ns: Vec<Option<~str>>,
-    prefixes: HashMap<~str, ~str>
+    default_ns: Vec<Option<StrBuf>>,
+    prefixes: HashMap<StrBuf, StrBuf>
 }
 
 impl ElementBuilder {
@@ -24,18 +24,18 @@ impl ElementBuilder {
             default_ns: Vec::new(),
             prefixes: HashMap::with_capacity(2),
         };
-        e.prefixes.swap("http://www.w3.org/XML/1998/namespace".to_owned(), "xml".to_owned());
-        e.prefixes.swap("http://www.w3.org/2000/xmlns/".to_owned(), "xmlns".to_owned());
+        e.prefixes.swap("http://www.w3.org/XML/1998/namespace".to_strbuf(), "xml".to_strbuf());
+        e.prefixes.swap("http://www.w3.org/2000/xmlns/".to_strbuf(), "xmlns".to_strbuf());
         e
     }
 
     /// Bind a prefix to a namespace
-    pub fn define_prefix(&mut self, prefix: ~str, ns: ~str) {
+    pub fn define_prefix(&mut self, prefix: StrBuf, ns: StrBuf) {
         self.prefixes.swap(ns, prefix);
     }
 
     /// Set the default namespace
-    pub fn set_default_ns(&mut self, ns: ~str) {
+    pub fn set_default_ns(&mut self, ns: StrBuf) {
         self.default_ns = vec!(Some(ns));
     }
 
@@ -43,7 +43,7 @@ impl ElementBuilder {
     /// While no root element has been finished `Ok(None)` is returned.
     /// Once sufficent data has been received an `Element` is returned as `Ok(elem)`.
     /// Upon Error `Err("message")` is returned.
-    pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, ~str> {
+    pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, &'static str> {
         match e {
             PI(cont) => {
                 match self.stack.mut_last() {
@@ -77,7 +77,7 @@ impl ElementBuilder {
                         }
                         continue;
                     }
-                    if attr.ns == Some("http://www.w3.org/2000/xmlns/".to_owned()) {
+                    if attr.ns == Some("http://www.w3.org/2000/xmlns/".to_strbuf()) {
                         elem.prefixes.swap(attr.value.clone(), attr.name.clone());
                     }
                     elem.attributes.push(attr.clone());
@@ -91,11 +91,11 @@ impl ElementBuilder {
             EndTag(EndTag { name, ns, prefix: _ }) => {
                 let elem = match self.stack.pop() {
                     Some(elem) => elem,
-                    None => return Err("Elements not properly nested".to_owned())
+                    None => return Err("Elements not properly nested")
                 };
                 self.default_ns.pop();
                 if elem.name != name || elem.ns != ns {
-                    Err("Elements not properly nested".to_owned())
+                    Err("Elements not properly nested")
                 } else {
                     match self.stack.mut_last() {
                         None => Ok(Some(elem)),
