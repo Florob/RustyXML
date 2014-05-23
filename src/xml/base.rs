@@ -87,7 +87,7 @@ pub fn unescape(input: &str) -> Result<StrBuf, StrBuf> {
 /// An Enum describing a XML Node
 pub enum XML {
     /// An XML Element
-    Element(Element),
+    ElementNode(Element),
     /// Character Data
     CharacterNode(StrBuf),
     /// CDATA
@@ -170,7 +170,7 @@ pub struct EndTag {
 impl Show for XML {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Element(ref elem) => elem.fmt(f),
+            ElementNode(ref elem) => elem.fmt(f),
             CharacterNode(ref data) => write!(f, "{}", escape(data.as_slice())),
             CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", data.as_slice()),
             CommentNode(ref data) => write!(f, "<!--{}-->", data.as_slice()),
@@ -217,7 +217,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
         try!(write!(f, ">"));
         for child in elem.children.iter() {
             try!(match *child {
-                Element(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
+                ElementNode(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
                 ref o => o.fmt(f)
             });
         }
@@ -254,7 +254,7 @@ impl Element {
         let mut res = StrBuf::new();
         for child in self.children.iter() {
             match *child {
-                Element(ref elem) => res.push_str(elem.content_str().as_slice()),
+                ElementNode(ref elem) => res.push_str(elem.content_str().as_slice()),
                 CharacterNode(ref data)
                 | CDATANode(ref data) => res.push_str(data.as_slice()),
                 _ => ()
@@ -293,7 +293,9 @@ impl Element {
       -> Option<&'a Element> {
         for child in self.children.iter() {
             match *child {
-                Element(ref elem) if name.equiv(&elem.name) && ns == elem.ns => return Some(&*elem),
+                ElementNode(ref elem) if name.equiv(&elem.name) && ns == elem.ns => {
+                    return Some(&*elem)
+                }
                 _ => ()
             }
         }
@@ -313,7 +315,9 @@ impl Element {
         let mut res: Vec<&'a Element> = Vec::new();
         for child in self.children.iter() {
             match *child {
-                Element(ref elem) if name.equiv(&elem.name) && ns == elem.ns => res.push(&*elem),
+                ElementNode(ref elem) if name.equiv(&elem.name) && ns == elem.ns => {
+                    res.push(&*elem);
+                }
                 _ => ()
             }
         }

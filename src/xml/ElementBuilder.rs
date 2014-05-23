@@ -5,7 +5,7 @@
 // Please see the COPYING file for more information.
 
 use super::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
-use super::{Element, CharacterNode, CDATANode, CommentNode, PINode};
+use super::{Element, ElementNode, CharacterNode, CDATANode, CommentNode, PINode};
 use collections::HashMap;
 
 // DOM Builder
@@ -100,7 +100,7 @@ impl ElementBuilder {
                     match self.stack.mut_last() {
                         None => Ok(Some(elem)),
                         Some(e) => {
-                            e.children.push(Element(elem));
+                            e.children.push(ElementNode(elem));
                             Ok(None)
                         }
                     }

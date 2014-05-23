@@ -5,7 +5,7 @@ mod base_tests {
     extern crate collections;
 
     use xml::{escape, unescape};
-    use xml::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
+    use xml::{Element, Attribute, ElementNode, CharacterNode, CDATANode, CommentNode, PINode};
     use self::collections::HashMap;
 
     #[test]
@@ -41,7 +41,7 @@ mod base_tests {
         assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'/>");
 
         let mut elem = Element::new("a", None, Vec::new());
-        elem.children.push(Element(Element::new("b", None, Vec::new())));
+        elem.children.push(ElementNode(Element::new("b", None, Vec::new())));
         assert_eq!(format!("{}", elem).as_slice(), "<a><b/></a>");
 
         let mut elem = Element::new("a", None, vec!(
@@ -51,7 +51,7 @@ mod base_tests {
                 value: "http://rust-lang.org".to_strbuf()
             }
         ));
-        elem.children.push(Element(Element::new("b", None, Vec::new())));
+        elem.children.push(ElementNode(Element::new("b", None, Vec::new())));
         assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'><b/></a>");
     }
 
@@ -90,7 +90,7 @@ mod base_tests {
             children: vec!(
                 PINode("processing information".to_strbuf()),
                 CDATANode("<hello/>".to_strbuf()),
-                Element(Element{
+                ElementNode(Element{
                     name: "b".to_strbuf(),
                     ns: None,
                     default_ns: None,
