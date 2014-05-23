@@ -5,8 +5,7 @@ mod base_tests {
     extern crate collections;
 
     use xml::{escape, unescape};
-    use xml::{Element, Attribute, ElementNode, CharacterNode, CDATANode, CommentNode, PINode};
-    use self::collections::HashMap;
+    use xml::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
 
     #[test]
     fn test_escape() {
@@ -41,7 +40,7 @@ mod base_tests {
         assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'/>");
 
         let mut elem = Element::new("a", None, Vec::new());
-        elem.children.push(ElementNode(Element::new("b", None, Vec::new())));
+        elem.tag(Element::new("b", None, Vec::new()));
         assert_eq!(format!("{}", elem).as_slice(), "<a><b/></a>");
 
         let mut elem = Element::new("a", None, vec!(
@@ -51,7 +50,7 @@ mod base_tests {
                 value: "http://rust-lang.org".to_strbuf()
             }
         ));
-        elem.children.push(ElementNode(Element::new("b", None, Vec::new())));
+        elem.tag(Element::new("b", None, Vec::new()));
         assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'><b/></a>");
     }
 
@@ -81,27 +80,12 @@ mod base_tests {
 
     #[test]
     fn test_content_str() {
-        let elem = Element {
-            name: "a".to_strbuf(),
-            ns: None,
-            default_ns: None,
-            prefixes: HashMap::new(),
-            attributes: Vec::new(),
-            children: vec!(
-                PINode("processing information".to_strbuf()),
-                CDATANode("<hello/>".to_strbuf()),
-                ElementNode(Element{
-                    name: "b".to_strbuf(),
-                    ns: None,
-                    default_ns: None,
-                    prefixes: HashMap::new(),
-                    attributes: Vec::new(),
-                    children: Vec::new()
-                }),
-                CharacterNode("World".to_strbuf()),
-                CommentNode("Nothing to see".to_strbuf())
-            )
-        };
+        let mut elem = Element::new("a", None, Vec::new());
+        elem.pi("processing information")
+            .cdata("<hello/>")
+            .tag_stay(Element::new("b", None, Vec::new()))
+            .text("World")
+            .comment("Nothing to see");
         assert_eq!(elem.content_str(), "<hello/>World".to_strbuf());
     }
 }

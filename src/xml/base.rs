@@ -324,3 +324,45 @@ impl Element {
         res
     }
 }
+
+impl<'a> Element {
+    /// Appends a child element. Returns a reference to the added element.
+    pub fn tag(&'a mut self, child: Element) -> &'a mut Element {
+        self.children.push(ElementNode(child));
+        let elem = match self.children.mut_last().unwrap() {
+            &ElementNode(ref mut elem) => elem,
+            _ => fail!("Could not fetch just added element!")
+        };
+        elem
+    }
+
+    /// Appends a child element. Returns a mutable reference to self.
+    pub fn tag_stay(&'a mut self, child: Element) -> &'a mut Element {
+        self.children.push(ElementNode(child));
+        self
+    }
+
+    /// Appends characters. Returns a mutable reference to self.
+    pub fn text(&'a mut self, text: &str) -> &'a mut Element {
+        self.children.push(CharacterNode(text.to_strbuf()));
+        self
+    }
+
+    /// Appends CDATA. Returns a mutable reference to self.
+    pub fn cdata(&'a mut self, text: &str) -> &'a mut Element {
+        self.children.push(CDATANode(text.to_strbuf()));
+        self
+    }
+
+    /// Appends a comment. Returns a mutable reference to self.
+    pub fn comment(&'a mut self, text: &str) -> &'a mut Element {
+        self.children.push(CommentNode(text.to_strbuf()));
+        self
+    }
+
+    /// Appends processing information. Returns a mutable reference to self.
+    pub fn pi(&'a mut self, text: &str) -> &'a mut Element {
+        self.children.push(PINode(text.to_strbuf()));
+        self
+    }
+}
