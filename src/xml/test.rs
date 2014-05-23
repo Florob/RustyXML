@@ -160,7 +160,7 @@ mod base_bench {
     fn bench_escape(bh: &mut Bencher) {
         let input = "&<>'\"".repeat(100);
         bh.iter( || {
-            escape(input)
+            escape(input.as_slice())
         });
         bh.bytes = input.len() as u64;
     }
@@ -169,7 +169,7 @@ mod base_bench {
     fn bench_unescape(bh: &mut Bencher) {
         let input = "&amp;&lt;&gt;&apos;&quot;".repeat(50);
         bh.iter(|| {
-            unescape(input)
+            unescape(input.as_slice())
         });
         bh.bytes = input.len() as u64;
     }
