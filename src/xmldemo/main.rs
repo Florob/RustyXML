@@ -41,7 +41,7 @@ fn main()
         }
     };
 
-    p.parse_str(string, |event| {
+    p.parse_str(string.as_slice(), |event| {
         match event {
             Ok(event) => match e.push_event(event) {
                 Ok(Some(e)) => println!("{}", e),
