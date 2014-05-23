@@ -239,10 +239,11 @@ impl Show for Element{
 impl Element {
     /// Create a new element
     pub fn new(name: &str, ns: Option<&str>, attrs: Vec<Attribute>) -> Element {
+        let ns = ns.map(|x| x.to_strbuf());
         Element {
             name: name.to_strbuf(),
-            ns: ns.map(|x| x.to_strbuf()),
-            default_ns: None,
+            ns: ns.clone(),
+            default_ns: ns,
             prefixes: HashMap::new(),
             attributes: attrs,
             children: Vec::new()
