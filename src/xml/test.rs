@@ -28,74 +28,30 @@ mod base_tests {
 
     #[test]
     fn test_show_element() {
-        let elem = Element {
-            name: "a".to_strbuf(),
-            ns: None,
-            default_ns: None,
-            prefixes: HashMap::new(),
-            attributes: Vec::new(),
-            children: Vec::new()
-        };
+        let elem = Element::new("a", None, Vec::new());
         assert_eq!(format!("{}", elem).as_slice(), "<a/>");
 
-        let elem = Element {
-            name: "a".to_strbuf(),
-            ns: None,
-            default_ns: None,
-            prefixes: HashMap::new(),
-            attributes: vec!(
-                Attribute {
-                    name: "href".to_strbuf(),
-                    ns: None,
-                    value: "http://rust-lang.org".to_strbuf()
-                }
-            ),
-            children: Vec::new()
-        };
+        let elem = Element::new("a", None, vec!(
+            Attribute {
+                name: "href".to_strbuf(),
+                ns: None,
+                value: "http://rust-lang.org".to_strbuf()
+            }
+        ));
         assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'/>");
 
-        let elem = Element {
-            name: "a".to_strbuf(),
-            ns: None,
-            default_ns: None,
-            prefixes: HashMap::new(),
-            attributes: Vec::new(),
-            children: vec!(
-                Element(Element {
-                    name: "b".to_strbuf(),
-                    ns: None,
-                    default_ns: None,
-                    prefixes: HashMap::new(),
-                    attributes: Vec::new(),
-                    children: Vec::new()
-                })
-            )
-        };
+        let mut elem = Element::new("a", None, Vec::new());
+        elem.children.push(Element(Element::new("b", None, Vec::new())));
         assert_eq!(format!("{}", elem).as_slice(), "<a><b/></a>");
 
-        let elem = Element {
-            name: "a".to_strbuf(),
-            ns: None,
-            default_ns: None,
-            prefixes: HashMap::new(),
-            attributes: vec!(
-                Attribute {
-                    name: "href".to_strbuf(),
-                    ns: None,
-                    value: "http://rust-lang.org".to_strbuf()
-                }
-            ),
-            children: vec!(
-                Element(Element {
-                    name: "b".to_strbuf(),
-                    ns: None,
-                    default_ns: None,
-                    prefixes: HashMap::new(),
-                    attributes: Vec::new(),
-                    children: Vec::new()
-                })
-            )
-        };
+        let mut elem = Element::new("a", None, vec!(
+            Attribute {
+                name: "href".to_strbuf(),
+                ns: None,
+                value: "http://rust-lang.org".to_strbuf()
+            }
+        ));
+        elem.children.push(Element(Element::new("b", None, Vec::new())));
         assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'><b/></a>");
     }
 

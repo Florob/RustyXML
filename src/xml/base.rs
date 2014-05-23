@@ -237,6 +237,18 @@ impl Show for Element{
 }
 
 impl Element {
+    /// Create a new element
+    pub fn new(name: &str, ns: Option<&str>, attrs: Vec<Attribute>) -> Element {
+        Element {
+            name: name.to_strbuf(),
+            ns: ns.map(|x| x.to_strbuf()),
+            default_ns: None,
+            prefixes: HashMap::new(),
+            attributes: attrs,
+            children: Vec::new()
+        }
+    }
+
     /// Returns the character and CDATA contained in the element.
     pub fn content_str(&self) -> StrBuf {
         let mut res = StrBuf::new();
