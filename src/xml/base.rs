@@ -14,8 +14,8 @@ use collections::HashMap;
 
 #[inline]
 /// Escapes ', ", &, <, and > with the appropriate XML entities.
-pub fn escape(input: &str) -> StrBuf {
-    let mut result = StrBuf::with_capacity(input.len());
+pub fn escape(input: &str) -> String {
+    let mut result = String::with_capacity(input.len());
 
     for c in input.chars() {
         match c {
@@ -32,17 +32,17 @@ pub fn escape(input: &str) -> StrBuf {
 
 #[inline]
 /// Unescapes all valid XML entities in a string.
-pub fn unescape(input: &str) -> Result<StrBuf, StrBuf> {
-    let mut result = StrBuf::with_capacity(input.len());
+pub fn unescape(input: &str) -> Result<String, String> {
+    let mut result = String::with_capacity(input.len());
 
-    let mut ent = StrBuf::new();
+    let mut ent = String::new();
     let mut in_entity = false;
     for c in input.chars() {
         if !in_entity {
             if c != '&' {
                 result.push_char(c);
             } else {
-                ent = StrBuf::from_str("&");
+                ent = String::from_str("&");
                 in_entity = true;
             }
             continue;
@@ -89,26 +89,26 @@ pub enum XML {
     /// An XML Element
     ElementNode(Element),
     /// Character Data
-    CharacterNode(StrBuf),
+    CharacterNode(String),
     /// CDATA
-    CDATANode(StrBuf),
+    CDATANode(String),
     /// A XML Comment
-    CommentNode(StrBuf),
+    CommentNode(String),
     /// Processing Information
-    PINode(StrBuf)
+    PINode(String)
 }
 
 #[deriving(Clone,Eq)]
 /// A struct representing an XML element
 pub struct Element {
     /// The element's name
-    pub name: StrBuf,
+    pub name: String,
     /// The element's namespace
-    pub ns: Option<StrBuf>,
+    pub ns: Option<String>,
     /// The element's default namespace
-    pub default_ns: Option<StrBuf>,
+    pub default_ns: Option<String>,
     /// The prefixes set for known namespaces
-    pub prefixes: HashMap<StrBuf, StrBuf>,
+    pub prefixes: HashMap<String, String>,
     /// The element's `Attribute`s
     pub attributes: Vec<Attribute>,
     /// The element's child `XML` nodes
@@ -119,39 +119,39 @@ pub struct Element {
 /// A struct representing an XML attribute
 pub struct Attribute {
     /// The attribute's name
-    pub name: StrBuf,
+    pub name: String,
     /// The attribute's namespace
-    pub ns: Option<StrBuf>,
+    pub ns: Option<String>,
     /// The attribute's value
-    pub value: StrBuf
+    pub value: String
 }
 
 #[deriving(Eq, Show)]
 /// Events returned by the `Parser`
 pub enum Event {
     /// Event indicating processing information was found
-    PI(StrBuf),
+    PI(String),
     /// Event indicating a start tag was found
     StartTag(StartTag),
     /// Event indicating a end tag was found
     EndTag(EndTag),
     /// Event indicating character data was found
-    Characters(StrBuf),
+    Characters(String),
     /// Event indicating CDATA was found
-    CDATA(StrBuf),
+    CDATA(String),
     /// Event indicating a comment was found
-    Comment(StrBuf)
+    Comment(String)
 }
 
 #[deriving(Eq, Show)]
 /// Structure describint an opening tag
 pub struct StartTag {
     /// The tag's name
-    pub name: StrBuf,
+    pub name: String,
     /// The tag's namespace
-    pub ns: Option<StrBuf>,
+    pub ns: Option<String>,
     /// The tag's prefix
-    pub prefix: Option<StrBuf>,
+    pub prefix: Option<String>,
     /// Attributes included in the tag
     pub attributes: Vec<Attribute>
 }
@@ -160,11 +160,11 @@ pub struct StartTag {
 /// Structure describint n closing tag
 pub struct EndTag {
     /// The tag's name
-    pub name: StrBuf,
+    pub name: String,
     /// The tag's namespace
-    pub ns: Option<StrBuf>,
+    pub ns: Option<String>,
     /// The tag's prefix
-    pub prefix: Option<StrBuf>
+    pub prefix: Option<String>
 }
 
 impl Show for XML {
@@ -179,7 +179,7 @@ impl Show for XML {
     }
 }
 
-fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<StrBuf, StrBuf>,
+fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<String, String>,
             f: &mut fmt::Formatter) -> fmt::Result {
     let mut all_prefixes = all_prefixes.clone();
     all_prefixes.extend(elem.prefixes.iter().map(|(k, v)| (k.clone(), v.clone()) ));
@@ -251,8 +251,8 @@ impl Element {
     }
 
     /// Returns the character and CDATA contained in the element.
-    pub fn content_str(&self) -> StrBuf {
-        let mut res = StrBuf::new();
+    pub fn content_str(&self) -> String {
+        let mut res = String::new();
         for child in self.children.iter() {
             match *child {
                 ElementNode(ref elem) => res.push_str(elem.content_str().as_slice()),
@@ -272,7 +272,7 @@ impl Element {
 
     /// Gets an `Attribute` with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
-    pub fn attribute_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<StrBuf>)
+    pub fn attribute_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<String>)
       -> Option<&'a Attribute> {
         for attr in self.attributes.iter() {
             if name.equiv(&attr.name) && ns == attr.ns {
@@ -290,7 +290,7 @@ impl Element {
 
     /// Gets the first child `Element` with the specified name and namespace. When no child
     /// with the specified name exists `None` is returned.
-    pub fn child_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<StrBuf>)
+    pub fn child_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<String>)
       -> Option<&'a Element> {
         for child in self.children.iter() {
             match *child {
@@ -311,7 +311,7 @@ impl Element {
 
     /// Get all children `Element` with the specified name and namespace. When no child
     /// with the specified name exists an empty vetor is returned.
-    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<StrBuf>)
+    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<String>)
       -> Vec<&'a Element> {
         let mut res: Vec<&'a Element> = Vec::new();
         for child in self.children.iter() {

@@ -50,12 +50,12 @@ enum State {
 pub struct Parser {
     line: uint,
     col: uint,
-    buf: StrBuf,
-    name: StrBuf,
-    prefix: Option<StrBuf>,
-    namespaces: Vec<HashMap<StrBuf, StrBuf>>,
-    attr_name: StrBuf,
-    attr_prefix: Option<StrBuf>,
+    buf: String,
+    name: String,
+    prefix: Option<String>,
+    namespaces: Vec<HashMap<String, String>>,
+    attr_name: String,
+    attr_prefix: Option<String>,
     attributes: Vec<Attribute>,
     delim: Option<char>,
     st: State,
@@ -68,11 +68,11 @@ impl Parser {
         let mut p = Parser {
             line: 1,
             col: 0,
-            buf: StrBuf::new(),
-            name: StrBuf::new(),
+            buf: String::new(),
+            name: String::new(),
             prefix: None,
             namespaces: vec!(HashMap::with_capacity(2)),
-            attr_name: StrBuf::new(),
+            attr_name: String::new(),
             attr_prefix: None,
             attributes: Vec::new(),
             delim: None,
@@ -125,7 +125,7 @@ impl Parser {
 }
 
 #[inline]
-fn parse_qname(qname: &str) -> (Option<StrBuf>, StrBuf) {
+fn parse_qname(qname: &str) -> (Option<String>, String) {
     match qname.find(':') {
         None => {
             (None, qname.to_strbuf())
@@ -137,7 +137,7 @@ fn parse_qname(qname: &str) -> (Option<StrBuf>, StrBuf) {
 }
 
 impl Parser {
-    fn namespace_for_prefix(&self, prefix: &StrBuf) -> Option<StrBuf> {
+    fn namespace_for_prefix(&self, prefix: &String) -> Option<String> {
         for ns in self.namespaces.as_slice().iter().rev() {
             match ns.find(prefix) {
                 None => continue,
@@ -221,7 +221,7 @@ impl Parser {
                 self.level = 0;
                 self.st = OutsideTag;
                 let _ = self.buf.pop_char();
-                let buf = mem::replace(&mut self.buf, StrBuf::new());
+                let buf = mem::replace(&mut self.buf, String::new());
                 return Ok(Some(PI(buf)));
             }
             _ => self.buf.push_char(c)
@@ -243,7 +243,7 @@ impl Parser {
                 set_name(self);
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&StrBuf::new()),
+                    None => self.namespace_for_prefix(&String::new()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -289,7 +289,7 @@ impl Parser {
                 self.buf.truncate(0);
 
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&StrBuf::new()),
+                    None => self.namespace_for_prefix(&String::new()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -317,11 +317,11 @@ impl Parser {
         match c {
             '/'
             | '>' => {
-                let name = mem::replace(&mut self.name, StrBuf::new());
+                let name = mem::replace(&mut self.name, String::new());
                 let mut attributes = mem::replace(&mut self.attributes, Vec::new());
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&StrBuf::new()),
+                    None => self.namespace_for_prefix(&String::new()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -389,7 +389,7 @@ impl Parser {
         if c == self.delim.expect("In attribute value, but no delimiter set") {
             self.delim = None;
             self.st = InTag;
-            let name = mem::replace(&mut self.attr_name, StrBuf::new());
+            let name = mem::replace(&mut self.attr_name, String::new());
             let value = match unescape(self.buf.as_slice()) {
                 Ok(unescaped) => unescaped,
                 Err(_) => return self.error("Found invalid entity")
@@ -400,7 +400,7 @@ impl Parser {
             let last = self.namespaces.mut_last().unwrap();
             match prefix {
                 None if name.as_slice() == "xmlns" => {
-                    last.swap(StrBuf::new(), value.clone());
+                    last.swap(String::new(), value.clone());
                 }
                 Some(ref prefix) if prefix.as_slice() == "xmlns" => {
                     last.swap(name.clone(), value.clone());
@@ -435,10 +435,10 @@ impl Parser {
         match c {
             '>' => {
                 self.st = OutsideTag;
-                let name = mem::replace(&mut self.name, StrBuf::new());
+                let name = mem::replace(&mut self.name, String::new());
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&StrBuf::new()),
+                    None => self.namespace_for_prefix(&String::new()),
                     Some(ref pre) => {
                         self.namespace_for_prefix(pre).or_else(|| {
                             fail!("Unbound prefix: '{}'", *pre)
@@ -502,7 +502,7 @@ impl Parser {
                 self.level = 0;
                 let len = self.buf.len();
                 self.buf.truncate(len - 2);
-                let buf = mem::replace(&mut self.buf, StrBuf::new());
+                let buf = mem::replace(&mut self.buf, String::new());
                 return Ok(Some(CDATA(buf)))
             }
             _ => {
@@ -547,7 +547,7 @@ impl Parser {
             self.st = OutsideTag;
             let len = self.buf.len();
             self.buf.truncate(len - 2);
-            let buf = mem::replace(&mut self.buf, StrBuf::new());
+            let buf = mem::replace(&mut self.buf, String::new());
             Ok(Some(Comment(buf)))
         }
     }

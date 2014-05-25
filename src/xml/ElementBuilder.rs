@@ -12,8 +12,8 @@ use collections::HashMap;
 /// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`
 pub struct ElementBuilder {
     stack: Vec<Element>,
-    default_ns: Vec<Option<StrBuf>>,
-    prefixes: HashMap<StrBuf, StrBuf>
+    default_ns: Vec<Option<String>>,
+    prefixes: HashMap<String, String>
 }
 
 impl ElementBuilder {
@@ -30,12 +30,12 @@ impl ElementBuilder {
     }
 
     /// Bind a prefix to a namespace
-    pub fn define_prefix(&mut self, prefix: StrBuf, ns: StrBuf) {
+    pub fn define_prefix(&mut self, prefix: String, ns: String) {
         self.prefixes.swap(ns, prefix);
     }
 
     /// Set the default namespace
-    pub fn set_default_ns(&mut self, ns: StrBuf) {
+    pub fn set_default_ns(&mut self, ns: String) {
         self.default_ns = vec!(Some(ns));
     }
 
