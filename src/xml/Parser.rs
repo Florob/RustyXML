@@ -317,7 +317,6 @@ impl Parser {
         match c {
             '/'
             | '>' => {
-                let name = mem::replace(&mut self.name, String::new());
                 let mut attributes = mem::replace(&mut self.attributes, Vec::new());
                 let prefix = self.prefix.take();
                 let ns = match prefix {
@@ -337,11 +336,13 @@ impl Parser {
                     });
                 }
 
-                self.st = if c == '/' {
-                    ExpectClose
+                let name = if c == '/' {
+                    self.st = ExpectClose;
+                    self.name.clone()
                 } else {
+                    self.st = OutsideTag;
                     self.prefix = None;
-                    OutsideTag
+                    mem::replace(&mut self.name, String::new())
                 };
 
                 return Ok(Some(StartTag(StartTag {

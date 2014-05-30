@@ -129,7 +129,7 @@ mod parser_tests {
             assert_eq!(event, Ok(StartTag(StartTag {
                 name: "a".to_strbuf(),
                 ns: None,
-                prefix:None,
+                prefix: None,
                 attributes: Vec::new()
             })));
         });
@@ -142,9 +142,57 @@ mod parser_tests {
         let mut i = 0;
         p.parse_str("</a>", |event| {
             i += 1;
-            assert_eq!(event, Ok(EndTag(EndTag { name: "a".to_strbuf(), ns: None, prefix: None })));
+            assert_eq!(event, Ok(EndTag(EndTag {
+                name: "a".to_strbuf(),
+                ns: None,
+                prefix: None
+            })));
         });
         assert_eq!(i, 1);
+    }
+
+    #[test]
+    fn test_self_closing_with_space() {
+        let mut p = Parser::new();
+        let mut v = Vec::new();
+        p.parse_str("<register />", |event| {
+            v.push(event);
+        });
+        assert_eq!(v, vec![
+            Ok(StartTag(StartTag {
+                name: "register".to_strbuf(),
+                ns: None,
+                prefix: None,
+                attributes: Vec::new()
+            })),
+            Ok(EndTag(EndTag {
+                name: "register".to_strbuf(),
+                ns: None,
+                prefix: None,
+            }))
+        ]);
+    }
+
+    #[test]
+    fn test_self_closing_without_space() {
+        let mut p = Parser::new();
+        let mut v = Vec::new();
+        p.parse_str("<register/>", |event| {
+            v.push(event);
+        });
+        assert_eq!(v, vec![
+            Ok(StartTag(StartTag {
+                name: "register".to_strbuf(),
+                ns: None,
+                prefix: None,
+                attributes: Vec::new()
+            })),
+            Ok(EndTag(EndTag {
+                name: "register".to_strbuf(),
+                ns: None,
+                prefix: None,
+            }))
+        ]);
     }
 
     #[test]
