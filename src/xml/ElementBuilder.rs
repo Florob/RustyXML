@@ -24,8 +24,8 @@ impl ElementBuilder {
             default_ns: Vec::new(),
             prefixes: HashMap::with_capacity(2),
         };
-        e.prefixes.swap("http://www.w3.org/XML/1998/namespace".to_strbuf(), "xml".to_strbuf());
-        e.prefixes.swap("http://www.w3.org/2000/xmlns/".to_strbuf(), "xmlns".to_strbuf());
+        e.prefixes.swap("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
+        e.prefixes.swap("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
         e
     }
 
@@ -77,7 +77,7 @@ impl ElementBuilder {
                         }
                         continue;
                     }
-                    if attr.ns == Some("http://www.w3.org/2000/xmlns/".to_strbuf()) {
+                    if attr.ns == Some("http://www.w3.org/2000/xmlns/".to_string()) {
                         elem.prefixes.swap(attr.value.clone(), attr.name.clone());
                     }
                     elem.attributes.push(attr.clone());

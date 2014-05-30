@@ -81,8 +81,8 @@ impl Parser {
         };
         {
             let x = p.namespaces.get_mut(0);
-            x.swap("xml".to_strbuf(), "http://www.w3.org/XML/1998/namespace".to_strbuf());
-            x.swap("xmlns".to_strbuf(), "http://www.w3.org/2000/xmlns/".to_strbuf());
+            x.swap("xml".to_string(), "http://www.w3.org/XML/1998/namespace".to_string());
+            x.swap("xmlns".to_string(), "http://www.w3.org/2000/xmlns/".to_string());
         }
         p
     }
@@ -128,10 +128,10 @@ impl Parser {
 fn parse_qname(qname: &str) -> (Option<String>, String) {
     match qname.find(':') {
         None => {
-            (None, qname.to_strbuf())
+            (None, qname.to_string())
         },
         Some(i) => {
-            (Some(qname.slice_to(i).to_strbuf()), qname.slice_from(i+1).to_strbuf())
+            (Some(qname.slice_to(i).to_string()), qname.slice_from(i+1).to_string())
         }
     }
 }

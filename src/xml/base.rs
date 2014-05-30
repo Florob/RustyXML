@@ -71,7 +71,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
                         },
                         None => {
                             println!("{}", ent);
-                            return Err(ent.to_strbuf())
+                            return Err(ent.to_string())
                         }
                     }
                 }
@@ -239,9 +239,9 @@ impl Show for Element{
 impl Element {
     /// Create a new element
     pub fn new(name: &str, ns: Option<&str>, attrs: Vec<Attribute>) -> Element {
-        let ns = ns.map(|x| x.to_strbuf());
+        let ns = ns.map(|x| x.to_string());
         Element {
-            name: name.to_strbuf(),
+            name: name.to_string(),
             ns: ns.clone(),
             default_ns: ns,
             prefixes: HashMap::new(),
@@ -345,25 +345,25 @@ impl<'a> Element {
 
     /// Appends characters. Returns a mutable reference to self.
     pub fn text(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(CharacterNode(text.to_strbuf()));
+        self.children.push(CharacterNode(text.to_string()));
         self
     }
 
     /// Appends CDATA. Returns a mutable reference to self.
     pub fn cdata(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(CDATANode(text.to_strbuf()));
+        self.children.push(CDATANode(text.to_string()));
         self
     }
 
     /// Appends a comment. Returns a mutable reference to self.
     pub fn comment(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(CommentNode(text.to_strbuf()));
+        self.children.push(CommentNode(text.to_string()));
         self
     }
 
     /// Appends processing information. Returns a mutable reference to self.
     pub fn pi(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(PINode(text.to_strbuf()));
+        self.children.push(PINode(text.to_string()));
         self
     }
 }
