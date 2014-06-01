@@ -9,8 +9,10 @@
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
 use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
-use collections::HashMap;
+use collections::deque::Deque;
+use collections::{HashMap, RingBuf};
 use std::mem;
+use std::iter::Iterator;
 
 #[deriving(Eq, Show)]
 /// If an error occurs while parsing some XML, this is the structure which is
@@ -50,6 +52,8 @@ enum State {
 pub struct Parser {
     line: uint,
     col: uint,
+    has_error: bool,
+    data: RingBuf<char>,
     buf: String,
     name: String,
     prefix: Option<String>,
@@ -68,6 +72,8 @@ impl Parser {
         let mut p = Parser {
             line: 1,
             col: 0,
+            has_error: false,
+            data: RingBuf::with_capacity(4096),
             buf: String::new(),
             name: String::new(),
             prefix: None,
@@ -88,21 +94,40 @@ impl Parser {
     }
 
     /**
-     * Parses the string `data`.
-     * The callback `cb` is called for each `Event`, or `Error` generated while parsing
-     * the string.
+     * Feeds the string `data` to the parser.
+     * The `Event`s, and `Error`s generated while parsing the string
+     * can be requested by iterating over the parser
      *
      * ~~~
      * let mut p = Parser::new();
-     * do p.parse_str("<a href='http://rust-lang.org'>Rust</a>") |event| {
+     * p.feed_str("<a href='http://rust-lang.org'>Rust</a>");
+     * for event in p {
      *     match event {
      *        [...]
      *     }
      * }
      * ~~~
      */
-    pub fn parse_str(&mut self, data: &str, cb: |Result<Event, Error>|) {
-        for c in data.chars() {
+    pub fn feed_str(&mut self, data: &str) {
+        let iter = data.chars();
+        let len = self.data.len() + iter.size_hint().val0();
+        self.data.reserve(len);
+        self.data.extend(iter);
+    }
+}
+
+impl Iterator<Result<Event, Error>> for Parser {
+    fn next(&mut self) -> Option<Result<Event, Error>> {
+        if self.has_error {
+            return None;
+        }
+
+        loop {
+            let c = match self.data.pop_front() {
+                Some(c) => c,
+                None => return None
+            };
+
             if c == '\n' {
                 self.line += 1u;
                 self.col = 0u;
@@ -112,12 +137,12 @@ impl Parser {
 
             match self.parse_character(c) {
                 Ok(None) => continue,
-                Err(e) => {
-                    cb(Err(e));
-                    return;
-                }
                 Ok(Some(event)) => {
-                    cb(Ok(event));
+                    return Some(Ok(event));
+                }
+                Err(e) => {
+                    self.has_error = true;
+                    return Some(Err(e));
                 }
             }
         }

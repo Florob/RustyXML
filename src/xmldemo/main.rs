@@ -41,7 +41,8 @@ fn main()
         }
     };
 
-    p.parse_str(string.as_slice(), |event| {
+    p.feed_str(string.as_slice());
+    for event in p {
         match event {
             Ok(event) => match e.push_event(event) {
                 Ok(Some(e)) => println!("{}", e),
@@ -51,5 +52,5 @@ fn main()
             Err(e) => println!("Line: {} Column: {} Msg: {}", e.line, e.col, e.msg),
         }
         //println!("{:?}", event);
-    });
+    }
 }

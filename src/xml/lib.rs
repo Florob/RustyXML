@@ -28,7 +28,8 @@ impl FromStr for Element {
         let mut e = ElementBuilder::ElementBuilder::new();
         let mut result = None;
 
-        p.parse_str(data, |event| {
+        p.feed_str(data);
+        for event in p {
             match event {
                 Ok(event) => match e.push_event(event) {
                     Ok(Some(elem)) => result = Some(elem),
@@ -36,7 +37,7 @@ impl FromStr for Element {
                 },
                 _ => ()
             }
-        });
+        }
         result
     }
 }
