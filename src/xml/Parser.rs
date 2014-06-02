@@ -14,7 +14,7 @@ use collections::{HashMap, RingBuf};
 use std::mem;
 use std::iter::Iterator;
 
-#[deriving(Eq, Show)]
+#[deriving(PartialEq, Show)]
 /// If an error occurs while parsing some XML, this is the structure which is
 /// returned
 pub struct Error {
@@ -197,8 +197,8 @@ impl Parser {
             ExpectClose => self.expect_close(c),
             ExpectSpaceOrClose => self.expect_space_or_close(c),
             InExclamationMark => self.in_exclamation_mark(c),
-            InCDATAOpening => self.in_CDATA_opening(c),
-            InCDATA => self.in_CDATA(c),
+            InCDATAOpening => self.in_cdata_opening(c),
+            InCDATA => self.in_cdata(c),
             InCommentOpening => self.in_comment_opening(c),
             InComment1 => self.in_comment1(c),
             InComment2 => self.in_comment2(c),
@@ -502,7 +502,7 @@ impl Parser {
         Ok(None)
     }
 
-    fn in_CDATA_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_cdata_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
         static CDATA_PATTERN: [char, ..6] = ['C', 'D', 'A', 'T', 'A', '['];
         if c == CDATA_PATTERN[self.level] {
             self.level += 1;
@@ -517,7 +517,7 @@ impl Parser {
         Ok(None)
     }
 
-    fn in_CDATA(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_cdata(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             ']' => {
                 self.buf.push_char(c);

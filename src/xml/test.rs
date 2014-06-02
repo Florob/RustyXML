@@ -61,7 +61,7 @@ mod base_tests {
     }
 
     #[test]
-    fn test_show_CDATA() {
+    fn test_show_cdata() {
         let chars = CDATANode("some text".to_string());
         assert_eq!(format!("{}", chars).as_slice(), "<![CDATA[some text]]>");
     }
@@ -200,7 +200,7 @@ mod parser_tests {
     }
 
     #[test]
-    fn test_PI() {
+    fn test_pi() {
         let mut p = Parser::new();
         let mut i = 0;
         p.feed_str("<?xml version='1.0' encoding='utf-8'?>");
@@ -223,7 +223,7 @@ mod parser_tests {
         assert_eq!(i, 1);
     }
     #[test]
-    fn test_CDATA() {
+    fn test_cdata() {
         let mut p = Parser::new();
         let mut i = 0;
         p.feed_str("<![CDATA[<html><head><title>x</title></head><body/></html>]]>");
