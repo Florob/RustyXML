@@ -8,7 +8,7 @@ use std::fmt;
 use std::fmt::Show;
 use std::char;
 use std::num;
-use collections::HashMap;
+use std::collections::HashMap;
 
 // General functions
 
