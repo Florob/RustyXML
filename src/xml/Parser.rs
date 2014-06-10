@@ -9,7 +9,7 @@
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
 use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
-use std::collections::deque::Deque;
+use std::collections::Deque;
 use std::collections::{HashMap, RingBuf};
 use std::mem;
 use std::iter::Iterator;
