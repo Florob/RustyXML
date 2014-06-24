@@ -272,11 +272,17 @@ impl Element {
 
     /// Gets an `Attribute` with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
-    pub fn attribute_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<String>)
+    pub fn attribute_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<&str>)
       -> Option<&'a Attribute> {
-        for attr in self.attributes.iter() {
-            if name.equiv(&attr.name) && ns == attr.ns {
-                return Some(attr);
+        let mut it = self.attributes.iter();
+        for attr in it {
+            if !name.equiv(&attr.name) {
+                continue;
+            }
+            match (ns, attr.ns.as_ref().map(|x| x.as_slice())) {
+                (Some(ref x), Some(ref y)) if x == y => return Some(attr),
+                (None, None) => return Some(attr),
+                _ => continue
             }
         }
         None
@@ -290,12 +296,19 @@ impl Element {
 
     /// Gets the first child `Element` with the specified name and namespace. When no child
     /// with the specified name exists `None` is returned.
-    pub fn child_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<String>)
+    pub fn child_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<&str>)
       -> Option<&'a Element> {
         for child in self.children.iter() {
             match *child {
-                ElementNode(ref elem) if name.equiv(&elem.name) && ns == elem.ns => {
-                    return Some(&*elem)
+                ElementNode(ref elem) => {
+                    if !name.equiv(&elem.name) {
+                        continue;
+                    }
+                    match (ns, elem.ns.as_ref().map(|x| x.as_slice())) {
+                        (Some(ref x), Some(ref y)) if x == y => return Some(&*elem),
+                        (None, None) => return Some(&*elem),
+                        _ => continue
+                    }
                 }
                 _ => ()
             }
@@ -311,13 +324,20 @@ impl Element {
 
     /// Get all children `Element` with the specified name and namespace. When no child
     /// with the specified name exists an empty vetor is returned.
-    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<String>)
+    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<&str>)
       -> Vec<&'a Element> {
         let mut res: Vec<&'a Element> = Vec::new();
         for child in self.children.iter() {
             match *child {
-                ElementNode(ref elem) if name.equiv(&elem.name) && ns == elem.ns => {
-                    res.push(&*elem);
+                ElementNode(ref elem) => {
+                    if !name.equiv(&elem.name) {
+                        continue;
+                    }
+                    match (ns, elem.ns.as_ref().map(|x| x.as_slice())) {
+                        (Some(ref x), Some(ref y)) if x == y => res.push(&*elem),
+                        (None, None) => res.push(&*elem),
+                        _ => continue
+                    }
                 }
                 _ => ()
             }
