@@ -278,6 +278,7 @@ impl Parser {
 
                 self.namespaces.push(HashMap::new());
                 self.st = if c == '/' {
+                    self.prefix = prefix.clone();
                     ExpectClose
                 } else {
                     OutsideTag
@@ -363,10 +364,10 @@ impl Parser {
 
                 let name = if c == '/' {
                     self.st = ExpectClose;
+                    self.prefix = prefix.clone();
                     self.name.clone()
                 } else {
                     self.st = OutsideTag;
-                    self.prefix = None;
                     mem::replace(&mut self.name, String::new())
                 };
 

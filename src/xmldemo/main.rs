@@ -51,6 +51,6 @@ fn main()
             },
             Err(e) => println!("Line: {} Column: {} Msg: {}", e.line, e.col, e.msg),
         }
-        //println!("{:?}", event);
+        // println!("{}", event);
     }
 }

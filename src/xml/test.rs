@@ -118,7 +118,7 @@ mod base_bench {
 #[cfg(test)]
 mod parser_tests {
     use xml::Parser;
-    use xml::{StartTag, EndTag, PI, Comment, CDATA, Characters};
+    use xml::{StartTag, EndTag, PI, Comment, CDATA, Characters, Attribute};
 
     #[test]
     fn test_start_tag() {
@@ -195,6 +195,33 @@ mod parser_tests {
                 name: "register".to_string(),
                 ns: None,
                 prefix: None,
+            }))
+        ]);
+    }
+
+    #[test]
+    fn test_self_closing_namespace() {
+        let mut p = Parser::new();
+        let mut v = Vec::new();
+        p.feed_str("<foo:a xmlns:foo='urn:foo'/>");
+        for event in p {
+            v.push(event);
+        }
+        assert_eq!(v, vec![
+            Ok(StartTag(StartTag {
+                name: "a".to_string(),
+                ns: Some("urn:foo".to_string()),
+                prefix: Some("foo".to_string()),
+                attributes: vec![ Attribute {
+                    name: "foo".to_string(),
+                    ns: Some("http://www.w3.org/2000/xmlns/".to_string()),
+                    value: "urn:foo".to_string()
+                }]
+            })),
+            Ok(EndTag(EndTag {
+                name: "a".to_string(),
+                ns: Some("urn:foo".to_string()),
+                prefix: Some("foo".to_string()),
             }))
         ]);
     }
