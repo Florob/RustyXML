@@ -1,0 +1,11 @@
+[package]
+name = "RustyXML"
+version = "0.0.1"
+authors = [ "florob@babelmonkeys.de" ]
+
+[[bin]]
+name = "xmldemo"
+
+[[lib]]
+name = "xml"
+path = "src/xml/lib.rs"

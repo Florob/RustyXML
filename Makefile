@@ -7,11 +7,11 @@ all: build/xmldemo doc
 lib: build
 	${RUSTC} ${RUSTCFLAGS} --out-dir build/ src/xml/lib.rs
 
-build/xmldemo: lib
-	${RUSTC} ${RUSTCFLAGS} -L build -o $@ src/xmldemo/main.rs
+build/xmldemo: src/bin/xmldemo.rs lib
+	${RUSTC} ${RUSTCFLAGS} -L build -o $@ $<
 
-build/xmltest: lib
-	${RUSTC} ${RUSTCFLAGS} --test -L build -o $@ src/xml/test.rs
+build/xmltest: src/xml/test.rs lib
+	${RUSTC} ${RUSTCFLAGS} --test -L build -o $@ $<
 
 test: build/xmltest
 	build/xmltest

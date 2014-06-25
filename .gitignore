@@ -1,8 +1,7 @@
 *.dll
 *.dylib
 *.so
-bin/
+*.rlib
 build/
+target/
 doc/
-lib/
-.rust
