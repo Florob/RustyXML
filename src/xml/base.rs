@@ -264,16 +264,9 @@ impl Element {
         res
     }
 
-    /// Gets an `Attribute` with the specified name. When an attribute with the
-    /// specified name does not exist `None` is returned.
-    pub fn attribute_with_name<'a>(&'a self, name: &str) -> Option<&'a Attribute> {
-        self.attribute_with_name_and_ns(name, None)
-    }
-
     /// Gets an `Attribute` with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
-    pub fn attribute_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<&str>)
-      -> Option<&'a Attribute> {
+    pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a Attribute> {
         let mut it = self.attributes.iter();
         for attr in it {
             if !name.equiv(&attr.name) {
@@ -288,16 +281,9 @@ impl Element {
         None
     }
 
-    /// Gets the first child `Element` with the specified name. When no child
-    /// with the specified name exists `None` is returned.
-    pub fn child_with_name<'a>(&'a self, name: &str) -> Option<&'a Element> {
-        self.child_with_name_and_ns(name, None)
-    }
-
     /// Gets the first child `Element` with the specified name and namespace. When no child
     /// with the specified name exists `None` is returned.
-    pub fn child_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<&str>)
-      -> Option<&'a Element> {
+    pub fn get_child<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a Element> {
         for child in self.children.iter() {
             match *child {
                 ElementNode(ref elem) => {
@@ -316,16 +302,9 @@ impl Element {
         None
     }
 
-    /// Get all children `Element` with the specified name. When no child
-    /// with the specified name exists an empty vetor is returned.
-    pub fn children_with_name<'a>(&'a self, name: &str) -> Vec<&'a Element> {
-        self.children_with_name_and_ns(name, None)
-    }
-
     /// Get all children `Element` with the specified name and namespace. When no child
     /// with the specified name exists an empty vetor is returned.
-    pub fn children_with_name_and_ns<'a>(&'a self, name: &str, ns: Option<&str>)
-      -> Vec<&'a Element> {
+    pub fn get_children<'a>(&'a self, name: &str, ns: Option<&str>) -> Vec<&'a Element> {
         let mut res: Vec<&'a Element> = Vec::new();
         for child in self.children.iter() {
             match *child {
