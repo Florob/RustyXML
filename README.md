@@ -1,7 +1,7 @@
 RustyXML
 ========
 
-This is a XML parser written completely in Rust.
+RustyXML is a namespace aware XML parser written in Rust.
 Right now it provides a basic SAX-like API, and an ElementBuilder based on that.
 
 The parser itself is derived from OFXMLParser as found in ObjFW
@@ -17,6 +17,4 @@ License
 -------
 
 This project is MIT licensed.
-
 Please see the COPYING file for more information.
-
