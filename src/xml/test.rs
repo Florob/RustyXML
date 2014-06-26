@@ -134,7 +134,7 @@ mod parser_tests {
                 attributes: Vec::new()
             })));
         }
-        assert_eq!(i, 1);
+        assert_eq!(i, 1u);
     }
 
     #[test]
@@ -150,7 +150,7 @@ mod parser_tests {
                 prefix: None
             })));
         }
-        assert_eq!(i, 1);
+        assert_eq!(i, 1u);
     }
 
     #[test]
@@ -235,7 +235,7 @@ mod parser_tests {
             i += 1;
             assert_eq!(event, Ok(PI("xml version='1.0' encoding='utf-8'".to_string())));
         }
-        assert_eq!(i, 1);
+        assert_eq!(i, 1u);
     }
 
     #[test]
@@ -247,7 +247,7 @@ mod parser_tests {
             i += 1;
             assert_eq!(event, Ok(Comment("Nothing to see".to_string())));
         }
-        assert_eq!(i, 1);
+        assert_eq!(i, 1u);
     }
     #[test]
     fn test_cdata() {
@@ -259,7 +259,7 @@ mod parser_tests {
             assert_eq!(event,
                        Ok(CDATA("<html><head><title>x</title></head><body/></html>".to_string())));
         }
-        assert_eq!(i, 1);
+        assert_eq!(i, 1u);
     }
 
     #[test]
@@ -273,7 +273,7 @@ mod parser_tests {
                 assert_eq!(event, Ok(Characters("Hello World, it's a nice day".to_string())));
             }
         }
-        assert_eq!(i, 3);
+        assert_eq!(i, 3u);
     }
 
     #[test]
@@ -284,6 +284,6 @@ mod parser_tests {
         for _ in p {
             i += 1;
         }
-        assert_eq!(i, 0);
+        assert_eq!(i, 0u);
     }
 }
