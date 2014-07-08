@@ -19,14 +19,14 @@ pub struct ElementBuilder {
 impl ElementBuilder {
     /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
-        let mut e = ElementBuilder {
+        let mut prefixes = HashMap::with_capacity(2);
+        prefixes.swap("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
+        prefixes.swap("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
+        ElementBuilder {
             stack: Vec::new(),
             default_ns: Vec::new(),
-            prefixes: HashMap::with_capacity(2),
-        };
-        e.prefixes.swap("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
-        e.prefixes.swap("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
-        e
+            prefixes: prefixes
+        }
     }
 
     /// Bind a prefix to a namespace

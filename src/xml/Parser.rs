@@ -15,8 +15,7 @@ use std::mem;
 use std::iter::Iterator;
 
 #[deriving(PartialEq, Show)]
-/// If an error occurs while parsing some XML, this is the structure which is
-/// returned
+/// The structure returned, when erroneous XML is read
 pub struct Error {
     /// The line number at which the error occurred
     pub line: uint,
@@ -69,7 +68,12 @@ pub struct Parser {
 impl Parser {
     /// Returns a new `Parser`
     pub fn new() -> Parser {
-        let mut p = Parser {
+        let mut ns = HashMap::with_capacity(2);
+        // Add standard namespaces
+        ns.swap("xml".to_string(), "http://www.w3.org/XML/1998/namespace".to_string());
+        ns.swap("xmlns".to_string(), "http://www.w3.org/2000/xmlns/".to_string());
+
+        Parser {
             line: 1,
             col: 0,
             has_error: false,
@@ -77,20 +81,14 @@ impl Parser {
             buf: String::new(),
             name: String::new(),
             prefix: None,
-            namespaces: vec!(HashMap::with_capacity(2)),
+            namespaces: vec!(ns),
             attr_name: String::new(),
             attr_prefix: None,
             attributes: Vec::new(),
             delim: None,
             st: OutsideTag,
             level: 0
-        };
-        {
-            let x = p.namespaces.get_mut(0);
-            x.swap("xml".to_string(), "http://www.w3.org/XML/1998/namespace".to_string());
-            x.swap("xmlns".to_string(), "http://www.w3.org/2000/xmlns/".to_string());
         }
-        p
     }
 
     /**
@@ -150,6 +148,7 @@ impl Iterator<Result<Event, Error>> for Parser {
 }
 
 #[inline]
+// Parse a QName to get Prefix and LocalPart
 fn parse_qname(qname: &str) -> (Option<String>, String) {
     match qname.find(':') {
         None => {
@@ -162,6 +161,9 @@ fn parse_qname(qname: &str) -> (Option<String>, String) {
 }
 
 impl Parser {
+    // Get the namespace currently bound to a prefix.
+    // Bindings are stored as a stack of HashMaps, we start searching in the top most HashMap
+    // and traverse down until the prefix is found.
     fn namespace_for_prefix(&self, prefix: &String) -> Option<String> {
         for ns in self.namespaces.as_slice().iter().rev() {
             match ns.find(prefix) {
@@ -206,6 +208,8 @@ impl Parser {
         }
     }
 
+    // Outside any tag, or other construct
+    // '<' => TagOpened, producing Characters
     fn outside_tag(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '<' if self.buf.len() > 0 => {
@@ -223,6 +227,11 @@ impl Parser {
         Ok(None)
     }
 
+    // Character following a '<', starting a tag or other construct
+    // '?' => InProcessingInstructions
+    // '!' => InExclamationMark
+    // '/' => InCloseTagName
+    //  _  => InTagName
     fn tag_opened(&mut self, c: char) -> Result<Option<Event>, Error> {
         self.st = match c {
             '?' => InProcessingInstructions,
@@ -236,6 +245,8 @@ impl Parser {
         Ok(None)
     }
 
+    // Inside a processing instruction
+    // '?' '>' => OutsideTag, producing PI
     fn in_processing_instructions(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '?' => {
@@ -254,6 +265,10 @@ impl Parser {
         Ok(None)
     }
 
+    // Inside a tag name (opening tag)
+    // '/' => ExpectClose, producing StartTag
+    // '>' => OutsideTag, producing StartTag
+    // ' ' or '\t' or '\r' or '\n' => InTag
     fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         fn set_name(p: &mut Parser) {
             let (prefix, name) = parse_qname(p.buf.as_slice());
@@ -304,6 +319,9 @@ impl Parser {
         Ok(None)
     }
 
+    // Inside a tag name (closing tag)
+    // '>' => OutsideTag, producing EndTag
+    // ' ' or '\t' or '\r' or '\n' => ExpectSpaceOrClose, producing EndTag
     fn in_close_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             ' '
@@ -339,6 +357,10 @@ impl Parser {
         }
     }
 
+    // Inside a tag, parsing attributes
+    // '/' => ExpectClose, producing StartTag
+    // '>' => OutsideTag, producing StartTag
+    // ' ' or '\t' or '\r' or '\n' => InAttrName
     fn in_tag(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '/'
@@ -355,7 +377,7 @@ impl Parser {
                 };
 
                 for attr in attributes.mut_iter() {
-                    attr.ns.mutate( |ref pre| {
+                    attr.ns.mutate(|ref pre| {
                         self.namespace_for_prefix(pre).unwrap_or_else( || {
                             fail!("Unbound prefix: '{}'", *pre)
                         })
@@ -390,6 +412,8 @@ impl Parser {
         Ok(None)
     }
 
+    // Inside an attribute name
+    // '=' => ExpectDelimiter
     fn in_attr_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '=' => {
@@ -412,6 +436,8 @@ impl Parser {
         Ok(None)
     }
 
+    // Inside an attribute value
+    // delimiter => InTag, adds Attribute
     fn in_attr_value(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c == self.delim.expect("In attribute value, but no delimiter set") {
             self.delim = None;
@@ -442,6 +468,8 @@ impl Parser {
         Ok(None)
     }
 
+    // Looking for an attribute value delimiter
+    // '"' or '\'' => InAttrValue, sets delimiter
     fn expect_delimiter(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '"'
@@ -458,6 +486,8 @@ impl Parser {
         Ok(None)
     }
 
+    // Expect closing '>' of an empty-element tag (no whitespace allowed)
+    // '>' => OutsideTag
     fn expect_close(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '>' => {
@@ -479,6 +509,8 @@ impl Parser {
        }
     }
 
+    // Expect closing '>' of a start tag
+    // '>' => OutsideTag
     fn expect_space_or_close(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             ' '
@@ -493,6 +525,10 @@ impl Parser {
        }
     }
 
+    // After an '!' trying to determine the type of the following construct
+    // '-' => InCommentOpening
+    // '[' => InCDATAOpening
+    // 'D' => InDoctype
     fn in_exclamation_mark(&mut self, c: char) -> Result<Option<Event>, Error> {
         self.st = match c {
             '-' => InCommentOpening,
@@ -503,6 +539,8 @@ impl Parser {
         Ok(None)
     }
 
+    // Opening sequence of CDATA
+    // 'C' 'D' 'A' 'T' 'A' '[' => InCDATA
     fn in_cdata_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
         static CDATA_PATTERN: [char, ..6] = ['C', 'D', 'A', 'T', 'A', '['];
         if c == CDATA_PATTERN[self.level] {
@@ -518,6 +556,8 @@ impl Parser {
         Ok(None)
     }
 
+    // Inside CDATA
+    // ']' ']' '>' => OutsideTag, producing CDATA
     fn in_cdata(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             ']' => {
@@ -540,6 +580,8 @@ impl Parser {
         Ok(None)
     }
 
+    // Opening sequence of a comment
+    // '-' => InComment1
     fn in_comment_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c == '-' {
             self.st = InComment1;
@@ -550,6 +592,8 @@ impl Parser {
         }
     }
 
+    // Inside a comment
+    // '-' '-' => InComment2
     fn in_comment1(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c == '-' {
             self.level += 1;
@@ -567,9 +611,11 @@ impl Parser {
         Ok(None)
     }
 
+    // Closing a comment
+    // '>' => OutsideTag, producing Comment
     fn in_comment2(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c != '>' {
-            self.error("Not more than one adjacent '-' allowed in a comment")
+            self.error("No more than one adjacent '-' allowed in a comment")
         } else {
             self.st = OutsideTag;
             let len = self.buf.len();
@@ -579,6 +625,8 @@ impl Parser {
         }
     }
 
+    // Inside a doctype
+    // '>' after appropriate opening => OutsideTag
     fn in_doctype(&mut self, c: char) -> Result<Option<Event>, Error> {
         static DOCTYPE_PATTERN: [char, ..6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {

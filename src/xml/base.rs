@@ -42,7 +42,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
             if c != '&' {
                 result.push_char(c);
             } else {
-                ent = String::from_str("&");
+                ent = "&".to_string();
                 in_entity = true;
             }
             continue;
