@@ -50,7 +50,6 @@ impl ElementBuilder {
                     None => (),
                     Some(elem) => elem.children.push(PINode(cont))
                 }
-                Ok(None)
             }
             StartTag(StartTag { name, ns, prefix: _, attributes }) => {
                 let mut elem = Element {
@@ -85,8 +84,6 @@ impl ElementBuilder {
                 elem.default_ns = self.default_ns.last().unwrap_or(&None).clone();
 
                 self.stack.push(elem);
-
-                Ok(None)
             }
             EndTag(EndTag { name, ns, prefix: _ }) => {
                 let elem = match self.stack.pop() {
@@ -95,13 +92,12 @@ impl ElementBuilder {
                 };
                 self.default_ns.pop();
                 if elem.name != name || elem.ns != ns {
-                    Err("Elements not properly nested")
+                    return Err("Elements not properly nested")
                 } else {
                     match self.stack.mut_last() {
-                        None => Ok(Some(elem)),
+                        None => return Ok(Some(elem)),
                         Some(e) => {
                             e.children.push(ElementNode(elem));
-                            Ok(None)
                         }
                     }
                 }
@@ -111,22 +107,20 @@ impl ElementBuilder {
                     None => (),
                     Some(elem) => elem.children.push(CharacterNode(chars))
                 }
-                Ok(None)
             }
             CDATA(chars) => {
                 match self.stack.mut_last() {
                     None => (),
                     Some(elem) => elem.children.push(CDATANode(chars))
                 }
-                Ok(None)
             }
             Comment(cont) => {
                 match self.stack.mut_last() {
                     None => (),
                     Some(elem) => elem.children.push(CommentNode(cont))
                 }
-                Ok(None)
             }
         }
+        Ok(None)
     }
 }
