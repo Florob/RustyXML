@@ -32,7 +32,7 @@ fn main()
     let mut p = xml::Parser::new();
     let mut e = xml::ElementBuilder::new();
 
-    let string = match rdr.read_to_str() {
+    let string = match rdr.read_to_string() {
         Ok(string) => string,
         Err(err) => {
             println!("Reading failed: {}", err);
