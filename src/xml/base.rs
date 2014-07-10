@@ -193,12 +193,15 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
     });
 
     // Do we need to set the default namespace ?
-    if (parent.is_none() && elem.default_ns.is_some()) ||
-       (parent.is_some() && parent.unwrap().default_ns != elem.default_ns) {
-        try!(match elem.default_ns {
+    match (parent, &elem.default_ns) {
+        // No parent, namespace is not empty
+        (None, &Some(ref ns)) =>  try!(write!(f, " xmlns='{}'", *ns)),
+        // Parent and child namespace differ
+        (Some(parent), ns) if !parent.default_ns.eq(ns) => try!(match *ns {
             None => write!(f, " xmlns=''"),
-            Some(ref x) => write!(f, " xmlns='{}'", *x)
-        });
+            Some(ref ns) => write!(f, " xmlns='{}'", *ns)
+        }),
+        _ => ()
     }
 
     for attr in elem.attributes.iter() {
@@ -329,9 +332,10 @@ impl<'a> Element {
     /// Appends a child element. Returns a reference to the added element.
     pub fn tag(&'a mut self, child: Element) -> &'a mut Element {
         self.children.push(ElementNode(child));
-        let elem = match self.children.mut_last().unwrap() {
+        let error = "Could not get reference to new element!";
+        let elem = match self.children.mut_last().expect(error) {
             &ElementNode(ref mut elem) => elem,
-            _ => fail!("Could not fetch just added element!")
+            _ => fail!(error)
         };
         elem
     }

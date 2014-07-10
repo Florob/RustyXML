@@ -284,10 +284,9 @@ impl Parser {
                 let prefix = self.prefix.take();
                 let ns = match prefix {
                     None => self.namespace_for_prefix(&String::new()),
-                    Some(ref pre) => {
-                        self.namespace_for_prefix(pre).or_else(|| {
-                            fail!("Unbound prefix: '{}'", *pre)
-                        })
+                    Some(ref pre) => match self.namespace_for_prefix(pre) {
+                        None => return self.error("Unbound namespace prefix in tag name"),
+                        ns => ns
                     }
                 };
 
@@ -334,10 +333,9 @@ impl Parser {
 
                 let ns = match prefix {
                     None => self.namespace_for_prefix(&String::new()),
-                    Some(ref pre) => {
-                        self.namespace_for_prefix(pre).or_else(|| {
-                            fail!("Unbound prefix: '{}'", *pre)
-                        })
+                    Some(ref pre) => match self.namespace_for_prefix(pre) {
+                        None => return self.error("Unbound namespace prefix in tag name"),
+                        ns => ns
                     }
                 };
 
@@ -369,19 +367,22 @@ impl Parser {
                 let prefix = self.prefix.take();
                 let ns = match prefix {
                     None => self.namespace_for_prefix(&String::new()),
-                    Some(ref pre) => {
-                        self.namespace_for_prefix(pre).or_else(|| {
-                            fail!("Unbound prefix: '{}'", *pre)
-                        })
+                    Some(ref pre) => match self.namespace_for_prefix(pre) {
+                        None => return self.error("Unbound namespace prefix in tag name"),
+                        ns => ns
                     }
                 };
 
+                // At this point attribute namespaces are really just prefixes,
+                // map them to the actual namespace
                 for attr in attributes.mut_iter() {
-                    attr.ns.mutate(|ref pre| {
-                        self.namespace_for_prefix(pre).unwrap_or_else( || {
-                            fail!("Unbound prefix: '{}'", *pre)
-                        })
-                    });
+                    attr.ns = match attr.ns {
+                        None => None,
+                        Some(ref prefix) => match self.namespace_for_prefix(prefix) {
+                            None => return self.error("Unbound namespace prefix in attribute name"),
+                            ns => ns
+                        }
+                    };
                 }
 
                 let name = if c == '/' {
@@ -450,7 +451,7 @@ impl Parser {
             self.buf.truncate(0);
             let prefix = self.attr_prefix.take();
 
-            let last = self.namespaces.mut_last().unwrap();
+            let last = self.namespaces.mut_last().expect("Empty namespace stack");
             match prefix {
                 None if name.as_slice() == "xmlns" => {
                     last.swap(String::new(), value.clone());
@@ -496,10 +497,9 @@ impl Parser {
                 let prefix = self.prefix.take();
                 let ns = match prefix {
                     None => self.namespace_for_prefix(&String::new()),
-                    Some(ref pre) => {
-                        self.namespace_for_prefix(pre).or_else(|| {
-                            fail!("Unbound prefix: '{}'", *pre)
-                        })
+                    Some(ref pre) => match self.namespace_for_prefix(pre) {
+                        None => return self.error("Unbound namespace prefix in tag name"),
+                        ns => ns
                     }
                 };
                 self.namespaces.pop();
