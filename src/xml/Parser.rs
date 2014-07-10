@@ -164,9 +164,9 @@ impl Parser {
     // Get the namespace currently bound to a prefix.
     // Bindings are stored as a stack of HashMaps, we start searching in the top most HashMap
     // and traverse down until the prefix is found.
-    fn namespace_for_prefix(&self, prefix: &String) -> Option<String> {
+    fn namespace_for_prefix(&self, prefix: &str) -> Option<String> {
         for ns in self.namespaces.as_slice().iter().rev() {
-            match ns.find(prefix) {
+            match ns.find_equiv(&prefix) {
                 None => continue,
                 Some(namespace) => {
                     if namespace.len() == 0 {
@@ -283,8 +283,8 @@ impl Parser {
                 set_name(self);
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&String::new()),
-                    Some(ref pre) => match self.namespace_for_prefix(pre) {
+                    None => self.namespace_for_prefix(""),
+                    Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -332,8 +332,8 @@ impl Parser {
                 self.buf.truncate(0);
 
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&String::new()),
-                    Some(ref pre) => match self.namespace_for_prefix(pre) {
+                    None => self.namespace_for_prefix(""),
+                    Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -366,8 +366,8 @@ impl Parser {
                 let mut attributes = mem::replace(&mut self.attributes, Vec::new());
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&String::new()),
-                    Some(ref pre) => match self.namespace_for_prefix(pre) {
+                    None => self.namespace_for_prefix(""),
+                    Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -378,7 +378,7 @@ impl Parser {
                 for attr in attributes.mut_iter() {
                     attr.ns = match attr.ns {
                         None => None,
-                        Some(ref prefix) => match self.namespace_for_prefix(prefix) {
+                        Some(ref prefix) => match self.namespace_for_prefix(prefix.as_slice()) {
                             None => return self.error("Unbound namespace prefix in attribute name"),
                             ns => ns
                         }
@@ -496,8 +496,8 @@ impl Parser {
                 let name = mem::replace(&mut self.name, String::new());
                 let prefix = self.prefix.take();
                 let ns = match prefix {
-                    None => self.namespace_for_prefix(&String::new()),
-                    Some(ref pre) => match self.namespace_for_prefix(pre) {
+                    None => self.namespace_for_prefix(""),
+                    Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
