@@ -354,7 +354,7 @@ impl Parser {
             '/'
             | '>' => {
                 let mut attributes = mem::replace(&mut self.attributes, Vec::new());
-                let (prefix, name) = self.name.take().expect("No element name set");
+                let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
@@ -424,18 +424,19 @@ impl Parser {
     // Inside an attribute value
     // delimiter => InTag, adds Attribute
     fn in_attr_value(&mut self, c: char) -> Result<Option<Event>, Error> {
-        if c == self.delim.expect("In attribute value, but no delimiter set") {
+        if c == self.delim.expect("Internal error: In attribute value, but no delimiter set") {
             self.delim = None;
             self.st = InTag;
             let attr = self.attr.take();
-            let (prefix, name) = attr.expect("In attribute value, but no attribute name");
+            let (prefix, name) =
+                attr.expect("Internal error: In attribute value, but no attribute name set");
             let value = match unescape(self.buf.as_slice()) {
                 Ok(unescaped) => unescaped,
                 Err(_) => return self.error("Found invalid entity")
             };
             self.buf.truncate(0);
 
-            let last = self.namespaces.mut_last().expect("Empty namespace stack");
+            let last = self.namespaces.mut_last().expect("Internal error: Empty namespace stack");
             match prefix {
                 None if name.as_slice() == "xmlns" => {
                     last.swap(String::new(), value.clone());
@@ -477,7 +478,7 @@ impl Parser {
         match c {
             '>' => {
                 self.st = OutsideTag;
-                let (prefix, name) = self.name.take().expect("No element name set");
+                let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {

@@ -332,7 +332,7 @@ impl<'a> Element {
     /// Appends a child element. Returns a reference to the added element.
     pub fn tag(&'a mut self, child: Element) -> &'a mut Element {
         self.children.push(ElementNode(child));
-        let error = "Could not get reference to new element!";
+        let error = "Internal error: Could not get reference to new element!";
         let elem = match self.children.mut_last().expect(error) {
             &ElementNode(ref mut elem) => elem,
             _ => fail!(error)
