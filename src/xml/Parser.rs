@@ -54,14 +54,12 @@ pub struct Parser {
     has_error: bool,
     data: RingBuf<char>,
     buf: String,
-    name: String,
-    prefix: Option<String>,
     namespaces: Vec<HashMap<String, String>>,
-    attr_name: String,
-    attr_prefix: Option<String>,
     attributes: Vec<Attribute>,
-    delim: Option<char>,
     st: State,
+    name: Option<(Option<String>, String)>,
+    attr: Option<(Option<String>, String)>,
+    delim: Option<char>,
     level: uint
 }
 
@@ -79,14 +77,12 @@ impl Parser {
             has_error: false,
             data: RingBuf::with_capacity(4096),
             buf: String::new(),
-            name: String::new(),
-            prefix: None,
             namespaces: vec!(ns),
-            attr_name: String::new(),
-            attr_prefix: None,
             attributes: Vec::new(),
-            delim: None,
             st: OutsideTag,
+            name: None,
+            attr: None,
+            delim: None,
             level: 0
         }
     }
@@ -270,18 +266,11 @@ impl Parser {
     // '>' => OutsideTag, producing StartTag
     // ' ' or '\t' or '\r' or '\n' => InTag
     fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
-        fn set_name(p: &mut Parser) {
-            let (prefix, name) = parse_qname(p.buf.as_slice());
-            p.prefix = prefix;
-            p.name = name;
-            p.buf.truncate(0);
-        };
-
         match c {
             '/'
             | '>' => {
-                set_name(self);
-                let prefix = self.prefix.take();
+                let (prefix, name) = parse_qname(self.buf.as_slice());
+                self.buf.truncate(0);
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
@@ -292,14 +281,14 @@ impl Parser {
 
                 self.namespaces.push(HashMap::new());
                 self.st = if c == '/' {
-                    self.prefix = prefix.clone();
+                    self.name = Some((prefix.clone(), name.clone()));
                     ExpectClose
                 } else {
                     OutsideTag
                 };
 
                 return Ok(Some(StartTag(StartTag {
-                    name: self.name.clone(),
+                    name: name,
                     ns: ns,
                     prefix: prefix,
                     attributes: Vec::new()
@@ -310,7 +299,8 @@ impl Parser {
             | '\r'
             | '\n' => {
                 self.namespaces.push(HashMap::new());
-                set_name(self);
+                self.name = Some(parse_qname(self.buf.as_slice()));
+                self.buf.truncate(0);
                 self.st = InTag;
             }
             _ => self.buf.push_char(c)
@@ -364,7 +354,7 @@ impl Parser {
             '/'
             | '>' => {
                 let mut attributes = mem::replace(&mut self.attributes, Vec::new());
-                let prefix = self.prefix.take();
+                let (prefix, name) = self.name.take().expect("No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
@@ -385,13 +375,11 @@ impl Parser {
                     };
                 }
 
-                let name = if c == '/' {
-                    self.st = ExpectClose;
-                    self.prefix = prefix.clone();
-                    self.name.clone()
+                self.st = if c == '/' {
+                    self.name = Some((prefix.clone(), name.clone()));
+                    ExpectClose
                 } else {
-                    self.st = OutsideTag;
-                    mem::replace(&mut self.name, String::new())
+                    OutsideTag
                 };
 
                 return Ok(Some(StartTag(StartTag {
@@ -419,11 +407,7 @@ impl Parser {
         match c {
             '=' => {
                 self.level = 0;
-
-                let (prefix, name) = parse_qname(self.buf.as_slice());
-                self.attr_prefix = prefix;
-                self.attr_name = name;
-
+                self.attr = Some(parse_qname(self.buf.as_slice()));
                 self.buf.truncate(0);
                 self.st = ExpectDelimiter;
             }
@@ -443,13 +427,13 @@ impl Parser {
         if c == self.delim.expect("In attribute value, but no delimiter set") {
             self.delim = None;
             self.st = InTag;
-            let name = mem::replace(&mut self.attr_name, String::new());
+            let attr = self.attr.take();
+            let (prefix, name) = attr.expect("In attribute value, but no attribute name");
             let value = match unescape(self.buf.as_slice()) {
                 Ok(unescaped) => unescaped,
                 Err(_) => return self.error("Found invalid entity")
             };
             self.buf.truncate(0);
-            let prefix = self.attr_prefix.take();
 
             let last = self.namespaces.mut_last().expect("Empty namespace stack");
             match prefix {
@@ -493,8 +477,7 @@ impl Parser {
         match c {
             '>' => {
                 self.st = OutsideTag;
-                let name = mem::replace(&mut self.name, String::new());
-                let prefix = self.prefix.take();
+                let (prefix, name) = self.name.take().expect("No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
