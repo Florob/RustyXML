@@ -1,3 +1,9 @@
+// RustyXML
+// Copyright (c) 2013, 2014 Florian Zeitz
+//
+// This project is MIT licensed.
+// Please see the COPYING file for more information.
+
 #![crate_name = "xml"]
 #![crate_type = "lib" ]
 #![forbid(non_camel_case_types)]
