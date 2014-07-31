@@ -54,48 +54,44 @@ pub fn escape(input: &str) -> String {
 pub fn unescape(input: &str) -> Result<String, String> {
     let mut result = String::with_capacity(input.len());
 
-    let mut ent = String::new();
-    let mut in_entity = false;
-    for c in input.chars() {
-        if !in_entity {
-            if c != '&' {
-                result.push_char(c);
-            } else {
-                ent = "&".to_string();
-                in_entity = true;
-            }
-            continue;
-        }
+    let mut it = input.split('&');
 
-        ent.push_char(c);
-        if c == ';' {
-            match ent.as_slice() {
-                "&quot;" => result.push_char('"'),
-                "&apos;" => result.push_char('\''),
-                "&gt;"   => result.push_char('>'),
-                "&lt;"   => result.push_char('<'),
-                "&amp;"  => result.push_char('&'),
-                ent => {
-                    let len = ent.len();
-                    let val = if ent.starts_with("&#x") {
-                        num::from_str_radix(ent.slice(3, len-1), 16)
-                    } else if ent.starts_with("&#") {
-                        num::from_str_radix(ent.slice(2, len-1), 10)
-                    } else {
-                        None
-                    };
-                    match val.and_then(|x| char::from_u32(x)) {
-                        Some(c) => {
-                            result.push_char(c);
-                        },
-                        None => {
-                            println!("{}", ent);
-                            return Err(ent.to_string())
+    // Push everything before the first '&'
+    for &sub in it.next().iter() {
+        result.push_str(sub);
+    }
+
+    for sub in it {
+        match sub.find(';') {
+            Some(idx) => {
+                let ent = sub.slice_to(idx);
+                match ent {
+                    "quot" => result.push_char('"'),
+                    "apos" => result.push_char('\''),
+                    "gt"   => result.push_char('>'),
+                    "lt"   => result.push_char('<'),
+                    "amp"  => result.push_char('&'),
+                    ent => {
+                        let val = if ent.starts_with("#x") {
+                            num::from_str_radix(ent.slice_from(2), 16)
+                        } else if ent.starts_with("#") {
+                            num::from_str_radix(ent.slice_from(1), 10)
+                        } else {
+                            None
+                        };
+                        match val.and_then(|x| char::from_u32(x)) {
+                            Some(c) => {
+                                result.push_char(c);
+                            },
+                            None => {
+                                return Err("&".to_string().append(ent).append(";"))
+                            }
                         }
                     }
                 }
+                result.push_str(sub.slice_from(idx+1));
             }
-            in_entity = false;
+            None => return Err("&".to_string().append(sub))
         }
     }
     Ok(result)
