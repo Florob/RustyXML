@@ -638,3 +638,176 @@ impl Parser {
         Ok(None)
     }
 }
+
+#[cfg(test)]
+mod parser_tests {
+    use super::Parser;
+    use super::super::{StartTag, EndTag, PI, Comment, CDATA, Characters, Attribute};
+
+    #[test]
+    fn test_start_tag() {
+        let mut p = Parser::new();
+        let mut i = 0;
+        p.feed_str("<a>");
+        for event in p {
+            i += 1;
+            assert_eq!(event, Ok(StartTag(StartTag {
+                name: "a".to_string(),
+                ns: None,
+                prefix: None,
+                attributes: Vec::new()
+            })));
+        }
+        assert_eq!(i, 1u);
+    }
+
+    #[test]
+    fn test_end_tag() {
+        let mut p = Parser::new();
+        let mut i = 0;
+        p.feed_str("</a>");
+        for event in p {
+            i += 1;
+            assert_eq!(event, Ok(EndTag(EndTag {
+                name: "a".to_string(),
+                ns: None,
+                prefix: None
+            })));
+        }
+        assert_eq!(i, 1u);
+    }
+
+    #[test]
+    fn test_self_closing_with_space() {
+        let mut p = Parser::new();
+        let mut v = Vec::new();
+        p.feed_str("<register />");
+        for event in p {
+            v.push(event);
+        }
+        assert_eq!(v, vec![
+            Ok(StartTag(StartTag {
+                name: "register".to_string(),
+                ns: None,
+                prefix: None,
+                attributes: Vec::new()
+            })),
+            Ok(EndTag(EndTag {
+                name: "register".to_string(),
+                ns: None,
+                prefix: None,
+            }))
+        ]);
+    }
+
+    #[test]
+    fn test_self_closing_without_space() {
+        let mut p = Parser::new();
+        let mut v = Vec::new();
+        p.feed_str("<register/>");
+        for event in p {
+            v.push(event);
+        }
+        assert_eq!(v, vec![
+            Ok(StartTag(StartTag {
+                name: "register".to_string(),
+                ns: None,
+                prefix: None,
+                attributes: Vec::new()
+            })),
+            Ok(EndTag(EndTag {
+                name: "register".to_string(),
+                ns: None,
+                prefix: None,
+            }))
+        ]);
+    }
+
+    #[test]
+    fn test_self_closing_namespace() {
+        let mut p = Parser::new();
+        let mut v = Vec::new();
+        p.feed_str("<foo:a xmlns:foo='urn:foo'/>");
+        for event in p {
+            v.push(event);
+        }
+        assert_eq!(v, vec![
+            Ok(StartTag(StartTag {
+                name: "a".to_string(),
+                ns: Some("urn:foo".to_string()),
+                prefix: Some("foo".to_string()),
+                attributes: vec![ Attribute {
+                    name: "foo".to_string(),
+                    ns: Some("http://www.w3.org/2000/xmlns/".to_string()),
+                    value: "urn:foo".to_string()
+                }]
+            })),
+            Ok(EndTag(EndTag {
+                name: "a".to_string(),
+                ns: Some("urn:foo".to_string()),
+                prefix: Some("foo".to_string()),
+            }))
+        ]);
+    }
+
+    #[test]
+    fn test_pi() {
+        let mut p = Parser::new();
+        let mut i = 0;
+        p.feed_str("<?xml version='1.0' encoding='utf-8'?>");
+        for event in p {
+            i += 1;
+            assert_eq!(event, Ok(PI("xml version='1.0' encoding='utf-8'".to_string())));
+        }
+        assert_eq!(i, 1u);
+    }
+
+    #[test]
+    fn test_comment() {
+        let mut p = Parser::new();
+        let mut i = 0;
+        p.feed_str("<!--Nothing to see-->");
+        for event in p {
+            i += 1;
+            assert_eq!(event, Ok(Comment("Nothing to see".to_string())));
+        }
+        assert_eq!(i, 1u);
+    }
+    #[test]
+    fn test_cdata() {
+        let mut p = Parser::new();
+        let mut i = 0;
+        p.feed_str("<![CDATA[<html><head><title>x</title></head><body/></html>]]>");
+        for event in p {
+            i += 1;
+            assert_eq!(event,
+                       Ok(CDATA("<html><head><title>x</title></head><body/></html>".to_string())));
+        }
+        assert_eq!(i, 1u);
+    }
+
+    #[test]
+    fn test_characters() {
+        let mut p = Parser::new();
+        let mut i = 0;
+        p.feed_str("<text>Hello World, it&apos;s a nice day</text>");
+        for event in p {
+            i += 1;
+            if i == 2 {
+                assert_eq!(event, Ok(Characters("Hello World, it's a nice day".to_string())));
+            }
+        }
+        assert_eq!(i, 3u);
+    }
+
+    #[test]
+    fn test_doctype() {
+        let mut p = Parser::new();
+        let mut i = 0;
+        p.feed_str("<!DOCTYPE html>");
+        for _ in p {
+            i += 1;
+        }
+        assert_eq!(i, 0u);
+    }
+}

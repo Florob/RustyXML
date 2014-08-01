@@ -4,13 +4,16 @@ RUSTDOC ?= rustdoc
 
 all: build/xmldemo doc
 
-lib: build
-	${RUSTC} ${RUSTCFLAGS} --out-dir build/ src/xml/lib.rs
+lib: src/xml/lib.rs
+	mkdir -p build
+	${RUSTC} ${RUSTCFLAGS} --out-dir build/ $<
 
 build/xmldemo: src/bin/xmldemo.rs lib
+	mkdir -p build
 	${RUSTC} ${RUSTCFLAGS} -L build -o $@ $<
 
-build/xmltest: src/xml/test.rs lib
+build/xmltest: src/xml/lib.rs src/xml/Parser.rs src/xml/ElementBuilder.rs
+	mkdir -p build
 	${RUSTC} ${RUSTCFLAGS} --test -L build -o $@ $<
 
 test: build/xmltest
@@ -21,8 +24,5 @@ doc:
 
 clean:
 	$(RM) -rf build doc
-
-build:
-	mkdir build
 
 .PHONY: all lib doc test clean
