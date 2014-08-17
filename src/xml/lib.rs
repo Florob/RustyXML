@@ -15,9 +15,9 @@
 
 extern crate collections;
 
-pub use Parser::Error;
-pub use Parser::Parser;
-pub use ElementBuilder::ElementBuilder;
+pub use parser::Error;
+pub use parser::Parser;
+pub use element_builder::ElementBuilder;
 
 use std::fmt;
 use std::fmt::Show;
@@ -26,8 +26,8 @@ use std::num;
 use std::collections::HashMap;
 use std::from_str::FromStr;
 
-mod Parser;
-mod ElementBuilder;
+mod parser;
+mod element_builder;
 
 // General functions
 
@@ -389,8 +389,8 @@ impl<'a> Element {
 impl FromStr for Element {
     #[inline]
     fn from_str(data: &str) -> Option<Element> {
-        let mut p = Parser::Parser::new();
-        let mut e = ElementBuilder::ElementBuilder::new();
+        let mut p = parser::Parser::new();
+        let mut e = element_builder::ElementBuilder::new();
         let mut result = None;
 
         p.feed_str(data);

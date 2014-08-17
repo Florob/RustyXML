@@ -12,7 +12,7 @@ build/xmldemo: src/bin/xmldemo.rs lib
 	mkdir -p build
 	${RUSTC} ${RUSTCFLAGS} -L build -o $@ $<
 
-build/xmltest: src/xml/lib.rs src/xml/Parser.rs src/xml/ElementBuilder.rs
+build/xmltest: src/xml/lib.rs src/xml/parser.rs src/xml/element_builder.rs
 	mkdir -p build
 	${RUSTC} ${RUSTCFLAGS} --test -L build -o $@ $<
 
