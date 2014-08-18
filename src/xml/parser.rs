@@ -93,11 +93,14 @@ impl Parser {
      * can be requested by iterating over the parser
      *
      * ~~~
+     * use xml::Parser;
+     *
      * let mut p = Parser::new();
      * p.feed_str("<a href='http://rust-lang.org'>Rust</a>");
      * for event in p {
      *     match event {
-     *        [...]
+     *        // [...]
+     *        _ => ()
      *     }
      * }
      * ~~~
