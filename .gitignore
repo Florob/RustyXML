@@ -2,6 +2,7 @@
 *.dylib
 *.so
 *.rlib
+Cargo.lock
 build/
 target/
 doc/
