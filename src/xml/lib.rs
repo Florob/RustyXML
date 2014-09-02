@@ -124,21 +124,10 @@ pub struct Element {
     pub default_ns: Option<String>,
     /// The prefixes set for known namespaces
     pub prefixes: HashMap<String, String>,
-    /// The element's `Attribute`s
-    pub attributes: Vec<Attribute>,
+    /// The element's attributes
+    pub attributes: HashMap<(String, Option<String>), String>,
     /// The element's child `XML` nodes
     pub children: Vec<XML>,
-}
-
-#[deriving(Clone, PartialEq, Eq, Show)]
-/// A struct representing an XML attribute
-pub struct Attribute {
-    /// The attribute's name
-    pub name: String,
-    /// The attribute's namespace
-    pub ns: Option<String>,
-    /// The attribute's value
-    pub value: String
 }
 
 #[deriving(PartialEq, Eq, Show)]
@@ -167,8 +156,8 @@ pub struct StartTag {
     pub ns: Option<String>,
     /// The tag's prefix
     pub prefix: Option<String>,
-    /// Attributes included in the tag
-    pub attributes: Vec<Attribute>
+    /// The tag's attributes
+    pub attributes: HashMap<(String, Option<String>), String>
 }
 
 #[deriving(PartialEq, Eq, Show)]
@@ -219,13 +208,13 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
         _ => ()
     }
 
-    for attr in elem.attributes.iter() {
-        try!(match attr.ns {
+    for (&(ref name, ref ns), value) in elem.attributes.iter() {
+        try!(match *ns {
             Some(ref ns) => {
                 let prefix = all_prefixes.find(ns).expect("No namespace prefix bound");
-                write!(f, " {}:{}='{}'", *prefix, attr.name, escape(attr.value.as_slice()))
+                write!(f, " {}:{}='{}'", *prefix, name, escape(value.as_slice()))
             }
-            None => write!(f, " {}='{}'", attr.name, escape(attr.value.as_slice()))
+            None => write!(f, " {}='{}'", name, escape(value.as_slice()))
         });
     }
 
@@ -240,7 +229,8 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
             });
         }
         if elem.ns != elem.default_ns {
-            let prefix = all_prefixes.find(elem.ns.get_ref()).expect("No namespace prefix bound");
+            let prefix = all_prefixes.find(elem.ns.as_ref().unwrap())
+                                     .expect("No namespace prefix bound");
             write!(f, "</{}:{}>", *prefix, elem.name)
         } else {
             write!(f, "</{}>", elem.name)
@@ -255,15 +245,21 @@ impl Show for Element{
 }
 
 impl Element {
-    /// Create a new element
-    pub fn new(name: &str, ns: Option<&str>, attrs: Vec<Attribute>) -> Element {
+    /// Create a new element, with specified name and namespace.
+    /// Attributes are specified as a slice of (name, namespace, value) tuples.
+    pub fn new(name: &str, ns: Option<&str>, attrs: &[(&str, Option<&str>, &str)]) -> Element {
         let ns = ns.map(|x| x.to_string());
+        let mut attributes = HashMap::new();
+        for &(ref name, ref ns, ref value) in attrs.iter() {
+            attributes.insert((name.to_string(), ns.clone().map(|x| x.to_string())),
+                              value.to_string());
+        }
         Element {
             name: name.to_string(),
             ns: ns.clone(),
             default_ns: ns,
             prefixes: HashMap::new(),
-            attributes: attrs,
+            attributes: attributes,
             children: Vec::new()
         }
     }
@@ -282,21 +278,10 @@ impl Element {
         res
     }
 
-    /// Gets an `Attribute` with the specified name and namespace. When an attribute with the
+    /// Gets an attribute with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
-    pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a Attribute> {
-        let mut it = self.attributes.iter();
-        for attr in it {
-            if !name.equiv(&attr.name) {
-                continue;
-            }
-            match (ns, attr.ns.as_ref().map(|x| x.as_slice())) {
-                (Some(ref x), Some(ref y)) if x == y => return Some(attr),
-                (None, None) => return Some(attr),
-                _ => continue
-            }
-        }
-        None
+    pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a str> {
+        self.attributes.find(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| x.as_slice())
     }
 
     /// Gets the first child `Element` with the specified name and namespace. When no child
@@ -412,7 +397,7 @@ mod lib_tests {
     extern crate collections;
 
     use super::{escape, unescape};
-    use super::{Element, Attribute, CharacterNode, CDATANode, CommentNode, PINode};
+    use super::{Element, CharacterNode, CDATANode, CommentNode, PINode};
 
     #[test]
     fn test_escape() {
@@ -434,30 +419,18 @@ mod lib_tests {
 
     #[test]
     fn test_show_element() {
-        let elem = Element::new("a", None, Vec::new());
+        let elem = Element::new("a", None, []);
         assert_eq!(format!("{}", elem).as_slice(), "<a/>");
 
-        let elem = Element::new("a", None, vec!(
-            Attribute {
-                name: "href".to_string(),
-                ns: None,
-                value: "http://rust-lang.org".to_string()
-            }
-        ));
+        let elem = Element::new("a", None, [("href", None, "http://rust-lang.org")]);
         assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'/>");
 
-        let mut elem = Element::new("a", None, Vec::new());
-        elem.tag(Element::new("b", None, Vec::new()));
+        let mut elem = Element::new("a", None, []);
+        elem.tag(Element::new("b", None, []));
         assert_eq!(format!("{}", elem).as_slice(), "<a><b/></a>");
 
-        let mut elem = Element::new("a", None, vec!(
-            Attribute {
-                name: "href".to_string(),
-                ns: None,
-                value: "http://rust-lang.org".to_string()
-            }
-        ));
-        elem.tag(Element::new("b", None, Vec::new()));
+        let mut elem = Element::new("a", None, [("href", None, "http://rust-lang.org")]);
+        elem.tag(Element::new("b", None, []));
         assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'><b/></a>");
     }
 
@@ -487,10 +460,10 @@ mod lib_tests {
 
     #[test]
     fn test_content_str() {
-        let mut elem = Element::new("a", None, Vec::new());
+        let mut elem = Element::new("a", None, []);
         elem.pi("processing information")
             .cdata("<hello/>")
-            .tag_stay(Element::new("b", None, Vec::new()))
+            .tag_stay(Element::new("b", None, []))
             .text("World")
             .comment("Nothing to see");
         assert_eq!(elem.content_str(), "<hello/>World".to_string());

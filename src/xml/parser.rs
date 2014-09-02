@@ -8,7 +8,7 @@
 // ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
-use super::{unescape, Attribute, Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
+use super::{unescape, Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
 use std::collections::Deque;
 use std::collections::{HashMap, RingBuf};
 use std::mem;
@@ -55,7 +55,7 @@ pub struct Parser {
     data: RingBuf<char>,
     buf: String,
     namespaces: Vec<HashMap<String, String>>,
-    attributes: Vec<Attribute>,
+    attributes: Vec<(String, Option<String>, String)>,
     st: State,
     name: Option<(Option<String>, String)>,
     attr: Option<(Option<String>, String)>,
@@ -77,7 +77,7 @@ impl Parser {
             has_error: false,
             data: RingBuf::with_capacity(4096),
             buf: String::new(),
-            namespaces: vec!(ns),
+            namespaces: vec![ns],
             attributes: Vec::new(),
             st: OutsideTag,
             name: None,
@@ -294,7 +294,7 @@ impl Parser {
                     name: name,
                     ns: ns,
                     prefix: prefix,
-                    attributes: Vec::new()
+                    attributes: HashMap::new()
                 })));
             }
             ' '
@@ -356,7 +356,7 @@ impl Parser {
         match c {
             '/'
             | '>' => {
-                let mut attributes = mem::replace(&mut self.attributes, Vec::new());
+                let attributes = mem::replace(&mut self.attributes, Vec::new());
                 let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
@@ -366,16 +366,21 @@ impl Parser {
                     }
                 };
 
+                let mut attributes_map: HashMap<(String, Option<String>), String> = HashMap::new();
+
                 // At this point attribute namespaces are really just prefixes,
                 // map them to the actual namespace
-                for attr in attributes.mut_iter() {
-                    attr.ns = match attr.ns {
+                for (name, ns, value) in attributes.move_iter() {
+                    let ns = match ns {
                         None => None,
                         Some(ref prefix) => match self.namespace_for_prefix(prefix.as_slice()) {
                             None => return self.error("Unbound namespace prefix in attribute name"),
                             ns => ns
                         }
                     };
+                    if !attributes_map.insert((name, ns), value) {
+                        return self.error("Duplicate attribute");
+                    }
                 }
 
                 self.st = if c == '/' {
@@ -389,7 +394,7 @@ impl Parser {
                     name: name,
                     ns: ns,
                     prefix: prefix,
-                    attributes: attributes
+                    attributes: attributes_map
                 })));
             }
             ' '
@@ -425,7 +430,7 @@ impl Parser {
     }
 
     // Inside an attribute value
-    // delimiter => InTag, adds Attribute
+    // delimiter => InTag, adds attribute
     fn in_attr_value(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c == self.delim.expect("Internal error: In attribute value, but no delimiter set") {
             self.delim = None;
@@ -450,7 +455,7 @@ impl Parser {
                 _ => ()
             }
 
-            self.attributes.push(Attribute { name: name, ns: prefix, value: value });
+            self.attributes.push((name, prefix, value));
         } else {
             self.buf.push_char(c);
         }
@@ -644,8 +649,10 @@ impl Parser {
 
 #[cfg(test)]
 mod parser_tests {
+    use std::collections::HashMap;
+
     use super::Parser;
-    use super::super::{StartTag, EndTag, PI, Comment, CDATA, Characters, Attribute};
+    use super::super::{Event, Error, StartTag, EndTag, PI, Comment, CDATA, Characters};
 
     #[test]
     fn test_start_tag() {
@@ -658,7 +665,7 @@ mod parser_tests {
                 name: "a".to_string(),
                 ns: None,
                 prefix: None,
-                attributes: Vec::new()
+                attributes: HashMap::new()
             })));
         }
         assert_eq!(i, 1u);
@@ -683,17 +690,15 @@ mod parser_tests {
     #[test]
     fn test_self_closing_with_space() {
         let mut p = Parser::new();
-        let mut v = Vec::new();
         p.feed_str("<register />");
-        for event in p {
-            v.push(event);
-        }
+
+        let v: Vec<Result<Event, Error>> = p.collect();
         assert_eq!(v, vec![
             Ok(StartTag(StartTag {
                 name: "register".to_string(),
                 ns: None,
                 prefix: None,
-                attributes: Vec::new()
+                attributes: HashMap::new()
             })),
             Ok(EndTag(EndTag {
                 name: "register".to_string(),
@@ -706,17 +711,15 @@ mod parser_tests {
     #[test]
     fn test_self_closing_without_space() {
         let mut p = Parser::new();
-        let mut v = Vec::new();
         p.feed_str("<register/>");
-        for event in p {
-            v.push(event);
-        }
+
+        let v: Vec<Result<Event, Error>> = p.collect();
         assert_eq!(v, vec![
             Ok(StartTag(StartTag {
                 name: "register".to_string(),
                 ns: None,
                 prefix: None,
-                attributes: Vec::new()
+                attributes: HashMap::new()
             })),
             Ok(EndTag(EndTag {
                 name: "register".to_string(),
@@ -729,21 +732,18 @@ mod parser_tests {
     #[test]
     fn test_self_closing_namespace() {
         let mut p = Parser::new();
-        let mut v = Vec::new();
         p.feed_str("<foo:a xmlns:foo='urn:foo'/>");
-        for event in p {
-            v.push(event);
-        }
+
+        let v: Vec<Result<Event, Error>> = p.collect();
+        let mut attr: HashMap<(String, Option<String>), String> = HashMap::new();
+        attr.insert(("foo".to_string(), Some("http://www.w3.org/2000/xmlns/".to_string())),
+                    "urn:foo".to_string());
         assert_eq!(v, vec![
             Ok(StartTag(StartTag {
                 name: "a".to_string(),
                 ns: Some("urn:foo".to_string()),
                 prefix: Some("foo".to_string()),
-                attributes: vec![ Attribute {
-                    name: "foo".to_string(),
-                    ns: Some("http://www.w3.org/2000/xmlns/".to_string()),
-                    value: "urn:foo".to_string()
-                }]
+                attributes: attr,
             })),
             Ok(EndTag(EndTag {
                 name: "a".to_string(),

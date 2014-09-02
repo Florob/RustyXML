@@ -9,7 +9,7 @@ use super::{Element, ElementNode, CharacterNode, CDATANode, CommentNode, PINode}
 use std::collections::HashMap;
 
 // DOM Builder
-/// An ELement Builder, building `Element`s from `Event`s as produced by `Parser`
+/// An Element Builder, building `Element`s from `Event`s as produced by `Parser`
 pub struct ElementBuilder {
     stack: Vec<Element>,
     default_ns: Vec<Option<String>>,
@@ -36,7 +36,7 @@ impl ElementBuilder {
 
     /// Set the default namespace
     pub fn set_default_ns(&mut self, ns: &str) {
-        self.default_ns = vec!(Some(ns.to_string()));
+        self.default_ns = vec![Some(ns.to_string())];
     }
 
     /// Hands an `Event` to the builder.
@@ -57,7 +57,7 @@ impl ElementBuilder {
                     ns: ns.clone(),
                     default_ns: None,
                     prefixes: self.prefixes.clone(),
-                    attributes: Vec::new(),
+                    attributes: attributes,
                     children: Vec::new()
                 };
 
@@ -66,20 +66,20 @@ impl ElementBuilder {
                     self.default_ns.push(cur_default);
                 }
 
-                for attr in attributes.iter() {
-                    if attr.ns == None && attr.name.as_slice() == "xmlns" {
+                for (&(ref name, ref ns), value) in elem.attributes.iter() {
+                    if ns.is_none() && name.as_slice() == "xmlns" {
                         self.default_ns.pop();
-                        if attr.value.len() == 0 {
+                        if value.len() == 0 {
                             self.default_ns.push(None);
                         } else {
-                            self.default_ns.push(Some(attr.value.clone()));
+                            self.default_ns.push(Some(value.clone()));
                         }
                         continue;
                     }
-                    if attr.ns == Some("http://www.w3.org/2000/xmlns/".to_string()) {
-                        elem.prefixes.swap(attr.value.clone(), attr.name.clone());
+
+                    if ns.as_ref().map_or(false, |x| x.equiv(&"http://www.w3.org/2000/xmlns/")) {
+                        elem.prefixes.swap(value.clone(), name.clone());
                     }
-                    elem.attributes.push(attr.clone());
                 }
                 elem.default_ns = self.default_ns.last().unwrap_or(&None).clone();
 
