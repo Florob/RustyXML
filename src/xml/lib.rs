@@ -284,6 +284,18 @@ impl Element {
         self.attributes.find(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| x.as_slice())
     }
 
+    /// Sets the attribute with the specified name and namespace.
+    /// Returns the original value.
+    pub fn set_attribute(&mut self, name: &str, ns: Option<&str>, value: &str) -> Option<String> {
+        self.attributes.swap((name.to_string(), ns.map(|x| x.to_string())), value.to_string())
+    }
+
+    /// Remove the attribute with the specified name and namespace.
+    /// Returns the original value.
+    pub fn remove_attribute(&mut self, name: &str, ns: Option<&str>) -> Option<String> {
+        self.attributes.pop(&(name.to_string(), ns.map(|x| x.to_string())))
+    }
+
     /// Gets the first child `Element` with the specified name and namespace. When no child
     /// with the specified name exists `None` is returned.
     pub fn get_child<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a Element> {
