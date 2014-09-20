@@ -46,7 +46,7 @@ impl ElementBuilder {
     pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, &'static str> {
         match e {
             PI(cont) => {
-                match self.stack.mut_last() {
+                match self.stack.last_mut() {
                     None => (),
                     Some(elem) => elem.children.push(PINode(cont))
                 }
@@ -94,7 +94,7 @@ impl ElementBuilder {
                 if elem.name != name || elem.ns != ns {
                     return Err("Elements not properly nested")
                 } else {
-                    match self.stack.mut_last() {
+                    match self.stack.last_mut() {
                         None => return Ok(Some(elem)),
                         Some(e) => {
                             e.children.push(ElementNode(elem));
@@ -103,19 +103,19 @@ impl ElementBuilder {
                 }
             }
             Characters(chars) => {
-                match self.stack.mut_last() {
+                match self.stack.last_mut() {
                     None => (),
                     Some(elem) => elem.children.push(CharacterNode(chars))
                 }
             }
             CDATA(chars) => {
-                match self.stack.mut_last() {
+                match self.stack.last_mut() {
                     None => (),
                     Some(elem) => elem.children.push(CDATANode(chars))
                 }
             }
             Comment(cont) => {
-                match self.stack.mut_last() {
+                match self.stack.last_mut() {
                     None => (),
                     Some(elem) => elem.children.push(CommentNode(cont))
                 }

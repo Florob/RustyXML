@@ -345,7 +345,7 @@ impl<'a> Element {
     pub fn tag(&'a mut self, child: Element) -> &'a mut Element {
         self.children.push(ElementNode(child));
         let error = "Internal error: Could not get reference to new element!";
-        let elem = match self.children.mut_last().expect(error) {
+        let elem = match self.children.last_mut().expect(error) {
             &ElementNode(ref mut elem) => elem,
             _ => fail!(error)
         };

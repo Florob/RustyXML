@@ -370,7 +370,7 @@ impl Parser {
 
                 // At this point attribute namespaces are really just prefixes,
                 // map them to the actual namespace
-                for (name, ns, value) in attributes.move_iter() {
+                for (name, ns, value) in attributes.into_iter() {
                     let ns = match ns {
                         None => None,
                         Some(ref prefix) => match self.namespace_for_prefix(prefix.as_slice()) {
@@ -444,7 +444,7 @@ impl Parser {
             };
             self.buf.truncate(0);
 
-            let last = self.namespaces.mut_last().expect("Internal error: Empty namespace stack");
+            let last = self.namespaces.last_mut().expect("Internal error: Empty namespace stack");
             match prefix {
                 None if name.as_slice() == "xmlns" => {
                     last.swap(String::new(), value.clone());
