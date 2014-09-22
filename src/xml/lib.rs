@@ -136,9 +136,9 @@ pub enum Event {
     /// Event indicating processing information was found
     PI(String),
     /// Event indicating a start tag was found
-    StartTag(StartTag),
+    ElementStart(StartTag),
     /// Event indicating a end tag was found
-    EndTag(EndTag),
+    ElementEnd(EndTag),
     /// Event indicating character data was found
     Characters(String),
     /// Event indicating CDATA was found

@@ -8,7 +8,8 @@
 // ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
-use super::{unescape, Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
+use super::{Event, PI, ElementStart, ElementEnd, Characters, CDATA, Comment,
+            StartTag, EndTag, unescape};
 use std::collections::Deque;
 use std::collections::{HashMap, RingBuf};
 use std::mem;
@@ -265,8 +266,8 @@ impl Parser {
     }
 
     // Inside a tag name (opening tag)
-    // '/' => ExpectClose, producing StartTag
-    // '>' => OutsideTag, producing StartTag
+    // '/' => ExpectClose, producing ElementStart
+    // '>' => OutsideTag, producing ElementStart
     // ' ' or '\t' or '\r' or '\n' => InTag
     fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
@@ -290,7 +291,7 @@ impl Parser {
                     OutsideTag
                 };
 
-                return Ok(Some(StartTag(StartTag {
+                return Ok(Some(ElementStart(StartTag {
                     name: name,
                     ns: ns,
                     prefix: prefix,
@@ -339,7 +340,7 @@ impl Parser {
                     ExpectSpaceOrClose
                 };
 
-                Ok(Some(EndTag(EndTag { name: name, ns: ns, prefix: prefix })))
+                Ok(Some(ElementEnd(EndTag { name: name, ns: ns, prefix: prefix })))
             }
             _ => {
                 self.buf.push_char(c);
@@ -390,7 +391,7 @@ impl Parser {
                     OutsideTag
                 };
 
-                return Ok(Some(StartTag(StartTag {
+                return Ok(Some(ElementStart(StartTag {
                     name: name,
                     ns: ns,
                     prefix: prefix,
@@ -495,7 +496,7 @@ impl Parser {
                     }
                 };
                 self.namespaces.pop();
-                Ok(Some(EndTag(EndTag { name: name, ns: ns, prefix: prefix })))
+                Ok(Some(ElementEnd(EndTag { name: name, ns: ns, prefix: prefix })))
             }
             _ => self.error("Expected '>' to close tag")
        }
@@ -652,7 +653,8 @@ mod parser_tests {
     use std::collections::HashMap;
 
     use super::Parser;
-    use super::super::{Event, Error, StartTag, EndTag, PI, Comment, CDATA, Characters};
+    use super::super::{Event, Error, PI, ElementStart, ElementEnd, Comment, CDATA, Characters,
+                       StartTag, EndTag};
 
     #[test]
     fn test_start_tag() {
@@ -661,7 +663,7 @@ mod parser_tests {
         p.feed_str("<a>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(StartTag(StartTag {
+            assert_eq!(event, Ok(ElementStart(StartTag {
                 name: "a".to_string(),
                 ns: None,
                 prefix: None,
@@ -678,7 +680,7 @@ mod parser_tests {
         p.feed_str("</a>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(EndTag(EndTag {
+            assert_eq!(event, Ok(ElementEnd(EndTag {
                 name: "a".to_string(),
                 ns: None,
                 prefix: None
@@ -694,13 +696,13 @@ mod parser_tests {
 
         let v: Vec<Result<Event, Error>> = p.collect();
         assert_eq!(v, vec![
-            Ok(StartTag(StartTag {
+            Ok(ElementStart(StartTag {
                 name: "register".to_string(),
                 ns: None,
                 prefix: None,
                 attributes: HashMap::new()
             })),
-            Ok(EndTag(EndTag {
+            Ok(ElementEnd(EndTag {
                 name: "register".to_string(),
                 ns: None,
                 prefix: None,
@@ -715,13 +717,13 @@ mod parser_tests {
 
         let v: Vec<Result<Event, Error>> = p.collect();
         assert_eq!(v, vec![
-            Ok(StartTag(StartTag {
+            Ok(ElementStart(StartTag {
                 name: "register".to_string(),
                 ns: None,
                 prefix: None,
                 attributes: HashMap::new()
             })),
-            Ok(EndTag(EndTag {
+            Ok(ElementEnd(EndTag {
                 name: "register".to_string(),
                 ns: None,
                 prefix: None,
@@ -739,13 +741,13 @@ mod parser_tests {
         attr.insert(("foo".to_string(), Some("http://www.w3.org/2000/xmlns/".to_string())),
                     "urn:foo".to_string());
         assert_eq!(v, vec![
-            Ok(StartTag(StartTag {
+            Ok(ElementStart(StartTag {
                 name: "a".to_string(),
                 ns: Some("urn:foo".to_string()),
                 prefix: Some("foo".to_string()),
                 attributes: attr,
             })),
-            Ok(EndTag(EndTag {
+            Ok(ElementEnd(EndTag {
                 name: "a".to_string(),
                 ns: Some("urn:foo".to_string()),
                 prefix: Some("foo".to_string()),

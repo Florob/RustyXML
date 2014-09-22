@@ -4,8 +4,8 @@
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
-use super::{Event, PI, StartTag, EndTag, Characters, CDATA, Comment};
-use super::{Element, ElementNode, CharacterNode, CDATANode, CommentNode, PINode};
+use super::{Event, PI, ElementStart, ElementEnd, Characters, CDATA, Comment, StartTag, EndTag,
+            Element, ElementNode, CharacterNode, CDATANode, CommentNode, PINode};
 use std::collections::HashMap;
 
 // DOM Builder
@@ -51,7 +51,7 @@ impl ElementBuilder {
                     Some(elem) => elem.children.push(PINode(cont))
                 }
             }
-            StartTag(StartTag { name, ns, prefix: _, attributes }) => {
+            ElementStart(StartTag { name, ns, prefix: _, attributes }) => {
                 let mut elem = Element {
                     name: name.clone(),
                     ns: ns.clone(),
@@ -85,7 +85,7 @@ impl ElementBuilder {
 
                 self.stack.push(elem);
             }
-            EndTag(EndTag { name, ns, prefix: _ }) => {
+            ElementEnd(EndTag { name, ns, prefix: _ }) => {
                 let elem = match self.stack.pop() {
                     Some(elem) => elem,
                     None => return Err("Elements not properly nested")
