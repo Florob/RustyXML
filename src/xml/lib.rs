@@ -43,7 +43,7 @@ pub fn escape(input: &str) -> String {
             '>' => result.push_str("&gt;"),
             '\'' => result.push_str("&apos;"),
             '"' => result.push_str("&quot;"),
-            o => result.push_char(o)
+            o => result.push(o)
         }
     }
     result
@@ -66,11 +66,11 @@ pub fn unescape(input: &str) -> Result<String, String> {
             Some(idx) => {
                 let ent = sub.slice_to(idx);
                 match ent {
-                    "quot" => result.push_char('"'),
-                    "apos" => result.push_char('\''),
-                    "gt"   => result.push_char('>'),
-                    "lt"   => result.push_char('<'),
-                    "amp"  => result.push_char('&'),
+                    "quot" => result.push('"'),
+                    "apos" => result.push('\''),
+                    "gt"   => result.push('>'),
+                    "lt"   => result.push('<'),
+                    "amp"  => result.push('&'),
                     ent => {
                         let val = if ent.starts_with("#x") {
                             num::from_str_radix(ent.slice_from(2), 16)
@@ -81,17 +81,17 @@ pub fn unescape(input: &str) -> Result<String, String> {
                         };
                         match val.and_then(|x| char::from_u32(x)) {
                             Some(c) => {
-                                result.push_char(c);
+                                result.push(c);
                             },
                             None => {
-                                return Err("&".to_string().append(ent).append(";"))
+                                return Err(format!("&{};", ent))
                             }
                         }
                     }
                 }
                 result.push_str(sub.slice_from(idx+1));
             }
-            None => return Err("&".to_string().append(sub))
+            None => return Err("&".to_string() + sub)
         }
     }
     Ok(result)
@@ -190,7 +190,8 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
 
     // Do we need a prefix?
     try!(if elem.ns != elem.default_ns {
-        let prefix = all_prefixes.find(elem.ns.get_ref()).expect("No namespace prefix bound");
+        let prefix = all_prefixes.find(elem.ns.as_ref().unwrap_or(&String::new()))
+                                 .expect("No namespace prefix bound");
         write!(f, "<{}:{}", *prefix, elem.name)
     } else {
         write!(f, "<{}", elem.name)

@@ -222,7 +222,7 @@ impl Parser {
                 return Ok(Some(Characters(buf)));
             }
             '<' => self.st = TagOpened,
-            _ => self.buf.push_char(c)
+            _ => self.buf.push(c)
         }
         Ok(None)
     }
@@ -238,7 +238,7 @@ impl Parser {
             '!' => InExclamationMark,
             '/' => InCloseTagName,
             _ => {
-                self.buf.push_char(c);
+                self.buf.push(c);
                 InTagName
             }
         };
@@ -251,16 +251,16 @@ impl Parser {
         match c {
             '?' => {
                 self.level = 1;
-                self.buf.push_char(c);
+                self.buf.push(c);
             }
             '>' if self.level == 1 => {
                 self.level = 0;
                 self.st = OutsideTag;
-                let _ = self.buf.pop_char();
+                let _ = self.buf.pop();
                 let buf = mem::replace(&mut self.buf, String::new());
                 return Ok(Some(PI(buf)));
             }
-            _ => self.buf.push_char(c)
+            _ => self.buf.push(c)
         }
         Ok(None)
     }
@@ -307,7 +307,7 @@ impl Parser {
                 self.buf.truncate(0);
                 self.st = InTag;
             }
-            _ => self.buf.push_char(c)
+            _ => self.buf.push(c)
         }
         Ok(None)
     }
@@ -343,7 +343,7 @@ impl Parser {
                 Ok(Some(ElementEnd(EndTag { name: name, ns: ns, prefix: prefix })))
             }
             _ => {
-                self.buf.push_char(c);
+                self.buf.push(c);
                 Ok(None)
             }
         }
@@ -403,7 +403,7 @@ impl Parser {
             | '\r'
             | '\n' => (),
             _ => {
-                self.buf.push_char(c);
+                self.buf.push(c);
                 self.st = InAttrName;
             }
         }
@@ -424,7 +424,7 @@ impl Parser {
             | '\t'
             | '\r'
             | '\n' => self.level = 1,
-            _ if self.level == 0 => self.buf.push_char(c),
+            _ if self.level == 0 => self.buf.push(c),
             _ => return self.error("Space occured in attribute name")
         }
         Ok(None)
@@ -458,7 +458,7 @@ impl Parser {
 
             self.attributes.push((name, prefix, value));
         } else {
-            self.buf.push_char(c);
+            self.buf.push(c);
         }
         Ok(None)
     }
@@ -554,7 +554,7 @@ impl Parser {
     fn in_cdata(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             ']' => {
-                self.buf.push_char(c);
+                self.buf.push(c);
                 self.level += 1;
             }
             '>' if self.level >= 2 => {
@@ -566,7 +566,7 @@ impl Parser {
                 return Ok(Some(CDATA(buf)))
             }
             _ => {
-                self.buf.push_char(c);
+                self.buf.push(c);
                 self.level = 0;
             }
         }
@@ -599,7 +599,7 @@ impl Parser {
             self.st = InComment2;
         }
 
-        self.buf.push_char(c);
+        self.buf.push(c);
 
         Ok(None)
     }
