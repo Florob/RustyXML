@@ -79,7 +79,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
                         } else {
                             None
                         };
-                        match val.and_then(|x| char::from_u32(x)) {
+                        match val.and_then(char::from_u32) {
                             Some(c) => {
                                 result.push(c);
                             },
