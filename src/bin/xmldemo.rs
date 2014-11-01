@@ -4,6 +4,8 @@
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
+#![feature(slicing_syntax)]
+
 extern crate xml;
 use std::io::File;
 use std::io::Reader;
@@ -12,13 +14,13 @@ use std::path::Path;
 fn main()
 {
     let args = std::os::args();
-    let f = &match args.as_slice() {
-        [_, ref path] => Path::new(path.as_slice()),
+    let f = &match args[] {
+        [_, ref path] => Path::new(path[]),
         [ref name, ..] => {
             println!("Usage: {} <file>", name);
             return;
         }
-        _ => fail!("argv had length 0")
+        _ => panic!("argv had length 0")
     };
     let mut rdr = match File::open(f) {
         Ok(file) => file,
@@ -41,7 +43,7 @@ fn main()
         }
     };
 
-    p.feed_str(string.as_slice());
+    p.feed_str(string[]);
     for event in p {
         match event {
             Ok(event) => match e.push_event(event) {

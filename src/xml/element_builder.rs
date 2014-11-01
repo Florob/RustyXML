@@ -46,9 +46,8 @@ impl ElementBuilder {
     pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, &'static str> {
         match e {
             PI(cont) => {
-                match self.stack.last_mut() {
-                    None => (),
-                    Some(elem) => elem.children.push(PINode(cont))
+                if let Some(elem) = self.stack.last_mut() {
+                    elem.children.push(PINode(cont));
                 }
             }
             ElementStart(StartTag { name, ns, prefix: _, attributes }) => {
@@ -67,7 +66,7 @@ impl ElementBuilder {
                 }
 
                 for (&(ref name, ref ns), value) in elem.attributes.iter() {
-                    if ns.is_none() && name.as_slice() == "xmlns" {
+                    if ns.is_none() && name[] == "xmlns" {
                         self.default_ns.pop();
                         if value.len() == 0 {
                             self.default_ns.push(None);
@@ -95,29 +94,24 @@ impl ElementBuilder {
                     return Err("Elements not properly nested")
                 } else {
                     match self.stack.last_mut() {
-                        None => return Ok(Some(elem)),
-                        Some(e) => {
-                            e.children.push(ElementNode(elem));
-                        }
+                        Some(e) => e.children.push(ElementNode(elem)),
+                        None => return Ok(Some(elem))
                     }
                 }
             }
             Characters(chars) => {
-                match self.stack.last_mut() {
-                    None => (),
-                    Some(elem) => elem.children.push(CharacterNode(chars))
+                if let Some(elem) = self.stack.last_mut() {
+                    elem.children.push(CharacterNode(chars));
                 }
             }
             CDATA(chars) => {
-                match self.stack.last_mut() {
-                    None => (),
-                    Some(elem) => elem.children.push(CDATANode(chars))
+                if let Some(elem) = self.stack.last_mut() {
+                    elem.children.push(CDATANode(chars));
                 }
             }
             Comment(cont) => {
-                match self.stack.last_mut() {
-                    None => (),
-                    Some(elem) => elem.children.push(CommentNode(cont))
+                if let Some(elem) = self.stack.last_mut() {
+                    elem.children.push(CommentNode(cont));
                 }
             }
         }

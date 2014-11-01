@@ -7,7 +7,10 @@
 #![crate_name = "xml"]
 #![crate_type = "lib" ]
 #![forbid(non_camel_case_types)]
-#![warn(missing_doc)]
+#![warn(missing_docs)]
+
+#![feature(if_let)]
+#![feature(slicing_syntax)]
 
 /*!
   An XML parsing library
@@ -64,7 +67,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
     for sub in it {
         match sub.find(';') {
             Some(idx) => {
-                let ent = sub.slice_to(idx);
+                let ent = sub[..idx];
                 match ent {
                     "quot" => result.push('"'),
                     "apos" => result.push('\''),
@@ -73,23 +76,19 @@ pub fn unescape(input: &str) -> Result<String, String> {
                     "amp"  => result.push('&'),
                     ent => {
                         let val = if ent.starts_with("#x") {
-                            num::from_str_radix(ent.slice_from(2), 16)
+                            num::from_str_radix(ent[2..], 16)
                         } else if ent.starts_with("#") {
-                            num::from_str_radix(ent.slice_from(1), 10)
+                            num::from_str_radix(ent[1..], 10)
                         } else {
                             None
                         };
                         match val.and_then(char::from_u32) {
-                            Some(c) => {
-                                result.push(c);
-                            },
-                            None => {
-                                return Err(format!("&{};", ent))
-                            }
+                            Some(c) => result.push(c),
+                            None => return Err(format!("&{};", ent))
                         }
                     }
                 }
-                result.push_str(sub.slice_from(idx+1));
+                result.push_str(sub[idx+1..]);
             }
             None => return Err("&".to_string() + sub)
         }
@@ -175,10 +174,10 @@ impl Show for XML {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ElementNode(ref elem) => elem.fmt(f),
-            CharacterNode(ref data) => write!(f, "{}", escape(data.as_slice())),
-            CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", data.as_slice()),
-            CommentNode(ref data) => write!(f, "<!--{}-->", data.as_slice()),
-            PINode(ref data) => write!(f, "<?{}?>", data.as_slice())
+            CharacterNode(ref data) => write!(f, "{}", escape(data[])),
+            CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", data[]),
+            CommentNode(ref data) => write!(f, "<!--{}-->", data[]),
+            PINode(ref data) => write!(f, "<?{}?>", data[])
         }
     }
 }
@@ -200,7 +199,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
     // Do we need to set the default namespace ?
     match (parent, &elem.default_ns) {
         // No parent, namespace is not empty
-        (None, &Some(ref ns)) =>  try!(write!(f, " xmlns='{}'", *ns)),
+        (None, &Some(ref ns)) => try!(write!(f, " xmlns='{}'", *ns)),
         // Parent and child namespace differ
         (Some(parent), ns) if !parent.default_ns.eq(ns) => try!(match *ns {
             None => write!(f, " xmlns=''"),
@@ -213,9 +212,9 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
         try!(match *ns {
             Some(ref ns) => {
                 let prefix = all_prefixes.find(ns).expect("No namespace prefix bound");
-                write!(f, " {}:{}='{}'", *prefix, name, escape(value.as_slice()))
+                write!(f, " {}:{}='{}'", *prefix, name, escape(value[]))
             }
-            None => write!(f, " {}='{}'", name, escape(value.as_slice()))
+            None => write!(f, " {}='{}'", name, escape(value[]))
         });
     }
 
@@ -270,9 +269,9 @@ impl Element {
         let mut res = String::new();
         for child in self.children.iter() {
             match *child {
-                ElementNode(ref elem) => res.push_str(elem.content_str().as_slice()),
+                ElementNode(ref elem) => res.push_str(elem.content_str()[]),
                 CharacterNode(ref data)
-                | CDATANode(ref data) => res.push_str(data.as_slice()),
+                | CDATANode(ref data) => res.push_str(data[]),
                 _ => ()
             }
         }
@@ -282,7 +281,7 @@ impl Element {
     /// Gets an attribute with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
     pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a str> {
-        self.attributes.find(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| x.as_slice())
+        self.attributes.find(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| x[])
     }
 
     /// Sets the attribute with the specified name and namespace.
@@ -306,7 +305,7 @@ impl Element {
                     if !name.equiv(&elem.name) {
                         continue;
                     }
-                    match (ns, elem.ns.as_ref().map(|x| x.as_slice())) {
+                    match (ns, elem.ns.as_ref().map(|x| x[])) {
                         (Some(ref x), Some(ref y)) if x == y => return Some(&*elem),
                         (None, None) => return Some(&*elem),
                         _ => continue
@@ -323,18 +322,15 @@ impl Element {
     pub fn get_children<'a>(&'a self, name: &str, ns: Option<&str>) -> Vec<&'a Element> {
         let mut res: Vec<&'a Element> = Vec::new();
         for child in self.children.iter() {
-            match *child {
-                ElementNode(ref elem) => {
-                    if !name.equiv(&elem.name) {
-                        continue;
-                    }
-                    match (ns, elem.ns.as_ref().map(|x| x.as_slice())) {
-                        (Some(ref x), Some(ref y)) if x == y => res.push(&*elem),
-                        (None, None) => res.push(&*elem),
-                        _ => continue
-                    }
+            if let ElementNode(ref elem) = *child {
+                if !name.equiv(&elem.name) {
+                    continue;
                 }
-                _ => ()
+                match (ns, elem.ns.as_ref().map(|x| x[])) {
+                    (Some(ref x), Some(ref y)) if x == y => res.push(&*elem),
+                    (None, None) => res.push(&*elem),
+                    _ => continue
+                }
             }
         }
         res
@@ -348,7 +344,7 @@ impl<'a> Element {
         let error = "Internal error: Could not get reference to new element!";
         let elem = match self.children.last_mut().expect(error) {
             &ElementNode(ref mut elem) => elem,
-            _ => fail!(error)
+            _ => panic!(error)
         };
         elem
     }
@@ -393,12 +389,10 @@ impl FromStr for Element {
 
         p.feed_str(data);
         for event in p {
-            match event {
-                Ok(event) => match e.push_event(event) {
-                    Ok(Some(elem)) => result = Some(elem),
-                    _ => ()
-                },
-                _ => ()
+            if let Ok(event) = event {
+                if let Ok(Some(elem)) = e.push_event(event) {
+                     result = Some(elem);
+                }
             }
         }
         result
@@ -433,42 +427,42 @@ mod lib_tests {
     #[test]
     fn test_show_element() {
         let elem = Element::new("a", None, []);
-        assert_eq!(format!("{}", elem).as_slice(), "<a/>");
+        assert_eq!(format!("{}", elem)[], "<a/>");
 
         let elem = Element::new("a", None, [("href", None, "http://rust-lang.org")]);
-        assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'/>");
+        assert_eq!(format!("{}", elem)[], "<a href='http://rust-lang.org'/>");
 
         let mut elem = Element::new("a", None, []);
         elem.tag(Element::new("b", None, []));
-        assert_eq!(format!("{}", elem).as_slice(), "<a><b/></a>");
+        assert_eq!(format!("{}", elem)[], "<a><b/></a>");
 
         let mut elem = Element::new("a", None, [("href", None, "http://rust-lang.org")]);
         elem.tag(Element::new("b", None, []));
-        assert_eq!(format!("{}", elem).as_slice(), "<a href='http://rust-lang.org'><b/></a>");
+        assert_eq!(format!("{}", elem)[], "<a href='http://rust-lang.org'><b/></a>");
     }
 
     #[test]
     fn test_show_characters() {
         let chars = CharacterNode("some text".to_string());
-        assert_eq!(format!("{}", chars).as_slice(), "some text");
+        assert_eq!(format!("{}", chars)[], "some text");
     }
 
     #[test]
     fn test_show_cdata() {
         let chars = CDATANode("some text".to_string());
-        assert_eq!(format!("{}", chars).as_slice(), "<![CDATA[some text]]>");
+        assert_eq!(format!("{}", chars)[], "<![CDATA[some text]]>");
     }
 
     #[test]
     fn test_show_comment() {
         let chars = CommentNode("some text".to_string());
-        assert_eq!(format!("{}", chars).as_slice(), "<!--some text-->");
+        assert_eq!(format!("{}", chars)[], "<!--some text-->");
     }
 
     #[test]
     fn test_show_pi() {
         let chars = PINode("xml version='1.0'".to_string());
-        assert_eq!(format!("{}", chars).as_slice(), "<?xml version='1.0'?>");
+        assert_eq!(format!("{}", chars)[], "<?xml version='1.0'?>");
     }
 
     #[test]
@@ -493,7 +487,7 @@ mod lib_bench {
     fn bench_escape(bh: &mut Bencher) {
         let input = "&<>'\"".repeat(100);
         bh.iter( || {
-            escape(input.as_slice())
+            escape(input[])
         });
         bh.bytes = input.len() as u64;
     }
@@ -502,7 +496,7 @@ mod lib_bench {
     fn bench_unescape(bh: &mut Bencher) {
         let input = "&amp;&lt;&gt;&apos;&quot;".repeat(50);
         bh.iter(|| {
-            unescape(input.as_slice())
+            unescape(input[])
         });
         bh.bytes = input.len() as u64;
     }

@@ -150,13 +150,10 @@ impl Iterator<Result<Event, Error>> for Parser {
 #[inline]
 // Parse a QName to get Prefix and LocalPart
 fn parse_qname(qname: &str) -> (Option<String>, String) {
-    match qname.find(':') {
-        None => {
-            (None, qname.to_string())
-        },
-        Some(i) => {
-            (Some(qname.slice_to(i).to_string()), qname.slice_from(i+1).to_string())
-        }
+    if let Some(i) = qname.find(':') {
+        (Some(qname[..i].to_string()), qname[i+1..].to_string())
+    } else {
+        (None, qname.to_string())
     }
 }
 
@@ -165,16 +162,12 @@ impl Parser {
     // Bindings are stored as a stack of HashMaps, we start searching in the top most HashMap
     // and traverse down until the prefix is found.
     fn namespace_for_prefix(&self, prefix: &str) -> Option<String> {
-        for ns in self.namespaces.as_slice().iter().rev() {
-            match ns.find_equiv(&prefix) {
-                None => continue,
-                Some(namespace) => {
-                    if namespace.len() == 0 {
-                        return None;
-                    } else {
-                        return Some(namespace.clone());
-                    }
+        for ns in self.namespaces[].iter().rev() {
+            if let Some(namespace) = ns.find_equiv(prefix) {
+                if namespace.len() == 0 {
+                    return None;
                 }
+                return Some(namespace.clone());
             }
         }
         None
@@ -214,7 +207,7 @@ impl Parser {
         match c {
             '<' if self.buf.len() > 0 => {
                 self.st = TagOpened;
-                let buf = match unescape(self.buf.as_slice()) {
+                let buf = match unescape(self.buf[]) {
                     Ok(unescaped) => unescaped,
                     Err(_) => return self.error("Found invalid entity")
                 };
@@ -273,11 +266,11 @@ impl Parser {
         match c {
             '/'
             | '>' => {
-                let (prefix, name) = parse_qname(self.buf.as_slice());
+                let (prefix, name) = parse_qname(self.buf[]);
                 self.buf.truncate(0);
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
+                    Some(ref pre) => match self.namespace_for_prefix(pre[]) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -303,7 +296,7 @@ impl Parser {
             | '\r'
             | '\n' => {
                 self.namespaces.push(HashMap::new());
-                self.name = Some(parse_qname(self.buf.as_slice()));
+                self.name = Some(parse_qname(self.buf[]));
                 self.buf.truncate(0);
                 self.st = InTag;
             }
@@ -322,12 +315,12 @@ impl Parser {
             | '\r'
             | '\n'
             | '>' => {
-                let (prefix, name) = parse_qname(self.buf.as_slice());
+                let (prefix, name) = parse_qname(self.buf[]);
                 self.buf.truncate(0);
 
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
+                    Some(ref pre) => match self.namespace_for_prefix(pre[]) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -361,7 +354,7 @@ impl Parser {
                 let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
+                    Some(ref pre) => match self.namespace_for_prefix(pre[]) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -374,7 +367,7 @@ impl Parser {
                 for (name, ns, value) in attributes.into_iter() {
                     let ns = match ns {
                         None => None,
-                        Some(ref prefix) => match self.namespace_for_prefix(prefix.as_slice()) {
+                        Some(ref prefix) => match self.namespace_for_prefix(prefix[]) {
                             None => return self.error("Unbound namespace prefix in attribute name"),
                             ns => ns
                         }
@@ -416,7 +409,7 @@ impl Parser {
         match c {
             '=' => {
                 self.level = 0;
-                self.attr = Some(parse_qname(self.buf.as_slice()));
+                self.attr = Some(parse_qname(self.buf[]));
                 self.buf.truncate(0);
                 self.st = ExpectDelimiter;
             }
@@ -439,7 +432,7 @@ impl Parser {
             let attr = self.attr.take();
             let (prefix, name) =
                 attr.expect("Internal error: In attribute value, but no attribute name set");
-            let value = match unescape(self.buf.as_slice()) {
+            let value = match unescape(self.buf[]) {
                 Ok(unescaped) => unescaped,
                 Err(_) => return self.error("Found invalid entity")
             };
@@ -447,10 +440,10 @@ impl Parser {
 
             let last = self.namespaces.last_mut().expect("Internal error: Empty namespace stack");
             match prefix {
-                None if name.as_slice() == "xmlns" => {
+                None if name[] == "xmlns" => {
                     last.swap(String::new(), value.clone());
                 }
-                Some(ref prefix) if prefix.as_slice() == "xmlns" => {
+                Some(ref prefix) if prefix[] == "xmlns" => {
                     last.swap(name.clone(), value.clone());
                 }
                 _ => ()
@@ -490,7 +483,7 @@ impl Parser {
                 let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(pre.as_slice()) {
+                    Some(ref pre) => match self.namespace_for_prefix(pre[]) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
