@@ -10,7 +10,6 @@
 
 use super::{Event, PI, ElementStart, ElementEnd, Characters, CDATA, Comment,
             StartTag, EndTag, unescape};
-use std::collections::Deque;
 use std::collections::{HashMap, RingBuf};
 use std::mem;
 use std::iter::Iterator;
