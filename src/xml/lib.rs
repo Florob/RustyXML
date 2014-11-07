@@ -189,7 +189,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
 
     // Do we need a prefix?
     try!(if elem.ns != elem.default_ns {
-        let prefix = all_prefixes.find(elem.ns.as_ref().unwrap_or(&String::new()))
+        let prefix = all_prefixes.get(elem.ns.as_ref().unwrap_or(&String::new()))
                                  .expect("No namespace prefix bound");
         write!(f, "<{}:{}", *prefix, elem.name)
     } else {
@@ -211,7 +211,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
     for (&(ref name, ref ns), value) in elem.attributes.iter() {
         try!(match *ns {
             Some(ref ns) => {
-                let prefix = all_prefixes.find(ns).expect("No namespace prefix bound");
+                let prefix = all_prefixes.get(ns).expect("No namespace prefix bound");
                 write!(f, " {}:{}='{}'", *prefix, name, escape(value[]))
             }
             None => write!(f, " {}='{}'", name, escape(value[]))
@@ -229,7 +229,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
             });
         }
         if elem.ns != elem.default_ns {
-            let prefix = all_prefixes.find(elem.ns.as_ref().unwrap())
+            let prefix = all_prefixes.get(elem.ns.as_ref().unwrap())
                                      .expect("No namespace prefix bound");
             write!(f, "</{}:{}>", *prefix, elem.name)
         } else {
@@ -281,19 +281,19 @@ impl Element {
     /// Gets an attribute with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
     pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a str> {
-        self.attributes.find(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| x[])
+        self.attributes.get(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| x[])
     }
 
     /// Sets the attribute with the specified name and namespace.
     /// Returns the original value.
     pub fn set_attribute(&mut self, name: &str, ns: Option<&str>, value: &str) -> Option<String> {
-        self.attributes.swap((name.to_string(), ns.map(|x| x.to_string())), value.to_string())
+        self.attributes.insert((name.to_string(), ns.map(|x| x.to_string())), value.to_string())
     }
 
     /// Remove the attribute with the specified name and namespace.
     /// Returns the original value.
     pub fn remove_attribute(&mut self, name: &str, ns: Option<&str>) -> Option<String> {
-        self.attributes.pop(&(name.to_string(), ns.map(|x| x.to_string())))
+        self.attributes.remove(&(name.to_string(), ns.map(|x| x.to_string())))
     }
 
     /// Gets the first child `Element` with the specified name and namespace. When no child
@@ -306,8 +306,8 @@ impl Element {
                         continue;
                     }
                     match (ns, elem.ns.as_ref().map(|x| x[])) {
-                        (Some(ref x), Some(ref y)) if x == y => return Some(&*elem),
-                        (None, None) => return Some(&*elem),
+                        (Some(x), Some(y)) if x == y => return Some(elem),
+                        (None, None) => return Some(elem),
                         _ => continue
                     }
                 }
@@ -327,8 +327,8 @@ impl Element {
                     continue;
                 }
                 match (ns, elem.ns.as_ref().map(|x| x[])) {
-                    (Some(ref x), Some(ref y)) if x == y => res.push(&*elem),
-                    (None, None) => res.push(&*elem),
+                    (Some(x), Some(y)) if x == y => res.push(elem),
+                    (None, None) => res.push(elem),
                     _ => continue
                 }
             }

@@ -20,8 +20,8 @@ impl ElementBuilder {
     /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
         let mut prefixes = HashMap::with_capacity(2);
-        prefixes.swap("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
-        prefixes.swap("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
+        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
+        prefixes.insert("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
         ElementBuilder {
             stack: Vec::new(),
             default_ns: Vec::new(),
@@ -31,7 +31,7 @@ impl ElementBuilder {
 
     /// Bind a prefix to a namespace
     pub fn define_prefix(&mut self, prefix: &str, ns: &str) {
-        self.prefixes.swap(ns.to_string(), prefix.to_string());
+        self.prefixes.insert(ns.to_string(), prefix.to_string());
     }
 
     /// Set the default namespace
@@ -77,7 +77,7 @@ impl ElementBuilder {
                     }
 
                     if ns.as_ref().map_or(false, |x| x.equiv(&"http://www.w3.org/2000/xmlns/")) {
-                        elem.prefixes.swap(value.clone(), name.clone());
+                        elem.prefixes.insert(value.clone(), name.clone());
                     }
                 }
                 elem.default_ns = self.default_ns.last().unwrap_or(&None).clone();

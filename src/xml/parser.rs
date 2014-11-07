@@ -68,8 +68,8 @@ impl Parser {
     pub fn new() -> Parser {
         let mut ns = HashMap::with_capacity(2);
         // Add standard namespaces
-        ns.swap("xml".to_string(), "http://www.w3.org/XML/1998/namespace".to_string());
-        ns.swap("xmlns".to_string(), "http://www.w3.org/2000/xmlns/".to_string());
+        ns.insert("xml".to_string(), "http://www.w3.org/XML/1998/namespace".to_string());
+        ns.insert("xmlns".to_string(), "http://www.w3.org/2000/xmlns/".to_string());
 
         Parser {
             line: 1,
@@ -106,10 +106,7 @@ impl Parser {
      * ~~~
      */
     pub fn feed_str(&mut self, data: &str) {
-        let iter = data.chars();
-        let len = self.data.len() + iter.size_hint().val0();
-        self.data.reserve(len);
-        self.data.extend(iter);
+        self.data.extend(data.chars());
     }
 }
 
@@ -371,7 +368,7 @@ impl Parser {
                             ns => ns
                         }
                     };
-                    if !attributes_map.insert((name, ns), value) {
+                    if attributes_map.insert((name, ns), value).is_some() {
                         return self.error("Duplicate attribute");
                     }
                 }
@@ -440,10 +437,10 @@ impl Parser {
             let last = self.namespaces.last_mut().expect("Internal error: Empty namespace stack");
             match prefix {
                 None if name[] == "xmlns" => {
-                    last.swap(String::new(), value.clone());
+                    last.insert(String::new(), value.clone());
                 }
                 Some(ref prefix) if prefix[] == "xmlns" => {
-                    last.swap(name.clone(), value.clone());
+                    last.insert(name.clone(), value.clone());
                 }
                 _ => ()
             }
