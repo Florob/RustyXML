@@ -90,7 +90,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
                 }
                 result.push_str(sub[idx+1..]);
             }
-            None => return Err("&".to_string() + sub)
+            None => return Err("&".into_string() + sub)
         }
     }
     Ok(result)
@@ -248,14 +248,14 @@ impl Element {
     /// Create a new element, with specified name and namespace.
     /// Attributes are specified as a slice of (name, namespace, value) tuples.
     pub fn new(name: &str, ns: Option<&str>, attrs: &[(&str, Option<&str>, &str)]) -> Element {
-        let ns = ns.map(|x| x.to_string());
+        let ns = ns.map(|x| x.into_string());
         let mut attributes = HashMap::new();
         for &(ref name, ref ns, ref value) in attrs.iter() {
-            attributes.insert((name.to_string(), ns.clone().map(|x| x.to_string())),
-                              value.to_string());
+            attributes.insert((name.into_string(), ns.clone().map(|x| x.into_string())),
+                              value.into_string());
         }
         Element {
-            name: name.to_string(),
+            name: name.into_string(),
             ns: ns.clone(),
             default_ns: ns,
             prefixes: HashMap::new(),
@@ -281,19 +281,20 @@ impl Element {
     /// Gets an attribute with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
     pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a str> {
-        self.attributes.get(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| x[])
+        self.attributes.get(&(name.into_string(), ns.map(|x| x.into_string()))).map(|x| x[])
     }
 
     /// Sets the attribute with the specified name and namespace.
     /// Returns the original value.
     pub fn set_attribute(&mut self, name: &str, ns: Option<&str>, value: &str) -> Option<String> {
-        self.attributes.insert((name.to_string(), ns.map(|x| x.to_string())), value.to_string())
+        self.attributes.insert((name.into_string(), ns.map(|x| x.into_string())),
+                               value.into_string())
     }
 
     /// Remove the attribute with the specified name and namespace.
     /// Returns the original value.
     pub fn remove_attribute(&mut self, name: &str, ns: Option<&str>) -> Option<String> {
-        self.attributes.remove(&(name.to_string(), ns.map(|x| x.to_string())))
+        self.attributes.remove(&(name.into_string(), ns.map(|x| x.into_string())))
     }
 
     /// Gets the first child `Element` with the specified name and namespace. When no child
@@ -357,25 +358,25 @@ impl<'a> Element {
 
     /// Appends characters. Returns a mutable reference to self.
     pub fn text(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(CharacterNode(text.to_string()));
+        self.children.push(CharacterNode(text.into_string()));
         self
     }
 
     /// Appends CDATA. Returns a mutable reference to self.
     pub fn cdata(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(CDATANode(text.to_string()));
+        self.children.push(CDATANode(text.into_string()));
         self
     }
 
     /// Appends a comment. Returns a mutable reference to self.
     pub fn comment(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(CommentNode(text.to_string()));
+        self.children.push(CommentNode(text.into_string()));
         self
     }
 
     /// Appends processing information. Returns a mutable reference to self.
     pub fn pi(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(PINode(text.to_string()));
+        self.children.push(PINode(text.into_string()));
         self
     }
 }
@@ -409,19 +410,19 @@ mod lib_tests {
     #[test]
     fn test_escape() {
         let esc = escape("&<>'\"");
-        assert_eq!(esc, "&amp;&lt;&gt;&apos;&quot;".to_string());
+        assert_eq!(esc, "&amp;&lt;&gt;&apos;&quot;".into_string());
     }
 
     #[test]
     fn test_unescape() {
         let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;&#x201c;&#x201d;&#38;&#34;");
-        assert_eq!(unesc, Ok("&lt;<>'\"\u201c\u201d&\"".to_string()));
+        assert_eq!(unesc, Ok("&lt;<>'\"\u201c\u201d&\"".into_string()));
     }
 
     #[test]
     fn test_unescape_invalid() {
         let unesc = unescape("&amp;&nbsp;");
-        assert_eq!(unesc, Err("&nbsp;".to_string()));
+        assert_eq!(unesc, Err("&nbsp;".into_string()));
     }
 
     #[test]
@@ -443,25 +444,25 @@ mod lib_tests {
 
     #[test]
     fn test_show_characters() {
-        let chars = CharacterNode("some text".to_string());
+        let chars = CharacterNode("some text".into_string());
         assert_eq!(format!("{}", chars)[], "some text");
     }
 
     #[test]
     fn test_show_cdata() {
-        let chars = CDATANode("some text".to_string());
+        let chars = CDATANode("some text".into_string());
         assert_eq!(format!("{}", chars)[], "<![CDATA[some text]]>");
     }
 
     #[test]
     fn test_show_comment() {
-        let chars = CommentNode("some text".to_string());
+        let chars = CommentNode("some text".into_string());
         assert_eq!(format!("{}", chars)[], "<!--some text-->");
     }
 
     #[test]
     fn test_show_pi() {
-        let chars = PINode("xml version='1.0'".to_string());
+        let chars = PINode("xml version='1.0'".into_string());
         assert_eq!(format!("{}", chars)[], "<?xml version='1.0'?>");
     }
 
@@ -473,7 +474,7 @@ mod lib_tests {
             .tag_stay(Element::new("b", None, []))
             .text("World")
             .comment("Nothing to see");
-        assert_eq!(elem.content_str(), "<hello/>World".to_string());
+        assert_eq!(elem.content_str(), "<hello/>World".into_string());
     }
 }
 
