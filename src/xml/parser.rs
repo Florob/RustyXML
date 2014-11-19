@@ -8,8 +8,7 @@
 // ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
-use super::{Event, PI, ElementStart, ElementEnd, Characters, CDATA, Comment,
-            StartTag, EndTag, unescape};
+use super::{Event, unescape, StartTag, EndTag};
 use std::collections::{HashMap, RingBuf};
 use std::mem;
 use std::iter::Iterator;
@@ -79,7 +78,7 @@ impl Parser {
             buf: String::new(),
             namespaces: vec![ns],
             attributes: Vec::new(),
-            st: OutsideTag,
+            st: State::OutsideTag,
             name: None,
             attr: None,
             delim: None,
@@ -159,7 +158,7 @@ impl Parser {
     // and traverse down until the prefix is found.
     fn namespace_for_prefix(&self, prefix: &str) -> Option<String> {
         for ns in self.namespaces[].iter().rev() {
-            if let Some(namespace) = ns.find_equiv(prefix) {
+            if let Some(namespace) = ns.get(prefix) {
                 if namespace.len() == 0 {
                     return None;
                 }
@@ -176,41 +175,41 @@ impl Parser {
     fn parse_character(&mut self, c: char) -> Result<Option<Event>, Error> {
         // println(fmt!("Now in state: %?", self.st));
         match self.st {
-            OutsideTag => self.outside_tag(c),
-            TagOpened => self.tag_opened(c),
-            InProcessingInstructions => self.in_processing_instructions(c),
-            InTagName => self.in_tag_name(c),
-            InCloseTagName => self.in_close_tag_name(c),
-            InTag => self.in_tag(c),
-            InAttrName => self.in_attr_name(c),
-            InAttrValue => self.in_attr_value(c),
-            ExpectDelimiter => self.expect_delimiter(c),
-            ExpectClose => self.expect_close(c),
-            ExpectSpaceOrClose => self.expect_space_or_close(c),
-            InExclamationMark => self.in_exclamation_mark(c),
-            InCDATAOpening => self.in_cdata_opening(c),
-            InCDATA => self.in_cdata(c),
-            InCommentOpening => self.in_comment_opening(c),
-            InComment1 => self.in_comment1(c),
-            InComment2 => self.in_comment2(c),
-            InDoctype => self.in_doctype(c),
+            State::OutsideTag => self.outside_tag(c),
+            State::TagOpened => self.tag_opened(c),
+            State::InProcessingInstructions => self.in_processing_instructions(c),
+            State::InTagName => self.in_tag_name(c),
+            State::InCloseTagName => self.in_close_tag_name(c),
+            State::InTag => self.in_tag(c),
+            State::InAttrName => self.in_attr_name(c),
+            State::InAttrValue => self.in_attr_value(c),
+            State::ExpectDelimiter => self.expect_delimiter(c),
+            State::ExpectClose => self.expect_close(c),
+            State::ExpectSpaceOrClose => self.expect_space_or_close(c),
+            State::InExclamationMark => self.in_exclamation_mark(c),
+            State::InCDATAOpening => self.in_cdata_opening(c),
+            State::InCDATA => self.in_cdata(c),
+            State::InCommentOpening => self.in_comment_opening(c),
+            State::InComment1 => self.in_comment1(c),
+            State::InComment2 => self.in_comment2(c),
+            State::InDoctype => self.in_doctype(c),
         }
     }
 
     // Outside any tag, or other construct
-    // '<' => TagOpened, producing Characters
+    // '<' => TagOpened, producing Event::Characters
     fn outside_tag(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '<' if self.buf.len() > 0 => {
-                self.st = TagOpened;
+                self.st = State::TagOpened;
                 let buf = match unescape(self.buf[]) {
                     Ok(unescaped) => unescaped,
                     Err(_) => return self.error("Found invalid entity")
                 };
                 self.buf.truncate(0);
-                return Ok(Some(Characters(buf)));
+                return Ok(Some(Event::Characters(buf)));
             }
-            '<' => self.st = TagOpened,
+            '<' => self.st = State::TagOpened,
             _ => self.buf.push(c)
         }
         Ok(None)
@@ -223,12 +222,12 @@ impl Parser {
     //  _  => InTagName
     fn tag_opened(&mut self, c: char) -> Result<Option<Event>, Error> {
         self.st = match c {
-            '?' => InProcessingInstructions,
-            '!' => InExclamationMark,
-            '/' => InCloseTagName,
+            '?' => State::InProcessingInstructions,
+            '!' => State::InExclamationMark,
+            '/' => State::InCloseTagName,
             _ => {
                 self.buf.push(c);
-                InTagName
+                State::InTagName
             }
         };
         Ok(None)
@@ -244,10 +243,10 @@ impl Parser {
             }
             '>' if self.level == 1 => {
                 self.level = 0;
-                self.st = OutsideTag;
+                self.st = State::OutsideTag;
                 let _ = self.buf.pop();
                 let buf = mem::replace(&mut self.buf, String::new());
-                return Ok(Some(PI(buf)));
+                return Ok(Some(Event::PI(buf)));
             }
             _ => self.buf.push(c)
         }
@@ -255,8 +254,8 @@ impl Parser {
     }
 
     // Inside a tag name (opening tag)
-    // '/' => ExpectClose, producing ElementStart
-    // '>' => OutsideTag, producing ElementStart
+    // '/' => ExpectClose, producing Event::ElementStart
+    // '>' => OutsideTag, producing Event::ElementStart
     // ' ' or '\t' or '\r' or '\n' => InTag
     fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
@@ -275,12 +274,12 @@ impl Parser {
                 self.namespaces.push(HashMap::new());
                 self.st = if c == '/' {
                     self.name = Some((prefix.clone(), name.clone()));
-                    ExpectClose
+                    State::ExpectClose
                 } else {
-                    OutsideTag
+                    State::OutsideTag
                 };
 
-                return Ok(Some(ElementStart(StartTag {
+                return Ok(Some(Event::ElementStart(StartTag {
                     name: name,
                     ns: ns,
                     prefix: prefix,
@@ -294,7 +293,7 @@ impl Parser {
                 self.namespaces.push(HashMap::new());
                 self.name = Some(parse_qname(self.buf[]));
                 self.buf.truncate(0);
-                self.st = InTag;
+                self.st = State::InTag;
             }
             _ => self.buf.push(c)
         }
@@ -302,8 +301,8 @@ impl Parser {
     }
 
     // Inside a tag name (closing tag)
-    // '>' => OutsideTag, producing EndTag
-    // ' ' or '\t' or '\r' or '\n' => ExpectSpaceOrClose, producing EndTag
+    // '>' => OutsideTag, producing ElementEnd
+    // ' ' or '\t' or '\r' or '\n' => ExpectSpaceOrClose, producing ElementEnd
     fn in_close_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             ' '
@@ -324,12 +323,12 @@ impl Parser {
 
                 self.namespaces.pop();
                 self.st = if c == '>' {
-                    OutsideTag
+                    State::OutsideTag
                 } else {
-                    ExpectSpaceOrClose
+                    State::ExpectSpaceOrClose
                 };
 
-                Ok(Some(ElementEnd(EndTag { name: name, ns: ns, prefix: prefix })))
+                Ok(Some(Event::ElementEnd(EndTag { name: name, ns: ns, prefix: prefix })))
             }
             _ => {
                 self.buf.push(c);
@@ -375,12 +374,12 @@ impl Parser {
 
                 self.st = if c == '/' {
                     self.name = Some((prefix.clone(), name.clone()));
-                    ExpectClose
+                    State::ExpectClose
                 } else {
-                    OutsideTag
+                    State::OutsideTag
                 };
 
-                return Ok(Some(ElementStart(StartTag {
+                return Ok(Some(Event::ElementStart(StartTag {
                     name: name,
                     ns: ns,
                     prefix: prefix,
@@ -393,7 +392,7 @@ impl Parser {
             | '\n' => (),
             _ => {
                 self.buf.push(c);
-                self.st = InAttrName;
+                self.st = State::InAttrName;
             }
         }
         Ok(None)
@@ -407,7 +406,7 @@ impl Parser {
                 self.level = 0;
                 self.attr = Some(parse_qname(self.buf[]));
                 self.buf.truncate(0);
-                self.st = ExpectDelimiter;
+                self.st = State::ExpectDelimiter;
             }
             ' '
             | '\t'
@@ -424,7 +423,7 @@ impl Parser {
     fn in_attr_value(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c == self.delim.expect("Internal error: In attribute value, but no delimiter set") {
             self.delim = None;
-            self.st = InTag;
+            self.st = State::InTag;
             let attr = self.attr.take();
             let (prefix, name) =
                 attr.expect("Internal error: In attribute value, but no attribute name set");
@@ -459,7 +458,7 @@ impl Parser {
             '"'
             | '\'' => {
                 self.delim = Some(c);
-                self.st = InAttrValue;
+                self.st = State::InAttrValue;
             }
             ' '
             | '\t'
@@ -475,7 +474,7 @@ impl Parser {
     fn expect_close(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             '>' => {
-                self.st = OutsideTag;
+                self.st = State::OutsideTag;
                 let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
@@ -485,7 +484,7 @@ impl Parser {
                     }
                 };
                 self.namespaces.pop();
-                Ok(Some(ElementEnd(EndTag { name: name, ns: ns, prefix: prefix })))
+                Ok(Some(Event::ElementEnd(EndTag { name: name, ns: ns, prefix: prefix })))
             }
             _ => self.error("Expected '>' to close tag")
        }
@@ -500,7 +499,7 @@ impl Parser {
             | '\r'
             | '\n' => Ok(None),
             '>' => {
-                self.st = OutsideTag;
+                self.st = State::OutsideTag;
                 Ok(None)
             }
             _ => self.error("Expected '>' to close tag, or LWS")
@@ -513,15 +512,15 @@ impl Parser {
     // 'D' => InDoctype
     fn in_exclamation_mark(&mut self, c: char) -> Result<Option<Event>, Error> {
         self.st = match c {
-            '-' => InCommentOpening,
-            '[' => InCDATAOpening,
-            'D' => InDoctype,
+            '-' => State::InCommentOpening,
+            '[' => State::InCDATAOpening,
+            'D' => State::InDoctype,
             _ => return self.error("Malformed XML")
         };
         Ok(None)
     }
 
-    // Opening sequence of CDATA
+    // Opening sequence of Event::CDATA
     // 'C' 'D' 'A' 'T' 'A' '[' => InCDATA
     fn in_cdata_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
         static CDATA_PATTERN: [char, ..6] = ['C', 'D', 'A', 'T', 'A', '['];
@@ -533,13 +532,13 @@ impl Parser {
 
         if self.level == 6 {
             self.level = 0;
-            self.st = InCDATA;
+            self.st = State::InCDATA;
         }
         Ok(None)
     }
 
     // Inside CDATA
-    // ']' ']' '>' => OutsideTag, producing CDATA
+    // ']' ']' '>' => OutsideTag, producing Event::CDATA
     fn in_cdata(&mut self, c: char) -> Result<Option<Event>, Error> {
         match c {
             ']' => {
@@ -547,12 +546,12 @@ impl Parser {
                 self.level += 1;
             }
             '>' if self.level >= 2 => {
-                self.st = OutsideTag;
+                self.st = State::OutsideTag;
                 self.level = 0;
                 let len = self.buf.len();
                 self.buf.truncate(len - 2);
                 let buf = mem::replace(&mut self.buf, String::new());
-                return Ok(Some(CDATA(buf)))
+                return Ok(Some(Event::CDATA(buf)))
             }
             _ => {
                 self.buf.push(c);
@@ -566,7 +565,7 @@ impl Parser {
     // '-' => InComment1
     fn in_comment_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
         if c == '-' {
-            self.st = InComment1;
+            self.st = State::InComment1;
             self.level = 0;
             Ok(None)
         } else {
@@ -585,7 +584,7 @@ impl Parser {
 
         if self.level == 2 {
             self.level = 0;
-            self.st = InComment2;
+            self.st = State::InComment2;
         }
 
         self.buf.push(c);
@@ -599,11 +598,11 @@ impl Parser {
         if c != '>' {
             self.error("No more than one adjacent '-' allowed in a comment")
         } else {
-            self.st = OutsideTag;
+            self.st = State::OutsideTag;
             let len = self.buf.len();
             self.buf.truncate(len - 2);
             let buf = mem::replace(&mut self.buf, String::new());
-            Ok(Some(Comment(buf)))
+            Ok(Some(Event::Comment(buf)))
         }
     }
 
@@ -629,7 +628,7 @@ impl Parser {
             }
             _ if c == '>' => {
                 self.level = 0;
-                self.st = OutsideTag;
+                self.st = State::OutsideTag;
             }
             _ => ()
         }
@@ -642,8 +641,7 @@ mod parser_tests {
     use std::collections::HashMap;
 
     use super::Parser;
-    use super::super::{Event, Error, PI, ElementStart, ElementEnd, Comment, CDATA, Characters,
-                       StartTag, EndTag};
+    use super::super::{Event, Error, StartTag, EndTag};
 
     #[test]
     fn test_start_tag() {
@@ -652,7 +650,7 @@ mod parser_tests {
         p.feed_str("<a>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(ElementStart(StartTag {
+            assert_eq!(event, Ok(Event::ElementStart(StartTag {
                 name: "a".into_string(),
                 ns: None,
                 prefix: None,
@@ -669,7 +667,7 @@ mod parser_tests {
         p.feed_str("</a>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(ElementEnd(EndTag {
+            assert_eq!(event, Ok(Event::ElementEnd(EndTag {
                 name: "a".into_string(),
                 ns: None,
                 prefix: None
@@ -685,13 +683,13 @@ mod parser_tests {
 
         let v: Vec<Result<Event, Error>> = p.collect();
         assert_eq!(v, vec![
-            Ok(ElementStart(StartTag {
+            Ok(Event::ElementStart(StartTag {
                 name: "register".into_string(),
                 ns: None,
                 prefix: None,
                 attributes: HashMap::new()
             })),
-            Ok(ElementEnd(EndTag {
+            Ok(Event::ElementEnd(EndTag {
                 name: "register".into_string(),
                 ns: None,
                 prefix: None,
@@ -706,13 +704,13 @@ mod parser_tests {
 
         let v: Vec<Result<Event, Error>> = p.collect();
         assert_eq!(v, vec![
-            Ok(ElementStart(StartTag {
+            Ok(Event::ElementStart(StartTag {
                 name: "register".into_string(),
                 ns: None,
                 prefix: None,
                 attributes: HashMap::new()
             })),
-            Ok(ElementEnd(EndTag {
+            Ok(Event::ElementEnd(EndTag {
                 name: "register".into_string(),
                 ns: None,
                 prefix: None,
@@ -730,13 +728,13 @@ mod parser_tests {
         attr.insert(("foo".into_string(), Some("http://www.w3.org/2000/xmlns/".into_string())),
                     "urn:foo".into_string());
         assert_eq!(v, vec![
-            Ok(ElementStart(StartTag {
+            Ok(Event::ElementStart(StartTag {
                 name: "a".into_string(),
                 ns: Some("urn:foo".into_string()),
                 prefix: Some("foo".into_string()),
                 attributes: attr,
             })),
-            Ok(ElementEnd(EndTag {
+            Ok(Event::ElementEnd(EndTag {
                 name: "a".into_string(),
                 ns: Some("urn:foo".into_string()),
                 prefix: Some("foo".into_string()),
@@ -751,7 +749,7 @@ mod parser_tests {
         p.feed_str("<?xml version='1.0' encoding='utf-8'?>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(PI("xml version='1.0' encoding='utf-8'".into_string())));
+            assert_eq!(event, Ok(Event::PI("xml version='1.0' encoding='utf-8'".into_string())));
         }
         assert_eq!(i, 1u);
     }
@@ -763,7 +761,7 @@ mod parser_tests {
         p.feed_str("<!--Nothing to see-->");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(Comment("Nothing to see".into_string())));
+            assert_eq!(event, Ok(Event::Comment("Nothing to see".into_string())));
         }
         assert_eq!(i, 1u);
     }
@@ -774,7 +772,7 @@ mod parser_tests {
         p.feed_str("<![CDATA[<html><head><title>x</title></head><body/></html>]]>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(CDATA("<html><head><title>x</title></head><body/></html>".into_string())));
+            assert_eq!(event, Ok(Event::CDATA("<html><head><title>x</title></head><body/></html>".into_string())));
         }
         assert_eq!(i, 1u);
     }
@@ -787,7 +785,8 @@ mod parser_tests {
         for event in p {
             i += 1;
             if i == 2 {
-                assert_eq!(event, Ok(Characters("Hello World, it's a nice day".into_string())));
+                assert_eq!(event,
+                           Ok(Event::Characters("Hello World, it's a nice day".into_string())));
             }
         }
         assert_eq!(i, 3u);

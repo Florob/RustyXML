@@ -27,7 +27,7 @@ use std::fmt::Show;
 use std::char;
 use std::num;
 use std::collections::HashMap;
-use std::from_str::FromStr;
+use std::str::FromStr;
 
 mod parser;
 mod element_builder;
@@ -99,7 +99,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
 // General types
 #[deriving(Clone, PartialEq)]
 /// An Enum describing a XML Node
-pub enum XML {
+pub enum Xml {
     /// An XML Element
     ElementNode(Element),
     /// Character Data
@@ -125,8 +125,8 @@ pub struct Element {
     pub prefixes: HashMap<String, String>,
     /// The element's attributes
     pub attributes: HashMap<(String, Option<String>), String>,
-    /// The element's child `XML` nodes
-    pub children: Vec<XML>,
+    /// The element's child `Xml` nodes
+    pub children: Vec<Xml>,
 }
 
 #[deriving(PartialEq, Eq, Show)]
@@ -170,14 +170,14 @@ pub struct EndTag {
     pub prefix: Option<String>
 }
 
-impl Show for XML {
+impl Show for Xml {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ElementNode(ref elem) => elem.fmt(f),
-            CharacterNode(ref data) => write!(f, "{}", escape(data[])),
-            CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", data[]),
-            CommentNode(ref data) => write!(f, "<!--{}-->", data[]),
-            PINode(ref data) => write!(f, "<?{}?>", data[])
+            Xml::ElementNode(ref elem) => elem.fmt(f),
+            Xml::CharacterNode(ref data) => write!(f, "{}", escape(data[])),
+            Xml::CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", data[]),
+            Xml::CommentNode(ref data) => write!(f, "<!--{}-->", data[]),
+            Xml::PINode(ref data) => write!(f, "<?{}?>", data[])
         }
     }
 }
@@ -224,7 +224,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
         try!(write!(f, ">"));
         for child in elem.children.iter() {
             try!(match *child {
-                ElementNode(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
+                Xml::ElementNode(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
                 ref o => o.fmt(f)
             });
         }
@@ -269,9 +269,9 @@ impl Element {
         let mut res = String::new();
         for child in self.children.iter() {
             match *child {
-                ElementNode(ref elem) => res.push_str(elem.content_str()[]),
-                CharacterNode(ref data)
-                | CDATANode(ref data) => res.push_str(data[]),
+                Xml::ElementNode(ref elem) => res.push_str(elem.content_str()[]),
+                Xml::CharacterNode(ref data)
+                | Xml::CDATANode(ref data) => res.push_str(data[]),
                 _ => ()
             }
         }
@@ -302,7 +302,7 @@ impl Element {
     pub fn get_child<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a Element> {
         for child in self.children.iter() {
             match *child {
-                ElementNode(ref elem) => {
+                Xml::ElementNode(ref elem) => {
                     if !name.equiv(&elem.name) {
                         continue;
                     }
@@ -323,7 +323,7 @@ impl Element {
     pub fn get_children<'a>(&'a self, name: &str, ns: Option<&str>) -> Vec<&'a Element> {
         let mut res: Vec<&'a Element> = Vec::new();
         for child in self.children.iter() {
-            if let ElementNode(ref elem) = *child {
+            if let Xml::ElementNode(ref elem) = *child {
                 if !name.equiv(&elem.name) {
                     continue;
                 }
@@ -341,10 +341,10 @@ impl Element {
 impl<'a> Element {
     /// Appends a child element. Returns a reference to the added element.
     pub fn tag(&'a mut self, child: Element) -> &'a mut Element {
-        self.children.push(ElementNode(child));
+        self.children.push(Xml::ElementNode(child));
         let error = "Internal error: Could not get reference to new element!";
         let elem = match self.children.last_mut().expect(error) {
-            &ElementNode(ref mut elem) => elem,
+            &Xml::ElementNode(ref mut elem) => elem,
             _ => panic!(error)
         };
         elem
@@ -352,31 +352,31 @@ impl<'a> Element {
 
     /// Appends a child element. Returns a mutable reference to self.
     pub fn tag_stay(&'a mut self, child: Element) -> &'a mut Element {
-        self.children.push(ElementNode(child));
+        self.children.push(Xml::ElementNode(child));
         self
     }
 
     /// Appends characters. Returns a mutable reference to self.
     pub fn text(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(CharacterNode(text.into_string()));
+        self.children.push(Xml::CharacterNode(text.into_string()));
         self
     }
 
     /// Appends CDATA. Returns a mutable reference to self.
     pub fn cdata(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(CDATANode(text.into_string()));
+        self.children.push(Xml::CDATANode(text.into_string()));
         self
     }
 
     /// Appends a comment. Returns a mutable reference to self.
     pub fn comment(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(CommentNode(text.into_string()));
+        self.children.push(Xml::CommentNode(text.into_string()));
         self
     }
 
     /// Appends processing information. Returns a mutable reference to self.
     pub fn pi(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(PINode(text.into_string()));
+        self.children.push(Xml::PINode(text.into_string()));
         self
     }
 }
@@ -404,8 +404,7 @@ impl FromStr for Element {
 mod lib_tests {
     extern crate collections;
 
-    use super::{escape, unescape};
-    use super::{Element, CharacterNode, CDATANode, CommentNode, PINode};
+    use super::{Xml, Element, escape, unescape};
 
     #[test]
     fn test_escape() {
@@ -427,51 +426,51 @@ mod lib_tests {
 
     #[test]
     fn test_show_element() {
-        let elem = Element::new("a", None, []);
+        let elem = Element::new("a", None, &[]);
         assert_eq!(format!("{}", elem)[], "<a/>");
 
-        let elem = Element::new("a", None, [("href", None, "http://rust-lang.org")]);
+        let elem = Element::new("a", None, &[("href", None, "http://rust-lang.org")]);
         assert_eq!(format!("{}", elem)[], "<a href='http://rust-lang.org'/>");
 
-        let mut elem = Element::new("a", None, []);
-        elem.tag(Element::new("b", None, []));
+        let mut elem = Element::new("a", None, &[]);
+        elem.tag(Element::new("b", None, &[]));
         assert_eq!(format!("{}", elem)[], "<a><b/></a>");
 
-        let mut elem = Element::new("a", None, [("href", None, "http://rust-lang.org")]);
-        elem.tag(Element::new("b", None, []));
+        let mut elem = Element::new("a", None, &[("href", None, "http://rust-lang.org")]);
+        elem.tag(Element::new("b", None, &[]));
         assert_eq!(format!("{}", elem)[], "<a href='http://rust-lang.org'><b/></a>");
     }
 
     #[test]
     fn test_show_characters() {
-        let chars = CharacterNode("some text".into_string());
+        let chars = Xml::CharacterNode("some text".into_string());
         assert_eq!(format!("{}", chars)[], "some text");
     }
 
     #[test]
     fn test_show_cdata() {
-        let chars = CDATANode("some text".into_string());
+        let chars = Xml::CDATANode("some text".into_string());
         assert_eq!(format!("{}", chars)[], "<![CDATA[some text]]>");
     }
 
     #[test]
     fn test_show_comment() {
-        let chars = CommentNode("some text".into_string());
+        let chars = Xml::CommentNode("some text".into_string());
         assert_eq!(format!("{}", chars)[], "<!--some text-->");
     }
 
     #[test]
     fn test_show_pi() {
-        let chars = PINode("xml version='1.0'".into_string());
+        let chars = Xml::PINode("xml version='1.0'".into_string());
         assert_eq!(format!("{}", chars)[], "<?xml version='1.0'?>");
     }
 
     #[test]
     fn test_content_str() {
-        let mut elem = Element::new("a", None, []);
+        let mut elem = Element::new("a", None, &[]);
         elem.pi("processing information")
             .cdata("<hello/>")
-            .tag_stay(Element::new("b", None, []))
+            .tag_stay(Element::new("b", None, &[]))
             .text("World")
             .comment("Nothing to see");
         assert_eq!(elem.content_str(), "<hello/>World".into_string());

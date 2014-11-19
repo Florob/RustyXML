@@ -4,8 +4,7 @@
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
-use super::{Event, PI, ElementStart, ElementEnd, Characters, CDATA, Comment, StartTag, EndTag,
-            Element, ElementNode, CharacterNode, CDATANode, CommentNode, PINode};
+use super::{Event, Xml, Element, StartTag, EndTag};
 use std::collections::HashMap;
 
 // DOM Builder
@@ -45,12 +44,12 @@ impl ElementBuilder {
     /// Upon Error `Err("message")` is returned.
     pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, &'static str> {
         match e {
-            PI(cont) => {
+            Event::PI(cont) => {
                 if let Some(elem) = self.stack.last_mut() {
-                    elem.children.push(PINode(cont));
+                    elem.children.push(Xml::PINode(cont));
                 }
             }
-            ElementStart(StartTag { name, ns, prefix: _, attributes }) => {
+            Event::ElementStart(StartTag { name, ns, prefix: _, attributes }) => {
                 let mut elem = Element {
                     name: name.clone(),
                     ns: ns.clone(),
@@ -84,7 +83,7 @@ impl ElementBuilder {
 
                 self.stack.push(elem);
             }
-            ElementEnd(EndTag { name, ns, prefix: _ }) => {
+            Event::ElementEnd(EndTag { name, ns, prefix: _ }) => {
                 let elem = match self.stack.pop() {
                     Some(elem) => elem,
                     None => return Err("Elements not properly nested")
@@ -94,24 +93,24 @@ impl ElementBuilder {
                     return Err("Elements not properly nested")
                 } else {
                     match self.stack.last_mut() {
-                        Some(e) => e.children.push(ElementNode(elem)),
+                        Some(e) => e.children.push(Xml::ElementNode(elem)),
                         None => return Ok(Some(elem))
                     }
                 }
             }
-            Characters(chars) => {
+            Event::Characters(chars) => {
                 if let Some(elem) = self.stack.last_mut() {
-                    elem.children.push(CharacterNode(chars));
+                    elem.children.push(Xml::CharacterNode(chars));
                 }
             }
-            CDATA(chars) => {
+            Event::CDATA(chars) => {
                 if let Some(elem) = self.stack.last_mut() {
-                    elem.children.push(CDATANode(chars));
+                    elem.children.push(Xml::CDATANode(chars));
                 }
             }
-            Comment(cont) => {
+            Event::Comment(cont) => {
                 if let Some(elem) = self.stack.last_mut() {
-                    elem.children.push(CommentNode(cont));
+                    elem.children.push(Xml::CommentNode(cont));
                 }
             }
         }
