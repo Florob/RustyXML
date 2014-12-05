@@ -75,7 +75,7 @@ impl ElementBuilder {
                         continue;
                     }
 
-                    if ns.as_ref().map_or(false, |x| x.equiv(&"http://www.w3.org/2000/xmlns/")) {
+                    if ns.as_ref().map_or(false, |x| x == &"http://www.w3.org/2000/xmlns/") {
                         elem.prefixes.insert(value.clone(), name.clone());
                     }
                 }

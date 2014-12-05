@@ -303,7 +303,7 @@ impl Element {
         for child in self.children.iter() {
             match *child {
                 Xml::ElementNode(ref elem) => {
-                    if !name.equiv(&elem.name) {
+                    if elem.name != name {
                         continue;
                     }
                     match (ns, elem.ns.as_ref().map(|x| x[])) {
@@ -324,7 +324,7 @@ impl Element {
         let mut res: Vec<&'a Element> = Vec::new();
         for child in self.children.iter() {
             if let Xml::ElementNode(ref elem) = *child {
-                if !name.equiv(&elem.name) {
+                if elem.name != name {
                     continue;
                 }
                 match (ns, elem.ns.as_ref().map(|x| x[])) {
