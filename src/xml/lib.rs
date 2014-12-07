@@ -9,7 +9,6 @@
 #![forbid(non_camel_case_types)]
 #![warn(missing_docs)]
 
-#![feature(if_let)]
 #![feature(slicing_syntax)]
 
 /*!
