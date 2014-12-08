@@ -65,7 +65,7 @@ impl ElementBuilder {
                 }
 
                 for (&(ref name, ref ns), value) in elem.attributes.iter() {
-                    if ns.is_none() && name[] == "xmlns" {
+                    if ns.is_none() && *name == "xmlns" {
                         self.default_ns.pop();
                         if value.len() == 0 {
                             self.default_ns.push(None);
@@ -75,7 +75,7 @@ impl ElementBuilder {
                         continue;
                     }
 
-                    if ns.as_ref().map_or(false, |x| x == &"http://www.w3.org/2000/xmlns/") {
+                    if ns.as_ref().map_or(false, |x| *x == "http://www.w3.org/2000/xmlns/") {
                         elem.prefixes.insert(value.clone(), name.clone());
                     }
                 }

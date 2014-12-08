@@ -435,10 +435,10 @@ impl Parser {
 
             let last = self.namespaces.last_mut().expect("Internal error: Empty namespace stack");
             match prefix {
-                None if name[] == "xmlns" => {
+                None if name == "xmlns" => {
                     last.insert(String::new(), value.clone());
                 }
-                Some(ref prefix) if prefix[] == "xmlns" => {
+                Some(ref prefix) if *prefix == "xmlns" => {
                     last.insert(name.clone(), value.clone());
                 }
                 _ => ()
