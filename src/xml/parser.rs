@@ -9,11 +9,12 @@
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
 use super::{Event, unescape, StartTag, EndTag};
+use std::borrow::ToOwned;
 use std::collections::{HashMap, RingBuf};
 use std::mem;
 use std::iter::Iterator;
 
-#[deriving(PartialEq, Show)]
+#[deriving(PartialEq, Show, Copy)]
 /// The structure returned, when erroneous XML is read
 pub struct Error {
     /// The line number at which the error occurred
@@ -67,8 +68,8 @@ impl Parser {
     pub fn new() -> Parser {
         let mut ns = HashMap::with_capacity(2);
         // Add standard namespaces
-        ns.insert("xml".into_string(), "http://www.w3.org/XML/1998/namespace".into_string());
-        ns.insert("xmlns".into_string(), "http://www.w3.org/2000/xmlns/".into_string());
+        ns.insert("xml".to_owned(), "http://www.w3.org/XML/1998/namespace".to_owned());
+        ns.insert("xmlns".to_owned(), "http://www.w3.org/2000/xmlns/".to_owned());
 
         Parser {
             line: 1,
@@ -146,9 +147,9 @@ impl Iterator<Result<Event, Error>> for Parser {
 // Parse a QName to get Prefix and LocalPart
 fn parse_qname(qname: &str) -> (Option<String>, String) {
     if let Some(i) = qname.find(':') {
-        (Some(qname[..i].into_string()), qname[i+1..].into_string())
+        (Some(qname[..i].to_owned()), qname[i+1..].to_owned())
     } else {
-        (None, qname.into_string())
+        (None, qname.to_owned())
     }
 }
 
@@ -638,6 +639,7 @@ impl Parser {
 
 #[cfg(test)]
 mod parser_tests {
+    use std::borrow::ToOwned;
     use std::collections::HashMap;
 
     use super::Parser;
@@ -651,7 +653,7 @@ mod parser_tests {
         for event in p {
             i += 1;
             assert_eq!(event, Ok(Event::ElementStart(StartTag {
-                name: "a".into_string(),
+                name: "a".to_owned(),
                 ns: None,
                 prefix: None,
                 attributes: HashMap::new()
@@ -668,7 +670,7 @@ mod parser_tests {
         for event in p {
             i += 1;
             assert_eq!(event, Ok(Event::ElementEnd(EndTag {
-                name: "a".into_string(),
+                name: "a".to_owned(),
                 ns: None,
                 prefix: None
             })));
@@ -684,13 +686,13 @@ mod parser_tests {
         let v: Vec<Result<Event, Error>> = p.collect();
         assert_eq!(v, vec![
             Ok(Event::ElementStart(StartTag {
-                name: "register".into_string(),
+                name: "register".to_owned(),
                 ns: None,
                 prefix: None,
                 attributes: HashMap::new()
             })),
             Ok(Event::ElementEnd(EndTag {
-                name: "register".into_string(),
+                name: "register".to_owned(),
                 ns: None,
                 prefix: None,
             }))
@@ -705,13 +707,13 @@ mod parser_tests {
         let v: Vec<Result<Event, Error>> = p.collect();
         assert_eq!(v, vec![
             Ok(Event::ElementStart(StartTag {
-                name: "register".into_string(),
+                name: "register".to_owned(),
                 ns: None,
                 prefix: None,
                 attributes: HashMap::new()
             })),
             Ok(Event::ElementEnd(EndTag {
-                name: "register".into_string(),
+                name: "register".to_owned(),
                 ns: None,
                 prefix: None,
             }))
@@ -725,19 +727,19 @@ mod parser_tests {
 
         let v: Vec<Result<Event, Error>> = p.collect();
         let mut attr: HashMap<(String, Option<String>), String> = HashMap::new();
-        attr.insert(("foo".into_string(), Some("http://www.w3.org/2000/xmlns/".into_string())),
-                    "urn:foo".into_string());
+        attr.insert(("foo".to_owned(), Some("http://www.w3.org/2000/xmlns/".to_owned())),
+                    "urn:foo".to_owned());
         assert_eq!(v, vec![
             Ok(Event::ElementStart(StartTag {
-                name: "a".into_string(),
-                ns: Some("urn:foo".into_string()),
-                prefix: Some("foo".into_string()),
+                name: "a".to_owned(),
+                ns: Some("urn:foo".to_owned()),
+                prefix: Some("foo".to_owned()),
                 attributes: attr,
             })),
             Ok(Event::ElementEnd(EndTag {
-                name: "a".into_string(),
-                ns: Some("urn:foo".into_string()),
-                prefix: Some("foo".into_string()),
+                name: "a".to_owned(),
+                ns: Some("urn:foo".to_owned()),
+                prefix: Some("foo".to_owned()),
             }))
         ]);
     }
@@ -749,7 +751,7 @@ mod parser_tests {
         p.feed_str("<?xml version='1.0' encoding='utf-8'?>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(Event::PI("xml version='1.0' encoding='utf-8'".into_string())));
+            assert_eq!(event, Ok(Event::PI("xml version='1.0' encoding='utf-8'".to_owned())));
         }
         assert_eq!(i, 1u);
     }
@@ -761,7 +763,7 @@ mod parser_tests {
         p.feed_str("<!--Nothing to see-->");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(Event::Comment("Nothing to see".into_string())));
+            assert_eq!(event, Ok(Event::Comment("Nothing to see".to_owned())));
         }
         assert_eq!(i, 1u);
     }
@@ -772,7 +774,7 @@ mod parser_tests {
         p.feed_str("<![CDATA[<html><head><title>x</title></head><body/></html>]]>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(Event::CDATA("<html><head><title>x</title></head><body/></html>".into_string())));
+            assert_eq!(event, Ok(Event::CDATA("<html><head><title>x</title></head><body/></html>".to_owned())));
         }
         assert_eq!(i, 1u);
     }
@@ -786,7 +788,7 @@ mod parser_tests {
             i += 1;
             if i == 2 {
                 assert_eq!(event,
-                           Ok(Event::Characters("Hello World, it's a nice day".into_string())));
+                           Ok(Event::Characters("Hello World, it's a nice day".to_owned())));
             }
         }
         assert_eq!(i, 3u);

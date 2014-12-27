@@ -21,6 +21,7 @@ pub use parser::Error;
 pub use parser::Parser;
 pub use element_builder::ElementBuilder;
 
+use std::borrow::ToOwned;
 use std::fmt;
 use std::fmt::Show;
 use std::char;
@@ -89,7 +90,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
                 }
                 result.push_str(sub[idx+1..]);
             }
-            None => return Err("&".into_string() + sub)
+            None => return Err("&".to_owned() + sub)
         }
     }
     Ok(result)
@@ -247,14 +248,14 @@ impl Element {
     /// Create a new element, with specified name and namespace.
     /// Attributes are specified as a slice of (name, namespace, value) tuples.
     pub fn new(name: &str, ns: Option<&str>, attrs: &[(&str, Option<&str>, &str)]) -> Element {
-        let ns = ns.map(|x| x.into_string());
-        let mut attributes = HashMap::new();
-        for &(ref name, ref ns, ref value) in attrs.iter() {
-            attributes.insert((name.into_string(), ns.clone().map(|x| x.into_string())),
-                              value.into_string());
+        let ns = ns.map(|x| x.to_owned());
+        let mut attributes: HashMap<(String, Option<String>), String> = HashMap::new();
+        for &(name, ref ns, value) in attrs.iter() {
+            attributes.insert((name.to_owned(), ns.clone().map(|x| x.to_owned())),
+                              value.to_owned());
         }
         Element {
-            name: name.into_string(),
+            name: name.to_owned(),
             ns: ns.clone(),
             default_ns: ns,
             prefixes: HashMap::new(),
@@ -280,20 +281,20 @@ impl Element {
     /// Gets an attribute with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
     pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a str> {
-        self.attributes.get(&(name.into_string(), ns.map(|x| x.into_string()))).map(|x| x[])
+        self.attributes.get(&(name.to_owned(), ns.map(|x| x.to_owned()))).map(|x| x[])
     }
 
     /// Sets the attribute with the specified name and namespace.
     /// Returns the original value.
     pub fn set_attribute(&mut self, name: &str, ns: Option<&str>, value: &str) -> Option<String> {
-        self.attributes.insert((name.into_string(), ns.map(|x| x.into_string())),
-                               value.into_string())
+        self.attributes.insert((name.to_owned(), ns.map(|x| x.to_owned())),
+                               value.to_owned())
     }
 
     /// Remove the attribute with the specified name and namespace.
     /// Returns the original value.
     pub fn remove_attribute(&mut self, name: &str, ns: Option<&str>) -> Option<String> {
-        self.attributes.remove(&(name.into_string(), ns.map(|x| x.into_string())))
+        self.attributes.remove(&(name.to_owned(), ns.map(|x| x.to_owned())))
     }
 
     /// Gets the first child `Element` with the specified name and namespace. When no child
@@ -357,25 +358,25 @@ impl<'a> Element {
 
     /// Appends characters. Returns a mutable reference to self.
     pub fn text(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(Xml::CharacterNode(text.into_string()));
+        self.children.push(Xml::CharacterNode(text.to_owned()));
         self
     }
 
     /// Appends CDATA. Returns a mutable reference to self.
     pub fn cdata(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(Xml::CDATANode(text.into_string()));
+        self.children.push(Xml::CDATANode(text.to_owned()));
         self
     }
 
     /// Appends a comment. Returns a mutable reference to self.
     pub fn comment(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(Xml::CommentNode(text.into_string()));
+        self.children.push(Xml::CommentNode(text.to_owned()));
         self
     }
 
     /// Appends processing information. Returns a mutable reference to self.
     pub fn pi(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(Xml::PINode(text.into_string()));
+        self.children.push(Xml::PINode(text.to_owned()));
         self
     }
 }
@@ -404,23 +405,24 @@ mod lib_tests {
     extern crate collections;
 
     use super::{Xml, Element, escape, unescape};
+    use std::borrow::ToOwned;
 
     #[test]
     fn test_escape() {
         let esc = escape("&<>'\"");
-        assert_eq!(esc, "&amp;&lt;&gt;&apos;&quot;".into_string());
+        assert_eq!(esc, "&amp;&lt;&gt;&apos;&quot;");
     }
 
     #[test]
     fn test_unescape() {
         let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;&#x201c;&#x201d;&#38;&#34;");
-        assert_eq!(unesc, Ok("&lt;<>'\"\u201c\u201d&\"".into_string()));
+        assert_eq!(unesc.as_ref().map(|x| x[]), Ok("&lt;<>'\"\u{201c}\u{201d}&\""));
     }
 
     #[test]
     fn test_unescape_invalid() {
         let unesc = unescape("&amp;&nbsp;");
-        assert_eq!(unesc, Err("&nbsp;".into_string()));
+        assert_eq!(unesc, Err("&nbsp;".to_owned()));
     }
 
     #[test]
@@ -442,25 +444,25 @@ mod lib_tests {
 
     #[test]
     fn test_show_characters() {
-        let chars = Xml::CharacterNode("some text".into_string());
+        let chars = Xml::CharacterNode("some text".to_owned());
         assert_eq!(format!("{}", chars)[], "some text");
     }
 
     #[test]
     fn test_show_cdata() {
-        let chars = Xml::CDATANode("some text".into_string());
+        let chars = Xml::CDATANode("some text".to_owned());
         assert_eq!(format!("{}", chars)[], "<![CDATA[some text]]>");
     }
 
     #[test]
     fn test_show_comment() {
-        let chars = Xml::CommentNode("some text".into_string());
+        let chars = Xml::CommentNode("some text".to_owned());
         assert_eq!(format!("{}", chars)[], "<!--some text-->");
     }
 
     #[test]
     fn test_show_pi() {
-        let chars = Xml::PINode("xml version='1.0'".into_string());
+        let chars = Xml::PINode("xml version='1.0'".to_owned());
         assert_eq!(format!("{}", chars)[], "<?xml version='1.0'?>");
     }
 
@@ -472,19 +474,20 @@ mod lib_tests {
             .tag_stay(Element::new("b", None, &[]))
             .text("World")
             .comment("Nothing to see");
-        assert_eq!(elem.content_str(), "<hello/>World".into_string());
+        assert_eq!(elem.content_str(), "<hello/>World".to_owned());
     }
 }
 
 #[cfg(test)]
 mod lib_bench {
     extern crate test;
+    use std::iter::repeat;
     use self::test::Bencher;
     use super::{escape, unescape};
 
     #[bench]
     fn bench_escape(bh: &mut Bencher) {
-        let input = "&<>'\"".repeat(100);
+        let input: String = repeat("&<>'\"").take(100).collect();
         bh.iter( || {
             escape(input[])
         });
@@ -493,7 +496,7 @@ mod lib_bench {
 
     #[bench]
     fn bench_unescape(bh: &mut Bencher) {
-        let input = "&amp;&lt;&gt;&apos;&quot;".repeat(50);
+        let input: String = repeat("&amp;&lt;&gt;&apos;&quot;").take(50).collect();
         bh.iter(|| {
             unescape(input[])
         });

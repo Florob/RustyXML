@@ -5,6 +5,7 @@
 // Please see the COPYING file for more information.
 
 use super::{Event, Xml, Element, StartTag, EndTag};
+use std::borrow::ToOwned;
 use std::collections::HashMap;
 
 // DOM Builder
@@ -19,8 +20,8 @@ impl ElementBuilder {
     /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
         let mut prefixes = HashMap::with_capacity(2);
-        prefixes.insert("http://www.w3.org/XML/1998/namespace".into_string(), "xml".into_string());
-        prefixes.insert("http://www.w3.org/2000/xmlns/".into_string(), "xmlns".into_string());
+        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_owned(), "xml".to_owned());
+        prefixes.insert("http://www.w3.org/2000/xmlns/".to_owned(), "xmlns".to_owned());
         ElementBuilder {
             stack: Vec::new(),
             default_ns: Vec::new(),
@@ -30,12 +31,12 @@ impl ElementBuilder {
 
     /// Bind a prefix to a namespace
     pub fn define_prefix(&mut self, prefix: &str, ns: &str) {
-        self.prefixes.insert(ns.into_string(), prefix.into_string());
+        self.prefixes.insert(ns.to_owned(), prefix.to_owned());
     }
 
     /// Set the default namespace
     pub fn set_default_ns(&mut self, ns: &str) {
-        self.default_ns = vec![Some(ns.into_string())];
+        self.default_ns = vec![Some(ns.to_owned())];
     }
 
     /// Hands an `Event` to the builder.
