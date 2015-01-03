@@ -14,7 +14,7 @@ use std::collections::{HashMap, RingBuf};
 use std::mem;
 use std::iter::Iterator;
 
-#[deriving(PartialEq, Show, Copy)]
+#[derive(PartialEq, Show, Copy)]
 /// The structure returned, when erroneous XML is read
 pub struct Error {
     /// The line number at which the error occurred
@@ -524,7 +524,7 @@ impl Parser {
     // Opening sequence of Event::CDATA
     // 'C' 'D' 'A' 'T' 'A' '[' => InCDATA
     fn in_cdata_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
-        static CDATA_PATTERN: [char, ..6] = ['C', 'D', 'A', 'T', 'A', '['];
+        static CDATA_PATTERN: [char; 6] = ['C', 'D', 'A', 'T', 'A', '['];
         if c == CDATA_PATTERN[self.level] {
             self.level += 1;
         } else {
@@ -610,7 +610,7 @@ impl Parser {
     // Inside a doctype
     // '>' after appropriate opening => OutsideTag
     fn in_doctype(&mut self, c: char) -> Result<Option<Event>, Error> {
-        static DOCTYPE_PATTERN: [char, ..6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
+        static DOCTYPE_PATTERN: [char; 6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {
             0...5 => if c == DOCTYPE_PATTERN[self.level] {
                 self.level += 1;

@@ -97,7 +97,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
 }
 
 // General types
-#[deriving(Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 /// An Enum describing a XML Node
 pub enum Xml {
     /// An XML Element
@@ -112,7 +112,7 @@ pub enum Xml {
     PINode(String)
 }
 
-#[deriving(Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 /// A struct representing an XML element
 pub struct Element {
     /// The element's name
@@ -129,7 +129,7 @@ pub struct Element {
     pub children: Vec<Xml>,
 }
 
-#[deriving(PartialEq, Eq, Show)]
+#[derive(PartialEq, Eq, Show)]
 /// Events returned by the `Parser`
 pub enum Event {
     /// Event indicating processing information was found
@@ -146,7 +146,7 @@ pub enum Event {
     Comment(String)
 }
 
-#[deriving(PartialEq, Eq, Show)]
+#[derive(PartialEq, Eq, Show)]
 /// Structure describing an opening tag
 pub struct StartTag {
     /// The tag's name
@@ -159,7 +159,7 @@ pub struct StartTag {
     pub attributes: HashMap<(String, Option<String>), String>
 }
 
-#[deriving(PartialEq, Eq, Show)]
+#[derive(PartialEq, Eq, Show)]
 /// Structure describing a closing tag
 pub struct EndTag {
     /// The tag's name
