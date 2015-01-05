@@ -110,7 +110,9 @@ impl Parser {
     }
 }
 
-impl Iterator<Result<Event, Error>> for Parser {
+impl Iterator for Parser {
+    type Item = Result<Event, Error>;
+
     fn next(&mut self) -> Option<Result<Event, Error>> {
         if self.has_error {
             return None;
