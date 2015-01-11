@@ -14,15 +14,15 @@ use std::path::Path;
 fn main()
 {
     let args = std::os::args();
-    let f = &match args[] {
-        [_, ref path] => Path::new(path[]),
+    let f = match &args[] {
+        [_, ref path] => Path::new(&path[]),
         [ref name, ..] => {
             println!("Usage: {} <file>", name);
             return;
         }
         _ => panic!("argv had length 0")
     };
-    let mut rdr = match File::open(f) {
+    let mut rdr = match File::open(&f) {
         Ok(file) => file,
         Err(err) => {
             println!("Couldn't open file: {}", err);
@@ -43,7 +43,7 @@ fn main()
         }
     };
 
-    p.feed_str(string[]);
+    p.feed_str(&string[]);
     for event in p {
         match event {
             Ok(event) => match e.push_event(event) {

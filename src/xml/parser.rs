@@ -18,9 +18,9 @@ use std::iter::Iterator;
 /// The structure returned, when erroneous XML is read
 pub struct Error {
     /// The line number at which the error occurred
-    pub line: uint,
+    pub line: u32,
     /// The column number at which the error occurred
-    pub col: uint,
+    pub col: u32,
     /// A message describing the type of the error
     pub msg: &'static str
 }
@@ -49,8 +49,8 @@ enum State {
 
 /// A streaming XML parser
 pub struct Parser {
-    line: uint,
-    col: uint,
+    line: u32,
+    col: u32,
     has_error: bool,
     data: RingBuf<char>,
     buf: String,
@@ -60,7 +60,7 @@ pub struct Parser {
     name: Option<(Option<String>, String)>,
     attr: Option<(Option<String>, String)>,
     delim: Option<char>,
-    level: uint
+    level: u8
 }
 
 impl Parser {
@@ -125,10 +125,10 @@ impl Iterator for Parser {
             };
 
             if c == '\n' {
-                self.line += 1u;
-                self.col = 0u;
+                self.line += 1;
+                self.col = 0;
             } else {
-                self.col += 1u;
+                self.col += 1;
             }
 
             match self.parse_character(c) {
@@ -205,7 +205,7 @@ impl Parser {
         match c {
             '<' if self.buf.len() > 0 => {
                 self.st = State::TagOpened;
-                let buf = match unescape(self.buf[]) {
+                let buf = match unescape(&self.buf[]) {
                     Ok(unescaped) => unescaped,
                     Err(_) => return self.error("Found invalid entity")
                 };
@@ -264,11 +264,11 @@ impl Parser {
         match c {
             '/'
             | '>' => {
-                let (prefix, name) = parse_qname(self.buf[]);
+                let (prefix, name) = parse_qname(&self.buf[]);
                 self.buf.truncate(0);
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(pre[]) {
+                    Some(ref pre) => match self.namespace_for_prefix(&pre[]) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -294,7 +294,7 @@ impl Parser {
             | '\r'
             | '\n' => {
                 self.namespaces.push(HashMap::new());
-                self.name = Some(parse_qname(self.buf[]));
+                self.name = Some(parse_qname(&self.buf[]));
                 self.buf.truncate(0);
                 self.st = State::InTag;
             }
@@ -313,12 +313,12 @@ impl Parser {
             | '\r'
             | '\n'
             | '>' => {
-                let (prefix, name) = parse_qname(self.buf[]);
+                let (prefix, name) = parse_qname(&self.buf[]);
                 self.buf.truncate(0);
 
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(pre[]) {
+                    Some(ref pre) => match self.namespace_for_prefix(&pre[]) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -352,7 +352,7 @@ impl Parser {
                 let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(pre[]) {
+                    Some(ref pre) => match self.namespace_for_prefix(&pre[]) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -365,7 +365,7 @@ impl Parser {
                 for (name, ns, value) in attributes.into_iter() {
                     let ns = match ns {
                         None => None,
-                        Some(ref prefix) => match self.namespace_for_prefix(prefix[]) {
+                        Some(ref prefix) => match self.namespace_for_prefix(&prefix[]) {
                             None => return self.error("Unbound namespace prefix in attribute name"),
                             ns => ns
                         }
@@ -407,7 +407,7 @@ impl Parser {
         match c {
             '=' => {
                 self.level = 0;
-                self.attr = Some(parse_qname(self.buf[]));
+                self.attr = Some(parse_qname(&self.buf[]));
                 self.buf.truncate(0);
                 self.st = State::ExpectDelimiter;
             }
@@ -430,7 +430,7 @@ impl Parser {
             let attr = self.attr.take();
             let (prefix, name) =
                 attr.expect("Internal error: In attribute value, but no attribute name set");
-            let value = match unescape(self.buf[]) {
+            let value = match unescape(&self.buf[]) {
                 Ok(unescaped) => unescaped,
                 Err(_) => return self.error("Found invalid entity")
             };
@@ -481,7 +481,7 @@ impl Parser {
                 let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(pre[]) {
+                    Some(ref pre) => match self.namespace_for_prefix(&pre[]) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -527,7 +527,7 @@ impl Parser {
     // 'C' 'D' 'A' 'T' 'A' '[' => InCDATA
     fn in_cdata_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
         static CDATA_PATTERN: [char; 6] = ['C', 'D', 'A', 'T', 'A', '['];
-        if c == CDATA_PATTERN[self.level] {
+        if c == CDATA_PATTERN[self.level as usize] {
             self.level += 1;
         } else {
             return self.error("Invalid CDATA opening sequence")
@@ -614,7 +614,7 @@ impl Parser {
     fn in_doctype(&mut self, c: char) -> Result<Option<Event>, Error> {
         static DOCTYPE_PATTERN: [char; 6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {
-            0...5 => if c == DOCTYPE_PATTERN[self.level] {
+            0...5 => if c == DOCTYPE_PATTERN[self.level as usize] {
                 self.level += 1;
             } else {
                 return self.error("Invalid DOCTYPE");
@@ -650,7 +650,7 @@ mod parser_tests {
     #[test]
     fn test_start_tag() {
         let mut p = Parser::new();
-        let mut i = 0;
+        let mut i = 0u8;
         p.feed_str("<a>");
         for event in p {
             i += 1;
@@ -661,13 +661,13 @@ mod parser_tests {
                 attributes: HashMap::new()
             })));
         }
-        assert_eq!(i, 1u);
+        assert_eq!(i, 1u8);
     }
 
     #[test]
     fn test_end_tag() {
         let mut p = Parser::new();
-        let mut i = 0;
+        let mut i = 0u8;
         p.feed_str("</a>");
         for event in p {
             i += 1;
@@ -677,7 +677,7 @@ mod parser_tests {
                 prefix: None
             })));
         }
-        assert_eq!(i, 1u);
+        assert_eq!(i, 1u8);
     }
 
     #[test]
@@ -749,42 +749,43 @@ mod parser_tests {
     #[test]
     fn test_pi() {
         let mut p = Parser::new();
-        let mut i = 0;
+        let mut i = 0u8;
         p.feed_str("<?xml version='1.0' encoding='utf-8'?>");
         for event in p {
             i += 1;
             assert_eq!(event, Ok(Event::PI("xml version='1.0' encoding='utf-8'".to_owned())));
         }
-        assert_eq!(i, 1u);
+        assert_eq!(i, 1u8);
     }
 
     #[test]
     fn test_comment() {
         let mut p = Parser::new();
-        let mut i = 0;
+        let mut i = 0u8;
         p.feed_str("<!--Nothing to see-->");
         for event in p {
             i += 1;
             assert_eq!(event, Ok(Event::Comment("Nothing to see".to_owned())));
         }
-        assert_eq!(i, 1u);
+        assert_eq!(i, 1u8);
     }
     #[test]
     fn test_cdata() {
         let mut p = Parser::new();
-        let mut i = 0;
+        let mut i = 0u8;
         p.feed_str("<![CDATA[<html><head><title>x</title></head><body/></html>]]>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(Event::CDATA("<html><head><title>x</title></head><body/></html>".to_owned())));
+            assert_eq!(event,
+                       Ok(Event::CDATA("<html><head><title>x</title></head><body/></html>".to_owned())));
         }
-        assert_eq!(i, 1u);
+        assert_eq!(i, 1u8);
     }
 
     #[test]
     fn test_characters() {
         let mut p = Parser::new();
-        let mut i = 0;
+        let mut i = 0u8;
         p.feed_str("<text>Hello World, it&apos;s a nice day</text>");
         for event in p {
             i += 1;
@@ -793,17 +794,17 @@ mod parser_tests {
                            Ok(Event::Characters("Hello World, it's a nice day".to_owned())));
             }
         }
-        assert_eq!(i, 3u);
+        assert_eq!(i, 3u8);
     }
 
     #[test]
     fn test_doctype() {
         let mut p = Parser::new();
-        let mut i = 0;
+        let mut i = 0u8;
         p.feed_str("<!DOCTYPE html>");
         for _ in p {
             i += 1;
         }
-        assert_eq!(i, 0u);
+        assert_eq!(i, 0u8);
     }
 }
