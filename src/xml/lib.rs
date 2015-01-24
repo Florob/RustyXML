@@ -8,6 +8,7 @@
 #![crate_type = "lib" ]
 #![forbid(non_camel_case_types)]
 #![warn(missing_docs)]
+#![allow(unstable)]
 
 #![feature(slicing_syntax)]
 
@@ -126,7 +127,7 @@ pub struct Element {
     pub children: Vec<Xml>,
 }
 
-#[derive(PartialEq, Eq, Show)]
+#[derive(PartialEq, Eq, Debug)]
 /// Events returned by the `Parser`
 pub enum Event {
     /// Event indicating processing information was found
@@ -143,7 +144,7 @@ pub enum Event {
     Comment(String)
 }
 
-#[derive(PartialEq, Eq, Show)]
+#[derive(PartialEq, Eq, Debug)]
 /// Structure describing an opening tag
 pub struct StartTag {
     /// The tag's name
@@ -156,7 +157,7 @@ pub struct StartTag {
     pub attributes: HashMap<(String, Option<String>), String>
 }
 
-#[derive(PartialEq, Eq, Show)]
+#[derive(PartialEq, Eq, Debug)]
 /// Structure describing a closing tag
 pub struct EndTag {
     /// The tag's name
@@ -167,7 +168,7 @@ pub struct EndTag {
     pub prefix: Option<String>
 }
 
-impl fmt::String for Xml {
+impl fmt::Display for Xml {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Xml::ElementNode(ref elem) => elem.fmt(f),
@@ -222,7 +223,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
         for child in elem.children.iter() {
             try!(match *child {
                 Xml::ElementNode(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
-                ref o => fmt::String::fmt(o, f)
+                ref o => fmt::Display::fmt(o, f)
             });
         }
         if elem.ns != elem.default_ns {
@@ -235,7 +236,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
     }
 }
 
-impl fmt::String for Element{
+impl fmt::Display for Element{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt_elem(self, None, &HashMap::new(), f)
     }

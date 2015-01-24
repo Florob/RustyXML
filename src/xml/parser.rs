@@ -14,7 +14,7 @@ use std::collections::{HashMap, RingBuf};
 use std::mem;
 use std::iter::Iterator;
 
-#[derive(PartialEq, Show, Copy)]
+#[derive(PartialEq, Debug, Copy)]
 /// The structure returned, when erroneous XML is read
 pub struct Error {
     /// The line number at which the error occurred
