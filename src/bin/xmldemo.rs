@@ -6,9 +6,15 @@
 
 #![feature(slicing_syntax)]
 
+// These are unstable for now
+#![feature(core)]
+#![feature(io)]
+#![feature(os)]
+#![feature(path)]
+
 extern crate xml;
-use std::io::File;
-use std::io::Reader;
+use std::old_io::File;
+use std::old_io::Reader;
 use std::path::Path;
 
 fn main()

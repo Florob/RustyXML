@@ -8,9 +8,11 @@
 #![crate_type = "lib" ]
 #![forbid(non_camel_case_types)]
 #![warn(missing_docs)]
-#![allow(unstable)]
 
 #![feature(slicing_syntax)]
+
+// These are unstable for now
+#![feature(core)]
 
 /*!
   An XML parsing library
