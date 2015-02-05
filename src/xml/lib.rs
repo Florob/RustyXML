@@ -9,18 +9,18 @@
 #![forbid(non_camel_case_types)]
 #![warn(missing_docs)]
 
-#![feature(slicing_syntax)]
-
 // These are unstable for now
 #![feature(core)]
+#![cfg_attr(test, feature(test))]
 
 /*!
   An XML parsing library
   */
 
-pub use parser::Error;
 pub use parser::Parser;
+pub use parser::ParserError;
 pub use element_builder::ElementBuilder;
+pub use element_builder::BuilderError;
 
 use std::borrow::ToOwned;
 use std::fmt;
@@ -54,6 +54,7 @@ pub fn escape(input: &str) -> String {
 
 #[inline]
 /// Unescapes all valid XML entities in a string.
+/// Returns the first invalid entity on failure.
 pub fn unescape(input: &str) -> Result<String, String> {
     let mut result = String::with_capacity(input.len());
 
@@ -76,9 +77,9 @@ pub fn unescape(input: &str) -> Result<String, String> {
                     "amp"  => result.push('&'),
                     ent => {
                         let val = if ent.starts_with("#x") {
-                            num::from_str_radix(&ent[2..], 16)
+                            num::from_str_radix(&ent[2..], 16).ok()
                         } else if ent.starts_with("#") {
-                            num::from_str_radix(&ent[1..], 10)
+                            num::from_str_radix(&ent[1..], 10).ok()
                         } else {
                             None
                         };
@@ -382,28 +383,26 @@ impl<'a> Element {
 }
 
 impl FromStr for Element {
+    type Err = BuilderError;
     #[inline]
-    fn from_str(data: &str) -> Option<Element> {
+    fn from_str(data: &str) -> Result<Element, BuilderError> {
         let mut p = parser::Parser::new();
         let mut e = element_builder::ElementBuilder::new();
-        let mut result = None;
 
         p.feed_str(data);
         for event in p {
-            if let Ok(event) = event {
-                if let Ok(Some(elem)) = e.push_event(event) {
-                     result = Some(elem);
-                }
+            match e.push_event(event) {
+                Ok(Some(elem)) => return Ok(elem),
+                Ok(None) => (),
+                Err(err) => return Err(err)
             }
         }
-        result
+        Err(BuilderError::NoElement)
     }
 }
 
 #[cfg(test)]
 mod lib_tests {
-    extern crate collections;
-
     use super::{Xml, Element, escape, unescape};
     use std::borrow::ToOwned;
 
@@ -481,6 +480,7 @@ mod lib_tests {
 #[cfg(test)]
 mod lib_bench {
     extern crate test;
+
     use std::iter::repeat;
     use self::test::Bencher;
     use super::{escape, unescape};

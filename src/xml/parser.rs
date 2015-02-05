@@ -11,18 +11,33 @@
 use super::{Event, unescape, StartTag, EndTag};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, RingBuf};
-use std::mem;
+use std::error::Error;
+use std::fmt;
 use std::iter::Iterator;
+use std::mem;
 
-#[derive(PartialEq, Debug, Copy)]
+#[derive(PartialEq, Debug, Clone)]
+#[allow(missing_copy_implementations)]
 /// The structure returned, when erroneous XML is read
-pub struct Error {
+pub struct ParserError {
     /// The line number at which the error occurred
     pub line: u32,
     /// The column number at which the error occurred
     pub col: u32,
     /// A message describing the type of the error
     pub msg: &'static str
+}
+
+impl Error for ParserError {
+    fn description(&self) -> &str {
+        self.msg
+    }
+}
+
+impl fmt::Display for ParserError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Parse error; Line: {}, Column: {}, Reason: {}", self.line, self.col, self.msg)
+    }
 }
 
 // Event based parser
@@ -89,7 +104,7 @@ impl Parser {
 
     /**
      * Feeds the string `data` to the parser.
-     * The `Event`s, and `Error`s generated while parsing the string
+     * The `Event`s, and `ParserError`s generated while parsing the string
      * can be requested by iterating over the parser
      *
      * ~~~
@@ -111,9 +126,9 @@ impl Parser {
 }
 
 impl Iterator for Parser {
-    type Item = Result<Event, Error>;
+    type Item = Result<Event, ParserError>;
 
-    fn next(&mut self) -> Option<Result<Event, Error>> {
+    fn next(&mut self) -> Option<Result<Event, ParserError>> {
         if self.has_error {
             return None;
         }
@@ -171,11 +186,11 @@ impl Parser {
         None
     }
 
-    fn error(&self, msg: &'static str) -> Result<Option<Event>, Error> {
-        Err(Error { line: self.line, col: self.col, msg: msg })
+    fn error(&self, msg: &'static str) -> Result<Option<Event>, ParserError> {
+        Err(ParserError { line: self.line, col: self.col, msg: msg })
     }
 
-    fn parse_character(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn parse_character(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         // println(fmt!("Now in state: %?", self.st));
         match self.st {
             State::OutsideTag => self.outside_tag(c),
@@ -201,7 +216,7 @@ impl Parser {
 
     // Outside any tag, or other construct
     // '<' => TagOpened, producing Event::Characters
-    fn outside_tag(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn outside_tag(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             '<' if self.buf.len() > 0 => {
                 self.st = State::TagOpened;
@@ -223,7 +238,7 @@ impl Parser {
     // '!' => InExclamationMark
     // '/' => InCloseTagName
     //  _  => InTagName
-    fn tag_opened(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn tag_opened(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         self.st = match c {
             '?' => State::InProcessingInstructions,
             '!' => State::InExclamationMark,
@@ -238,7 +253,7 @@ impl Parser {
 
     // Inside a processing instruction
     // '?' '>' => OutsideTag, producing PI
-    fn in_processing_instructions(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_processing_instructions(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             '?' => {
                 self.level = 1;
@@ -260,7 +275,7 @@ impl Parser {
     // '/' => ExpectClose, producing Event::ElementStart
     // '>' => OutsideTag, producing Event::ElementStart
     // ' ' or '\t' or '\r' or '\n' => InTag
-    fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             '/'
             | '>' => {
@@ -306,7 +321,7 @@ impl Parser {
     // Inside a tag name (closing tag)
     // '>' => OutsideTag, producing ElementEnd
     // ' ' or '\t' or '\r' or '\n' => ExpectSpaceOrClose, producing ElementEnd
-    fn in_close_tag_name(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_close_tag_name(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             ' '
             | '\t'
@@ -344,7 +359,7 @@ impl Parser {
     // '/' => ExpectClose, producing StartTag
     // '>' => OutsideTag, producing StartTag
     // ' ' or '\t' or '\r' or '\n' => InAttrName
-    fn in_tag(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_tag(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             '/'
             | '>' => {
@@ -403,7 +418,7 @@ impl Parser {
 
     // Inside an attribute name
     // '=' => ExpectDelimiter
-    fn in_attr_name(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_attr_name(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             '=' => {
                 self.level = 0;
@@ -423,7 +438,7 @@ impl Parser {
 
     // Inside an attribute value
     // delimiter => InTag, adds attribute
-    fn in_attr_value(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_attr_value(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         if c == self.delim.expect("Internal error: In attribute value, but no delimiter set") {
             self.delim = None;
             self.st = State::InTag;
@@ -456,7 +471,7 @@ impl Parser {
 
     // Looking for an attribute value delimiter
     // '"' or '\'' => InAttrValue, sets delimiter
-    fn expect_delimiter(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn expect_delimiter(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             '"'
             | '\'' => {
@@ -474,7 +489,7 @@ impl Parser {
 
     // Expect closing '>' of an empty-element tag (no whitespace allowed)
     // '>' => OutsideTag
-    fn expect_close(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn expect_close(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             '>' => {
                 self.st = State::OutsideTag;
@@ -495,7 +510,7 @@ impl Parser {
 
     // Expect closing '>' of a start tag
     // '>' => OutsideTag
-    fn expect_space_or_close(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn expect_space_or_close(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             ' '
             | '\t'
@@ -513,7 +528,7 @@ impl Parser {
     // '-' => InCommentOpening
     // '[' => InCDATAOpening
     // 'D' => InDoctype
-    fn in_exclamation_mark(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_exclamation_mark(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         self.st = match c {
             '-' => State::InCommentOpening,
             '[' => State::InCDATAOpening,
@@ -525,7 +540,7 @@ impl Parser {
 
     // Opening sequence of Event::CDATA
     // 'C' 'D' 'A' 'T' 'A' '[' => InCDATA
-    fn in_cdata_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_cdata_opening(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         static CDATA_PATTERN: [char; 6] = ['C', 'D', 'A', 'T', 'A', '['];
         if c == CDATA_PATTERN[self.level as usize] {
             self.level += 1;
@@ -542,7 +557,7 @@ impl Parser {
 
     // Inside CDATA
     // ']' ']' '>' => OutsideTag, producing Event::CDATA
-    fn in_cdata(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_cdata(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             ']' => {
                 self.buf.push(c);
@@ -566,7 +581,7 @@ impl Parser {
 
     // Opening sequence of a comment
     // '-' => InComment1
-    fn in_comment_opening(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_comment_opening(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         if c == '-' {
             self.st = State::InComment1;
             self.level = 0;
@@ -578,7 +593,7 @@ impl Parser {
 
     // Inside a comment
     // '-' '-' => InComment2
-    fn in_comment1(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_comment1(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         if c == '-' {
             self.level += 1;
         } else {
@@ -597,7 +612,7 @@ impl Parser {
 
     // Closing a comment
     // '>' => OutsideTag, producing Comment
-    fn in_comment2(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_comment2(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         if c != '>' {
             self.error("No more than one adjacent '-' allowed in a comment")
         } else {
@@ -611,7 +626,7 @@ impl Parser {
 
     // Inside a doctype
     // '>' after appropriate opening => OutsideTag
-    fn in_doctype(&mut self, c: char) -> Result<Option<Event>, Error> {
+    fn in_doctype(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         static DOCTYPE_PATTERN: [char; 6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {
             0...5 => if c == DOCTYPE_PATTERN[self.level as usize] {
@@ -645,7 +660,7 @@ mod parser_tests {
     use std::collections::HashMap;
 
     use super::Parser;
-    use super::super::{Event, Error, StartTag, EndTag};
+    use super::super::{Event, ParserError, StartTag, EndTag};
 
     #[test]
     fn test_start_tag() {
@@ -685,7 +700,7 @@ mod parser_tests {
         let mut p = Parser::new();
         p.feed_str("<register />");
 
-        let v: Vec<Result<Event, Error>> = p.collect();
+        let v: Vec<Result<Event, ParserError>> = p.collect();
         assert_eq!(v, vec![
             Ok(Event::ElementStart(StartTag {
                 name: "register".to_owned(),
@@ -706,7 +721,7 @@ mod parser_tests {
         let mut p = Parser::new();
         p.feed_str("<register/>");
 
-        let v: Vec<Result<Event, Error>> = p.collect();
+        let v: Vec<Result<Event, ParserError>> = p.collect();
         assert_eq!(v, vec![
             Ok(Event::ElementStart(StartTag {
                 name: "register".to_owned(),
@@ -727,7 +742,7 @@ mod parser_tests {
         let mut p = Parser::new();
         p.feed_str("<foo:a xmlns:foo='urn:foo'/>");
 
-        let v: Vec<Result<Event, Error>> = p.collect();
+        let v: Vec<Result<Event, ParserError>> = p.collect();
         let mut attr: HashMap<(String, Option<String>), String> = HashMap::new();
         attr.insert(("foo".to_owned(), Some("http://www.w3.org/2000/xmlns/".to_owned())),
                     "urn:foo".to_owned());

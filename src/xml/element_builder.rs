@@ -5,8 +5,53 @@
 // Please see the COPYING file for more information.
 
 use super::{Event, Xml, Element, StartTag, EndTag};
+use parser::ParserError;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::error::{Error, FromError};
+use std::fmt;
+
+#[derive(PartialEq, Debug, Clone)]
+/// The structure returned for errors encountered while building an `Element`
+pub enum BuilderError {
+    /// Errors encountered by the `Parser`
+    Parser(ParserError),
+    /// Elements were improperly nested, e.g. <a><b></a></b>
+    ImproperNesting,
+    /// No element was found
+    NoElement
+}
+
+impl Error for BuilderError {
+    fn description(&self) -> &str {
+        match *self {
+            BuilderError::Parser(ref err) => err.description(),
+            BuilderError::ImproperNesting => "Elements not properly nested",
+            BuilderError::NoElement => "No elements found"
+        }
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        match *self {
+            BuilderError::Parser(ref err) => Some(err),
+            _ => None
+        }
+    }
+}
+
+impl fmt::Display for BuilderError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            BuilderError::Parser(ref err) => err.fmt(f),
+            BuilderError::ImproperNesting => write!(f, "Elements not properly nested"),
+            BuilderError::NoElement => write!(f, "No elements found")
+        }
+    }
+}
+
+impl FromError<ParserError> for BuilderError {
+    fn from_error(err: ParserError) -> BuilderError { BuilderError::Parser(err) }
+}
 
 // DOM Builder
 /// An Element Builder, building `Element`s from `Event`s as produced by `Parser`
@@ -43,7 +88,9 @@ impl ElementBuilder {
     /// While no root element has been finished `Ok(None)` is returned.
     /// Once sufficent data has been received an `Element` is returned as `Ok(elem)`.
     /// Upon Error `Err("message")` is returned.
-    pub fn push_event(&mut self, e: Event) -> Result<Option<Element>, &'static str> {
+    pub fn push_event(&mut self,
+                      e: Result<Event, ParserError>) -> Result<Option<Element>, BuilderError> {
+        let e = try!(e);
         match e {
             Event::PI(cont) => {
                 if let Some(elem) = self.stack.last_mut() {
@@ -87,11 +134,11 @@ impl ElementBuilder {
             Event::ElementEnd(EndTag { name, ns, prefix: _ }) => {
                 let elem = match self.stack.pop() {
                     Some(elem) => elem,
-                    None => return Err("Elements not properly nested")
+                    None => return Err(BuilderError::ImproperNesting)
                 };
                 self.default_ns.pop();
                 if elem.name != name || elem.ns != ns {
-                    return Err("Elements not properly nested")
+                    return Err(BuilderError::ImproperNesting)
                 } else {
                     match self.stack.last_mut() {
                         Some(e) => e.children.push(Xml::ElementNode(elem)),
