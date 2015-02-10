@@ -9,27 +9,27 @@
 // These are unstable for now
 #![feature(core)]
 #![feature(env)]
+#![feature(fs)]
 #![feature(io)]
 #![feature(os)]
 #![feature(path)]
 
 extern crate xml;
-use std::old_io::File;
-use std::old_io::Reader;
-use std::old_path::Path;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 
 fn main() {
     let mut args = std::env::args();
     let name = args.next().and_then(|x| x.into_string().ok()).unwrap_or("xmldemo".to_string());
-    let f = if let Some(path) = args.next() {
-        // FIXME: Workaround for `File::new()` not accepting `std::path::Path` yet
-        use std::os::unix::OsStringExt;
-        Path::new(path.into_vec())
+    let path = args.next();
+    let path = if let Some(ref path) = path {
+        Path::new(path)
     } else {
         println!("Usage: {} <file>", name);
         return;
     };
-    let mut rdr = match File::open(&f) {
+    let mut rdr = match File::open(&path) {
         Ok(file) => file,
         Err(err) => {
             println!("Couldn't open file: {}", err);
@@ -41,13 +41,11 @@ fn main() {
     let mut p = xml::Parser::new();
     let mut e = xml::ElementBuilder::new();
 
-    let string = match rdr.read_to_string() {
-        Ok(string) => string,
-        Err(err) => {
-            println!("Reading failed: {}", err);
-            std::env::set_exit_status(1);
-            return;
-        }
+    let mut string = String::new();
+    if let Err(err) = rdr.read_to_string(&mut string) {
+        println!("Reading failed: {}", err);
+        std::env::set_exit_status(1);
+        return;
     };
 
     p.feed_str(&string[]);
