@@ -6,7 +6,6 @@
 
 use super::{Event, Xml, Element, StartTag, EndTag};
 use parser::ParserError;
-use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::error::{Error, FromError};
 use std::fmt;
@@ -65,8 +64,8 @@ impl ElementBuilder {
     /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
         let mut prefixes = HashMap::with_capacity(2);
-        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_owned(), "xml".to_owned());
-        prefixes.insert("http://www.w3.org/2000/xmlns/".to_owned(), "xmlns".to_owned());
+        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
+        prefixes.insert("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
         ElementBuilder {
             stack: Vec::new(),
             default_ns: Vec::new(),
@@ -76,12 +75,12 @@ impl ElementBuilder {
 
     /// Bind a prefix to a namespace
     pub fn define_prefix(&mut self, prefix: &str, ns: &str) {
-        self.prefixes.insert(ns.to_owned(), prefix.to_owned());
+        self.prefixes.insert(ns.to_string(), prefix.to_string());
     }
 
     /// Set the default namespace
     pub fn set_default_ns(&mut self, ns: &str) {
-        self.default_ns = vec![Some(ns.to_owned())];
+        self.default_ns = vec![Some(ns.to_string())];
     }
 
     /// Hands an `Event` to the builder.

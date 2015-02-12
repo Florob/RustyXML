@@ -7,11 +7,9 @@
 #![feature(slicing_syntax)]
 
 // These are unstable for now
-#![feature(core)]
 #![feature(env)]
 #![feature(fs)]
 #![feature(io)]
-#![feature(os)]
 #![feature(path)]
 
 extern crate xml;
@@ -21,7 +19,7 @@ use std::path::Path;
 
 fn main() {
     let mut args = std::env::args();
-    let name = args.next().and_then(|x| x.into_string().ok()).unwrap_or("xmldemo".to_string());
+    let name = args.next().unwrap_or("xmldemo".to_string());
     let path = args.next();
     let path = if let Some(ref path) = path {
         Path::new(path)
