@@ -1,10 +1,8 @@
 // RustyXML
-// Copyright (c) 2013, 2014 Florian Zeitz
+// Copyright (c) 2013-2015 Florian Zeitz
 //
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
-
-#![feature(slicing_syntax)]
 
 // These are unstable for now
 #![feature(env)]
