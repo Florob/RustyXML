@@ -1,5 +1,5 @@
 // RustyXML
-// Copyright (c) 2013, 2014 Florian Zeitz
+// Copyright (c) 2013-2015 Florian Zeitz
 //
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
@@ -197,15 +197,16 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
     });
 
     // Do we need to set the default namespace ?
-    match (parent, &elem.default_ns) {
-        // No parent, namespace is not empty
-        (None, &Some(ref ns)) => try!(write!(f, " xmlns='{}'", *ns)),
-        // Parent and child namespace differ
-        (Some(parent), ns) if !parent.default_ns.eq(ns) => try!(match *ns {
-            None => write!(f, " xmlns=''"),
-            Some(ref ns) => write!(f, " xmlns='{}'", *ns)
-        }),
-        _ => ()
+    if !elem.attributes.iter().any(|(&(ref name, _), _)| *name == "xmlns") {
+        match (parent, &elem.default_ns) {
+            // No parent, namespace is not empty
+            (None, &Some(ref ns)) => try!(write!(f, " xmlns='{}'", *ns)),
+            // Parent and child namespace differ
+            (Some(parent), ns) if parent.default_ns != *ns => {
+                try!(write!(f, " xmlns='{}'", ns.as_ref().map(|x| &x[]).unwrap_or("")))
+            },
+            _ => ()
+        }
     }
 
     for (&(ref name, ref ns), value) in elem.attributes.iter() {
@@ -437,6 +438,18 @@ mod lib_tests {
         let mut elem = Element::new("a", None, &[("href", None, "http://rust-lang.org")]);
         elem.tag(Element::new("b", None, &[]));
         assert_eq!(&format!("{}", elem)[], "<a href='http://rust-lang.org'><b/></a>");
+    }
+
+    #[test]
+    fn test_show_element_xmlns() {
+        let elem: Element = "<a xmlns='urn:test'/>".parse().unwrap();
+        assert_eq!(&format!("{}", elem)[], "<a xmlns='urn:test'/>");
+
+        let elem: Element = "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>".parse().unwrap();
+        assert_eq!(&format!("{}", elem)[], "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>");
+
+        let elem = Element::new("a", Some("urn:test"), &[("href", None, "http://rust-lang.org")]);
+        assert_eq!(&format!("{}", elem)[], "<a xmlns='urn:test' href='http://rust-lang.org'/>");
     }
 
     #[test]
