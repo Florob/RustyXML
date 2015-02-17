@@ -97,7 +97,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
 }
 
 // General types
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 /// An Enum describing a XML Node
 pub enum Xml {
     /// An XML Element
@@ -112,7 +112,7 @@ pub enum Xml {
     PINode(String)
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 /// A struct representing an XML element
 pub struct Element {
     /// The element's name
