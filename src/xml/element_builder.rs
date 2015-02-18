@@ -1,5 +1,5 @@
 // RustyXML
-// Copyright (c) 2013, 2014 Florian Zeitz
+// Copyright (c) 2013-2015 Florian Zeitz
 //
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
@@ -106,12 +106,11 @@ impl ElementBuilder {
                     children: Vec::new()
                 };
 
-                if !self.default_ns.is_empty() {
-                    let cur_default = self.default_ns.last().unwrap().clone();
-                    self.default_ns.push(cur_default);
+                if let Some(default) = self.default_ns.last().map(|x| x.clone()) {
+                    self.default_ns.push(default)
                 }
 
-                for (&(ref name, ref ns), value) in elem.attributes.iter() {
+                for (&(ref name, ref ns), value) in &elem.attributes {
                     if ns.is_none() && *name == "xmlns" {
                         self.default_ns.pop();
                         if value.len() == 0 {

@@ -174,7 +174,7 @@ impl Parser {
     // Bindings are stored as a stack of HashMaps, we start searching in the top most HashMap
     // and traverse down until the prefix is found.
     fn namespace_for_prefix(&self, prefix: &str) -> Option<String> {
-        for ns in self.namespaces[].iter().rev() {
+        for ns in self.namespaces.iter().rev() {
             if let Some(namespace) = ns.get(prefix) {
                 if namespace.len() == 0 {
                     return None;
@@ -219,7 +219,7 @@ impl Parser {
         match c {
             '<' if self.buf.len() > 0 => {
                 self.st = State::TagOpened;
-                let buf = match unescape(&self.buf[]) {
+                let buf = match unescape(&self.buf) {
                     Ok(unescaped) => unescaped,
                     Err(_) => return self.error("Found invalid entity")
                 };
@@ -278,11 +278,11 @@ impl Parser {
         match c {
             '/'
             | '>' => {
-                let (prefix, name) = parse_qname(&self.buf[]);
+                let (prefix, name) = parse_qname(&self.buf);
                 self.buf.truncate(0);
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(&pre[]) {
+                    Some(ref pre) => match self.namespace_for_prefix(&pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -308,7 +308,7 @@ impl Parser {
             | '\r'
             | '\n' => {
                 self.namespaces.push(HashMap::new());
-                self.name = Some(parse_qname(&self.buf[]));
+                self.name = Some(parse_qname(&self.buf));
                 self.buf.truncate(0);
                 self.st = State::InTag;
             }
@@ -327,12 +327,12 @@ impl Parser {
             | '\r'
             | '\n'
             | '>' => {
-                let (prefix, name) = parse_qname(&self.buf[]);
+                let (prefix, name) = parse_qname(&self.buf);
                 self.buf.truncate(0);
 
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(&pre[]) {
+                    Some(ref pre) => match self.namespace_for_prefix(&pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -366,7 +366,7 @@ impl Parser {
                 let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(&pre[]) {
+                    Some(ref pre) => match self.namespace_for_prefix(&pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }
@@ -376,10 +376,10 @@ impl Parser {
 
                 // At this point attribute namespaces are really just prefixes,
                 // map them to the actual namespace
-                for (name, ns, value) in attributes.into_iter() {
+                for (name, ns, value) in attributes {
                     let ns = match ns {
                         None => None,
-                        Some(ref prefix) => match self.namespace_for_prefix(&prefix[]) {
+                        Some(ref prefix) => match self.namespace_for_prefix(&prefix) {
                             None => return self.error("Unbound namespace prefix in attribute name"),
                             ns => ns
                         }
@@ -421,7 +421,7 @@ impl Parser {
         match c {
             '=' => {
                 self.level = 0;
-                self.attr = Some(parse_qname(&self.buf[]));
+                self.attr = Some(parse_qname(&self.buf));
                 self.buf.truncate(0);
                 self.st = State::ExpectDelimiter;
             }
@@ -444,7 +444,7 @@ impl Parser {
             let attr = self.attr.take();
             let (prefix, name) =
                 attr.expect("Internal error: In attribute value, but no attribute name set");
-            let value = match unescape(&self.buf[]) {
+            let value = match unescape(&self.buf) {
                 Ok(unescaped) => unescaped,
                 Err(_) => return self.error("Found invalid entity")
             };
@@ -495,7 +495,7 @@ impl Parser {
                 let (prefix, name) = self.name.take().expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(&pre[]) {
+                    Some(ref pre) => match self.namespace_for_prefix(&pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns
                     }

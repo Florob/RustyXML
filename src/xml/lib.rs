@@ -14,8 +14,8 @@
 #![cfg_attr(test, feature(test))]
 
 /*!
-  An XML parsing library
-  */
+ * An XML parsing library
+ */
 
 pub use parser::Parser;
 pub use parser::ParserError;
@@ -60,7 +60,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
     let mut it = input.split('&');
 
     // Push everything before the first '&'
-    for &sub in it.next().iter() {
+    if let Some(sub) = it.next() {
         result.push_str(sub);
     }
 
@@ -174,10 +174,10 @@ impl fmt::Display for Xml {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Xml::ElementNode(ref elem) => elem.fmt(f),
-            Xml::CharacterNode(ref data) => write!(f, "{}", escape(&data[])),
-            Xml::CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", &data[]),
-            Xml::CommentNode(ref data) => write!(f, "<!--{}-->", &data[]),
-            Xml::PINode(ref data) => write!(f, "<?{}?>", &data[])
+            Xml::CharacterNode(ref data) => write!(f, "{}", escape(&data)),
+            Xml::CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", &data),
+            Xml::CommentNode(ref data) => write!(f, "<!--{}-->", &data),
+            Xml::PINode(ref data) => write!(f, "<?{}?>", &data)
         }
     }
 }
@@ -189,7 +189,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
 
     // Do we need a prefix?
     try!(if elem.ns != elem.default_ns {
-        let prefix = all_prefixes.get(elem.ns.as_ref().unwrap_or(&String::new()))
+        let prefix = all_prefixes.get(elem.ns.as_ref().map(|x| &x[]).unwrap_or(""))
                                  .expect("No namespace prefix bound");
         write!(f, "<{}:{}", *prefix, elem.name)
     } else {
@@ -209,13 +209,13 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
         }
     }
 
-    for (&(ref name, ref ns), value) in elem.attributes.iter() {
+    for (&(ref name, ref ns), value) in &elem.attributes {
         try!(match *ns {
             Some(ref ns) => {
                 let prefix = all_prefixes.get(ns).expect("No namespace prefix bound");
-                write!(f, " {}:{}='{}'", *prefix, name, escape(&value[]))
+                write!(f, " {}:{}='{}'", *prefix, name, escape(&value))
             }
-            None => write!(f, " {}='{}'", name, escape(&value[]))
+            None => write!(f, " {}='{}'", name, escape(&value))
         });
     }
 
@@ -223,7 +223,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
         write!(f, "/>")
     } else {
         try!(write!(f, ">"));
-        for child in elem.children.iter() {
+        for child in &elem.children {
             try!(match *child {
                 Xml::ElementNode(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
                 ref o => fmt::Display::fmt(o, f)
@@ -251,8 +251,8 @@ impl Element {
     pub fn new(name: &str, ns: Option<&str>, attrs: &[(&str, Option<&str>, &str)]) -> Element {
         let ns = ns.map(|x| x.to_string());
         let mut attributes: HashMap<(String, Option<String>), String> = HashMap::new();
-        for &(name, ref ns, value) in attrs.iter() {
-            attributes.insert((name.to_string(), ns.clone().map(|x| x.to_string())),
+        for &(name, ref ns, value) in attrs {
+            attributes.insert((name.to_string(), ns.map(|x| x.to_string())),
                               value.to_string());
         }
         Element {
@@ -268,11 +268,11 @@ impl Element {
     /// Returns the character and CDATA contained in the element.
     pub fn content_str(&self) -> String {
         let mut res = String::new();
-        for child in self.children.iter() {
+        for child in &self.children {
             match *child {
-                Xml::ElementNode(ref elem) => res.push_str(&elem.content_str()[]),
+                Xml::ElementNode(ref elem) => res.push_str(&elem.content_str()),
                 Xml::CharacterNode(ref data)
-                | Xml::CDATANode(ref data) => res.push_str(&data[]),
+                | Xml::CDATANode(ref data) => res.push_str(&data),
                 _ => ()
             }
         }
@@ -301,19 +301,16 @@ impl Element {
     /// Gets the first child `Element` with the specified name and namespace. When no child
     /// with the specified name exists `None` is returned.
     pub fn get_child<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a Element> {
-        for child in self.children.iter() {
-            match *child {
-                Xml::ElementNode(ref elem) => {
-                    if elem.name != name {
-                        continue;
-                    }
-                    match (ns, elem.ns.as_ref().map(|x| &x[])) {
-                        (Some(x), Some(y)) if x == y => return Some(elem),
-                        (None, None) => return Some(elem),
-                        _ => continue
-                    }
+        for child in &self.children {
+            if let Xml::ElementNode(ref elem) = *child {
+                if elem.name != name {
+                    continue;
                 }
-                _ => ()
+                match (ns, elem.ns.as_ref().map(|x| &x[])) {
+                    (Some(x), Some(y)) if x == y => return Some(elem),
+                    (None, None) => return Some(elem),
+                    _ => ()
+                }
             }
         }
         None
@@ -323,7 +320,7 @@ impl Element {
     /// with the specified name exists an empty vetor is returned.
     pub fn get_children<'a>(&'a self, name: &str, ns: Option<&str>) -> Vec<&'a Element> {
         let mut res: Vec<&'a Element> = Vec::new();
-        for child in self.children.iter() {
+        for child in &self.children {
             if let Xml::ElementNode(ref elem) = *child {
                 if elem.name != name {
                     continue;
@@ -331,7 +328,7 @@ impl Element {
                 match (ns, elem.ns.as_ref().map(|x| &x[])) {
                     (Some(x), Some(y)) if x == y => res.push(elem),
                     (None, None) => res.push(elem),
-                    _ => continue
+                    _ => ()
                 }
             }
         }
@@ -426,54 +423,54 @@ mod lib_tests {
     #[test]
     fn test_show_element() {
         let elem = Element::new("a", None, &[]);
-        assert_eq!(&format!("{}", elem)[], "<a/>");
+        assert_eq!(format!("{}", elem), "<a/>");
 
         let elem = Element::new("a", None, &[("href", None, "http://rust-lang.org")]);
-        assert_eq!(&format!("{}", elem)[], "<a href='http://rust-lang.org'/>");
+        assert_eq!(format!("{}", elem), "<a href='http://rust-lang.org'/>");
 
         let mut elem = Element::new("a", None, &[]);
         elem.tag(Element::new("b", None, &[]));
-        assert_eq!(&format!("{}", elem)[], "<a><b/></a>");
+        assert_eq!(format!("{}", elem), "<a><b/></a>");
 
         let mut elem = Element::new("a", None, &[("href", None, "http://rust-lang.org")]);
         elem.tag(Element::new("b", None, &[]));
-        assert_eq!(&format!("{}", elem)[], "<a href='http://rust-lang.org'><b/></a>");
+        assert_eq!(format!("{}", elem), "<a href='http://rust-lang.org'><b/></a>");
     }
 
     #[test]
     fn test_show_element_xmlns() {
         let elem: Element = "<a xmlns='urn:test'/>".parse().unwrap();
-        assert_eq!(&format!("{}", elem)[], "<a xmlns='urn:test'/>");
+        assert_eq!(format!("{}", elem), "<a xmlns='urn:test'/>");
 
         let elem: Element = "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>".parse().unwrap();
-        assert_eq!(&format!("{}", elem)[], "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>");
+        assert_eq!(format!("{}", elem), "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>");
 
         let elem = Element::new("a", Some("urn:test"), &[("href", None, "http://rust-lang.org")]);
-        assert_eq!(&format!("{}", elem)[], "<a xmlns='urn:test' href='http://rust-lang.org'/>");
+        assert_eq!(format!("{}", elem), "<a xmlns='urn:test' href='http://rust-lang.org'/>");
     }
 
     #[test]
     fn test_show_characters() {
         let chars = Xml::CharacterNode("some text".to_string());
-        assert_eq!(&format!("{}", chars)[], "some text");
+        assert_eq!(format!("{}", chars), "some text");
     }
 
     #[test]
     fn test_show_cdata() {
         let chars = Xml::CDATANode("some text".to_string());
-        assert_eq!(&format!("{}", chars)[], "<![CDATA[some text]]>");
+        assert_eq!(format!("{}", chars), "<![CDATA[some text]]>");
     }
 
     #[test]
     fn test_show_comment() {
         let chars = Xml::CommentNode("some text".to_string());
-        assert_eq!(&format!("{}", chars)[], "<!--some text-->");
+        assert_eq!(format!("{}", chars), "<!--some text-->");
     }
 
     #[test]
     fn test_show_pi() {
         let chars = Xml::PINode("xml version='1.0'".to_string());
-        assert_eq!(&format!("{}", chars)[], "<?xml version='1.0'?>");
+        assert_eq!(format!("{}", chars), "<?xml version='1.0'?>");
     }
 
     #[test]
@@ -484,7 +481,7 @@ mod lib_tests {
             .tag_stay(Element::new("b", None, &[]))
             .text("World")
             .comment("Nothing to see");
-        assert_eq!(&elem.content_str()[], "<hello/>World");
+        assert_eq!(elem.content_str(), "<hello/>World");
     }
 }
 
@@ -499,8 +496,8 @@ mod lib_bench {
     #[bench]
     fn bench_escape(bh: &mut Bencher) {
         let input: String = repeat("&<>'\"").take(100).collect();
-        bh.iter( || {
-            escape(&input[])
+        bh.iter(|| {
+            escape(&input)
         });
         bh.bytes = input.len() as u64;
     }
@@ -509,7 +506,7 @@ mod lib_bench {
     fn bench_unescape(bh: &mut Bencher) {
         let input: String = repeat("&amp;&lt;&gt;&apos;&quot;").take(50).collect();
         bh.iter(|| {
-            unescape(&input[])
+            unescape(&input)
         });
         bh.bytes = input.len() as u64;
     }
