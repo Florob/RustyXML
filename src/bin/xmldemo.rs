@@ -44,7 +44,7 @@ fn main() {
         return;
     };
 
-    p.feed_str(&string[]);
+    p.feed_str(&string);
     for event in p {
         // println!("{:?}", event);
         match e.push_event(event) {

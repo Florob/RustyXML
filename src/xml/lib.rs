@@ -189,7 +189,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
 
     // Do we need a prefix?
     try!(if elem.ns != elem.default_ns {
-        let prefix = all_prefixes.get(elem.ns.as_ref().map(|x| &x[]).unwrap_or(""))
+        let prefix = all_prefixes.get(elem.ns.as_ref().map(|x| &x[..]).unwrap_or(""))
                                  .expect("No namespace prefix bound");
         write!(f, "<{}:{}", *prefix, elem.name)
     } else {
@@ -203,7 +203,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
             (None, &Some(ref ns)) => try!(write!(f, " xmlns='{}'", *ns)),
             // Parent and child namespace differ
             (Some(parent), ns) if parent.default_ns != *ns => {
-                try!(write!(f, " xmlns='{}'", ns.as_ref().map(|x| &x[]).unwrap_or("")))
+                try!(write!(f, " xmlns='{}'", ns.as_ref().map(|x| &x[..]).unwrap_or("")))
             },
             _ => ()
         }
@@ -282,7 +282,7 @@ impl Element {
     /// Gets an attribute with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
     pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a str> {
-        self.attributes.get(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| &x[])
+        self.attributes.get(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| &x[..])
     }
 
     /// Sets the attribute with the specified name and namespace.
@@ -306,7 +306,7 @@ impl Element {
                 if elem.name != name {
                     continue;
                 }
-                match (ns, elem.ns.as_ref().map(|x| &x[])) {
+                match (ns, elem.ns.as_ref().map(|x| &x[..])) {
                     (Some(x), Some(y)) if x == y => return Some(elem),
                     (None, None) => return Some(elem),
                     _ => ()
@@ -325,7 +325,7 @@ impl Element {
                 if elem.name != name {
                     continue;
                 }
-                match (ns, elem.ns.as_ref().map(|x| &x[])) {
+                match (ns, elem.ns.as_ref().map(|x| &x[..])) {
                     (Some(x), Some(y)) if x == y => res.push(elem),
                     (None, None) => res.push(elem),
                     _ => ()
@@ -411,13 +411,13 @@ mod lib_tests {
     #[test]
     fn test_unescape() {
         let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;&#x201c;&#x201d;&#38;&#34;");
-        assert_eq!(unesc.as_ref().map(|x| &x[]), Ok("&lt;<>'\"\u{201c}\u{201d}&\""));
+        assert_eq!(unesc.as_ref().map(|x| &x[..]), Ok("&lt;<>'\"\u{201c}\u{201d}&\""));
     }
 
     #[test]
     fn test_unescape_invalid() {
         let unesc = unescape("&amp;&nbsp;");
-        assert_eq!(unesc.as_ref().map_err(|x| &x[]), Err("&nbsp;"));
+        assert_eq!(unesc.as_ref().map_err(|x| &x[..]), Err("&nbsp;"));
     }
 
     #[test]

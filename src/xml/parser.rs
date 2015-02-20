@@ -9,7 +9,7 @@
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
 use super::{Event, unescape, StartTag, EndTag};
-use std::collections::{HashMap, RingBuf};
+use std::collections::{HashMap, VecDeque};
 use std::error::Error;
 use std::fmt;
 use std::iter::Iterator;
@@ -66,7 +66,7 @@ pub struct Parser {
     line: u32,
     col: u32,
     has_error: bool,
-    data: RingBuf<char>,
+    data: VecDeque<char>,
     buf: String,
     namespaces: Vec<HashMap<String, String>>,
     attributes: Vec<(String, Option<String>, String)>,
@@ -89,7 +89,7 @@ impl Parser {
             line: 1,
             col: 0,
             has_error: false,
-            data: RingBuf::with_capacity(4096),
+            data: VecDeque::with_capacity(4096),
             buf: String::new(),
             namespaces: vec![ns],
             attributes: Vec::new(),
