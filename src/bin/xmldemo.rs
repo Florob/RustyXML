@@ -5,27 +5,24 @@
 // Please see the COPYING file for more information.
 
 // These are unstable for now
-#![feature(env)]
-#![feature(fs)]
+#![feature(exit_status)]
 #![feature(io)]
-#![feature(path)]
 
 extern crate xml;
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
 
 fn main() {
     let mut args = std::env::args();
     let name = args.next().unwrap_or("xmldemo".to_string());
     let path = args.next();
     let path = if let Some(ref path) = path {
-        Path::new(path)
+        path
     } else {
         println!("Usage: {} <file>", name);
         return;
     };
-    let mut rdr = match File::open(&path) {
+    let mut rdr = match File::open(path) {
         Ok(file) => file,
         Err(err) => {
             println!("Couldn't open file: {}", err);
