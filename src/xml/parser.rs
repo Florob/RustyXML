@@ -62,6 +62,23 @@ enum State {
 }
 
 /// A streaming XML parser
+///
+/// Data is fed to the parser using the `feed_str()` method.
+/// The `Event`s, and `ParserError`s generated while parsing the string
+/// can be requested by iterating over the parser
+///
+/// ~~~
+/// use xml::Parser;
+///
+/// let mut p = Parser::new();
+/// p.feed_str("<a href='http://rust-lang.org'>Rust</a>");
+/// for event in p {
+///     match event {
+///        // [...]
+///        _ => ()
+///     }
+/// }
+/// ~~~
 pub struct Parser {
     line: u32,
     col: u32,
@@ -101,24 +118,7 @@ impl Parser {
         }
     }
 
-    /**
-     * Feeds the string `data` to the parser.
-     * The `Event`s, and `ParserError`s generated while parsing the string
-     * can be requested by iterating over the parser
-     *
-     * ~~~
-     * use xml::Parser;
-     *
-     * let mut p = Parser::new();
-     * p.feed_str("<a href='http://rust-lang.org'>Rust</a>");
-     * for event in p {
-     *     match event {
-     *        // [...]
-     *        _ => ()
-     *     }
-     * }
-     * ~~~
-     */
+    /// Feeds a string slice to the parser
     pub fn feed_str(&mut self, data: &str) {
         self.data.extend(data.chars());
     }
