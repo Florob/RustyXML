@@ -83,13 +83,17 @@ impl ElementBuilder {
         self.default_ns = vec![Some(ns.to_string())];
     }
 
-    /// Hands an `Event` to the builder.
-    /// While no root element has been finished `Ok(None)` is returned.
-    /// Once sufficent data has been received an `Element` is returned as `Ok(elem)`.
-    /// Upon Error `Err("message")` is returned.
-    pub fn push_event(&mut self,
-                      e: Result<Event, ParserError>) -> Result<Option<Element>, BuilderError> {
-        let e = try!(e);
+    /// Let the builder process an `Event` to ultimately build an `Element`.
+    ///
+    /// While no root element has been finished `None` is returned.
+    /// Once sufficent data has been received an `Element` is returned as `Some(Ok(elem))`.
+    /// Upon Error `Some(Err("message"))` is returned.
+    pub fn handle_event(&mut self,
+                        e: Result<Event, ParserError>) -> Option<Result<Element, BuilderError>> {
+        let e = match e {
+            Ok(o) => o,
+            Err(e) => return Some(Err(FromError::from_error(e)))
+        };
         match e {
             Event::PI(cont) => {
                 if let Some(elem) = self.stack.last_mut() {
@@ -132,15 +136,15 @@ impl ElementBuilder {
             Event::ElementEnd(EndTag { name, ns, prefix: _ }) => {
                 let elem = match self.stack.pop() {
                     Some(elem) => elem,
-                    None => return Err(BuilderError::ImproperNesting)
+                    None => return Some(Err(BuilderError::ImproperNesting))
                 };
                 self.default_ns.pop();
                 if elem.name != name || elem.ns != ns {
-                    return Err(BuilderError::ImproperNesting)
+                    return Some(Err(BuilderError::ImproperNesting));
                 } else {
                     match self.stack.last_mut() {
                         Some(e) => e.children.push(Xml::ElementNode(elem)),
-                        None => return Ok(Some(elem))
+                        None => return Some(Ok(elem))
                     }
                 }
             }
@@ -160,6 +164,6 @@ impl ElementBuilder {
                 }
             }
         }
-        Ok(None)
+        None
     }
 }

@@ -387,12 +387,8 @@ impl FromStr for Element {
         let mut e = element_builder::ElementBuilder::new();
 
         p.feed_str(data);
-        for event in p {
-            match e.push_event(event) {
-                Ok(Some(elem)) => return Ok(elem),
-                Ok(None) => (),
-                Err(err) => return Err(err)
-            }
+        for event in p.filter_map(|x| e.handle_event(x)) {
+            return event;
         }
         Err(BuilderError::NoElement)
     }

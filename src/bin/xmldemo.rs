@@ -6,7 +6,6 @@
 
 // These are unstable for now
 #![feature(exit_status)]
-#![feature(io)]
 
 extern crate xml;
 use std::fs::File;
@@ -42,11 +41,10 @@ fn main() {
     };
 
     p.feed_str(&string);
-    for event in p {
+    for event in p.filter_map(|x| e.handle_event(x)) {
         // println!("{:?}", event);
-        match e.push_event(event) {
-            Ok(Some(e)) => println!("{}", e),
-            Ok(None) => (),
+        match event {
+            Ok(e) => println!("{}", e),
             Err(e) => println!("{}", e),
         }
     }
