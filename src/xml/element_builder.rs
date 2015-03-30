@@ -52,8 +52,19 @@ impl FromError<ParserError> for BuilderError {
     fn from_error(err: ParserError) -> BuilderError { BuilderError::Parser(err) }
 }
 
-// DOM Builder
 /// An Element Builder, building `Element`s from `Event`s as produced by `Parser`
+///
+/// ~~~
+/// use xml::{Parser, ElementBuilder};
+///
+/// let mut parser = Parser::new();
+/// let mut builder = ElementBuilder::new();
+///
+/// parser.feed_str("<example/>");
+/// for result in parser.filter_map(|event| builder.handle_event(event)) {
+///     println!("{}", result.unwrap());
+/// }
+/// ~~~
 pub struct ElementBuilder {
     stack: Vec<Element>,
     default_ns: Vec<Option<String>>,
