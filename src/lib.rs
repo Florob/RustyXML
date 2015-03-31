@@ -246,17 +246,15 @@ impl fmt::Display for Element{
 }
 
 impl Element {
-    /// Create a new element, with specified name and namespace.
-    /// Attributes are specified as a slice of (name, namespace, value) tuples.
-    pub fn new(name: &str, ns: Option<&str>, attrs: &[(&str, Option<&str>, &str)]) -> Element {
-        let ns = ns.map(|x| x.to_string());
-        let mut attributes: HashMap<(String, Option<String>), String> = HashMap::new();
-        for &(name, ref ns, value) in attrs {
-            attributes.insert((name.to_string(), ns.map(|x| x.to_string())),
-                              value.to_string());
-        }
+    /// Create a new `Element`, with specified name and namespace.
+    /// Attributes are specified as a `Vec` of `(name, namespace, value)` tuples.
+    pub fn new(name: String, ns: Option<String>,
+               attrs: Vec<(String, Option<String>, String)>) -> Element {
+        let attributes: HashMap<_, _> = attrs.into_iter()
+                                             .map(|(name, ns, value)| ((name, ns), value))
+                                             .collect();
         Element {
-            name: name.to_string(),
+            name: name,
             ns: ns.clone(),
             default_ns: ns,
             prefixes: HashMap::new(),
@@ -287,9 +285,9 @@ impl Element {
 
     /// Sets the attribute with the specified name and namespace.
     /// Returns the original value.
-    pub fn set_attribute(&mut self, name: &str, ns: Option<&str>, value: &str) -> Option<String> {
-        self.attributes.insert((name.to_string(), ns.map(|x| x.to_string())),
-                               value.to_string())
+    pub fn set_attribute(&mut self, name: String, ns: Option<String>,
+                         value: String) -> Option<String> {
+        self.attributes.insert((name, ns), value)
     }
 
     /// Remove the attribute with the specified name and namespace.
@@ -355,26 +353,26 @@ impl<'a> Element {
     }
 
     /// Appends characters. Returns a mutable reference to self.
-    pub fn text(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(Xml::CharacterNode(text.to_string()));
+    pub fn text(&'a mut self, text: String) -> &'a mut Element {
+        self.children.push(Xml::CharacterNode(text));
         self
     }
 
     /// Appends CDATA. Returns a mutable reference to self.
-    pub fn cdata(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(Xml::CDATANode(text.to_string()));
+    pub fn cdata(&'a mut self, text: String) -> &'a mut Element {
+        self.children.push(Xml::CDATANode(text));
         self
     }
 
     /// Appends a comment. Returns a mutable reference to self.
-    pub fn comment(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(Xml::CommentNode(text.to_string()));
+    pub fn comment(&'a mut self, text: String) -> &'a mut Element {
+        self.children.push(Xml::CommentNode(text));
         self
     }
 
     /// Appends processing information. Returns a mutable reference to self.
-    pub fn pi(&'a mut self, text: &str) -> &'a mut Element {
-        self.children.push(Xml::PINode(text.to_string()));
+    pub fn pi(&'a mut self, text: String) -> &'a mut Element {
+        self.children.push(Xml::PINode(text));
         self
     }
 }
@@ -418,18 +416,22 @@ mod lib_tests {
 
     #[test]
     fn test_show_element() {
-        let elem = Element::new("a", None, &[]);
+        let elem = Element::new("a".to_string(), None, vec![]);
         assert_eq!(format!("{}", elem), "<a/>");
 
-        let elem = Element::new("a", None, &[("href", None, "http://rust-lang.org")]);
+        let elem = Element::new("a".to_string(), None,
+                                vec![("href".to_string(), None,
+                                      "http://rust-lang.org".to_string())]);
         assert_eq!(format!("{}", elem), "<a href='http://rust-lang.org'/>");
 
-        let mut elem = Element::new("a", None, &[]);
-        elem.tag(Element::new("b", None, &[]));
+        let mut elem = Element::new("a".to_string(), None, vec![]);
+        elem.tag(Element::new("b".to_string(), None, vec![]));
         assert_eq!(format!("{}", elem), "<a><b/></a>");
 
-        let mut elem = Element::new("a", None, &[("href", None, "http://rust-lang.org")]);
-        elem.tag(Element::new("b", None, &[]));
+        let mut elem = Element::new("a".to_string(), None,
+                                    vec![("href".to_string(), None,
+                                          "http://rust-lang.org".to_string())]);
+        elem.tag(Element::new("b".to_string(), None, vec![]));
         assert_eq!(format!("{}", elem), "<a href='http://rust-lang.org'><b/></a>");
     }
 
@@ -441,7 +443,9 @@ mod lib_tests {
         let elem: Element = "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>".parse().unwrap();
         assert_eq!(format!("{}", elem), "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>");
 
-        let elem = Element::new("a", Some("urn:test"), &[("href", None, "http://rust-lang.org")]);
+        let elem = Element::new("a".to_string(), Some("urn:test".to_string()),
+                                vec![("href".to_string(), None,
+                                      "http://rust-lang.org".to_string())]);
         assert_eq!(format!("{}", elem), "<a xmlns='urn:test' href='http://rust-lang.org'/>");
     }
 
@@ -471,12 +475,12 @@ mod lib_tests {
 
     #[test]
     fn test_content_str() {
-        let mut elem = Element::new("a", None, &[]);
-        elem.pi("processing information")
-            .cdata("<hello/>")
-            .tag_stay(Element::new("b", None, &[]))
-            .text("World")
-            .comment("Nothing to see");
+        let mut elem = Element::new("a".to_string(), None, vec![]);
+        elem.pi("processing information".to_string())
+            .cdata("<hello/>".to_string())
+            .tag_stay(Element::new("b".to_string(), None, vec![]))
+            .text("World".to_string())
+            .comment("Nothing to see".to_string());
         assert_eq!(elem.content_str(), "<hello/>World");
     }
 }

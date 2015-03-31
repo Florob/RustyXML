@@ -85,13 +85,13 @@ impl ElementBuilder {
     }
 
     /// Bind a prefix to a namespace
-    pub fn define_prefix(&mut self, prefix: &str, ns: &str) {
-        self.prefixes.insert(ns.to_string(), prefix.to_string());
+    pub fn define_prefix(&mut self, prefix: String, ns: String) {
+        self.prefixes.insert(ns, prefix);
     }
 
     /// Set the default namespace
-    pub fn set_default_ns(&mut self, ns: &str) {
-        self.default_ns = vec![Some(ns.to_string())];
+    pub fn set_default_ns(&mut self, ns: String) {
+        self.default_ns = vec![Some(ns)];
     }
 
     /// Let the builder process an `Event` to ultimately build an `Element`.
