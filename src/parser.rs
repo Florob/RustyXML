@@ -8,12 +8,30 @@
 // ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
-use super::{Event, unescape, StartTag, EndTag};
+use super::{unescape, StartTag, EndTag};
 use std::collections::{HashMap, VecDeque};
 use std::error::Error;
 use std::fmt;
 use std::iter::Iterator;
 use std::mem;
+
+#[derive(PartialEq, Eq, Debug)]
+/// Events returned by the `Parser`
+pub enum Event {
+    /// Event indicating processing information was found
+    PI(String),
+    /// Event indicating a start tag was found
+    ElementStart(StartTag),
+    /// Event indicating a end tag was found
+    ElementEnd(EndTag),
+    /// Event indicating character data was found
+    Characters(String),
+    /// Event indicating CDATA was found
+    CDATA(String),
+    /// Event indicating a comment was found
+    Comment(String)
+}
+
 
 #[derive(PartialEq, Debug, Clone)]
 #[allow(missing_copy_implementations)]
