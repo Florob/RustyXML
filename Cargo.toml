@@ -5,9 +5,3 @@ authors = [ "Florian Zeitz <florob@babelmonkeys.de>" ]
 
 [lib]
 name = "xml"
-path = "src/xml/lib.rs"
-
-[[bin]]
-name = "xmldemo"
-test = false
-bench = false
