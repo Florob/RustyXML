@@ -20,6 +20,7 @@
 pub use parser::Event;
 pub use parser::Parser;
 pub use parser::ParserError;
+pub use element::ChildElements;
 pub use element::Element;
 pub use element_builder::ElementBuilder;
 pub use element_builder::BuilderError;

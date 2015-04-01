@@ -9,6 +9,7 @@ use element_builder::{BuilderError, ElementBuilder};
 use parser::Parser;
 
 use std::fmt;
+use std::slice;
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -92,6 +93,29 @@ impl fmt::Display for Element{
     }
 }
 
+/// An iterator returning filtered child `Element`s of another `Element`
+pub struct ChildElements<'a, 'b> {
+    elems: slice::Iter<'a, Xml>,
+    name: &'b str,
+    ns: Option<&'b str>
+}
+
+impl<'a, 'b> Iterator for ChildElements<'a, 'b> {
+    type Item = &'a Element;
+
+    fn next(&mut self) -> Option<&'a Element> {
+        let (name, ns) = (self.name, self.ns);
+        self.elems.by_ref().filter_map(|child| {
+            if let Xml::ElementNode(ref elem) = *child {
+                if name == elem.name && ns == elem.ns.as_ref().map(|x| &x[..]) {
+                    return Some(elem);
+                }
+            }
+            None
+        }).next()
+    }
+}
+
 impl Element {
     /// Create a new `Element`, with specified name and namespace.
     /// Attributes are specified as a `Vec` of `(name, namespace, value)` tuples.
@@ -151,38 +175,18 @@ impl Element {
     /// Gets the first child `Element` with the specified name and namespace. When no child
     /// with the specified name exists `None` is returned.
     pub fn get_child<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a Element> {
-        for child in &self.children {
-            if let Xml::ElementNode(ref elem) = *child {
-                if elem.name != name {
-                    continue;
-                }
-                match (ns, elem.ns.as_ref().map(|x| &x[..])) {
-                    (Some(x), Some(y)) if x == y => return Some(elem),
-                    (None, None) => return Some(elem),
-                    _ => ()
-                }
-            }
-        }
-        None
+        self.get_children(name, ns).next()
     }
 
     /// Get all children `Element` with the specified name and namespace. When no child
     /// with the specified name exists an empty vetor is returned.
-    pub fn get_children<'a>(&'a self, name: &str, ns: Option<&str>) -> Vec<&'a Element> {
-        let mut res: Vec<&'a Element> = Vec::new();
-        for child in &self.children {
-            if let Xml::ElementNode(ref elem) = *child {
-                if elem.name != name {
-                    continue;
-                }
-                match (ns, elem.ns.as_ref().map(|x| &x[..])) {
-                    (Some(x), Some(y)) if x == y => res.push(elem),
-                    (None, None) => res.push(elem),
-                    _ => ()
-                }
-            }
+    pub fn get_children<'a, 'b>(&'a self, name: &'b str,
+                                ns: Option<&'b str>) -> ChildElements<'a, 'b> {
+        ChildElements {
+            elems: self.children.iter(),
+            name: name,
+            ns: ns
         }
-        res
     }
 
     /// Appends a child element. Returns a reference to the added element.
@@ -239,5 +243,25 @@ impl FromStr for Element {
             return event;
         }
         Err(BuilderError::NoElement)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Element;
+
+    #[test]
+    fn test_get_children() {
+        let elem: Element = "<a><b/><c/><b/></a>".parse().unwrap();
+        assert_eq!(elem.get_children("b", None).cloned().collect(),
+                   vec![Element::new("b".to_string(), None, vec![]),
+                        Element::new("b".to_string(), None, vec![])]);
+    }
+
+    #[test]
+    fn test_get_child() {
+        let elem: Element = "<a><b/><c/><b/></a>".parse().unwrap();
+        assert_eq!(elem.get_child("b", None),
+                   Some(&Element::new("b".to_string(), None, vec![])));
     }
 }
