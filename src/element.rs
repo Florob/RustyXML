@@ -97,14 +97,19 @@ impl Element {
     /// Attributes are specified as a `Vec` of `(name, namespace, value)` tuples.
     pub fn new(name: String, ns: Option<String>,
                attrs: Vec<(String, Option<String>, String)>) -> Element {
+        let mut prefixes = HashMap::with_capacity(2);
+        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
+        prefixes.insert("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
+
         let attributes: HashMap<_, _> = attrs.into_iter()
                                              .map(|(name, ns, value)| ((name, ns), value))
                                              .collect();
+
         Element {
             name: name,
             ns: ns.clone(),
             default_ns: ns,
-            prefixes: HashMap::new(),
+            prefixes: prefixes,
             attributes: attributes,
             children: Vec::new()
         }
