@@ -255,9 +255,9 @@ mod tests {
     #[test]
     fn test_get_children() {
         let elem: Element = "<a><b/><c/><b/></a>".parse().unwrap();
-        assert_eq!(elem.get_children("b", None).cloned().collect(),
-                   vec![Element::new("b".to_string(), None, vec![]),
-                        Element::new("b".to_string(), None, vec![])]);
+        assert_eq!(elem.get_children("b", None).collect::<Vec<_>>(),
+                   vec![&Element::new("b".to_string(), None, vec![]),
+                        &Element::new("b".to_string(), None, vec![])]);
     }
 
     #[test]
