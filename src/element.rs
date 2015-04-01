@@ -20,14 +20,16 @@ pub struct Element {
     pub name: String,
     /// The element's namespace
     pub ns: Option<String>,
-    /// The element's default namespace
-    pub default_ns: Option<String>,
-    /// The prefixes set for known namespaces
-    pub prefixes: HashMap<String, String>,
     /// The element's attributes
     pub attributes: HashMap<(String, Option<String>), String>,
     /// The element's child `Xml` nodes
     pub children: Vec<Xml>,
+    #[doc(hidden)]
+    // The prefixes set for known namespaces
+    pub prefixes: HashMap<String, String>,
+    #[doc(hidden)]
+    // The element's default namespace
+    pub default_ns: Option<String>
 }
 
 fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<String, String>,
