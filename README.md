@@ -13,6 +13,58 @@ The current limitations are:
 
 This project tracks Rust's master branch.
 
+Examples
+--------
+Parse a string into an `Element` struct:
+```rust
+use xml::Element;
+
+let elem: Option<Element> = "<a href='//example.com'/>".parse();
+```
+
+Get events from parsing string data:
+```rust
+use xml::{Event, Parser};
+
+// Create a new Parser
+let mut p = Parser::new();
+
+// Feed data to be parsed
+p.feed_str("<a href");
+p.feed_str("='//example.com'/>");
+
+// Get events for the fed data
+for event in p {
+    match event.unwrap() {
+        Event::ElementStart(tag) => println!("<{}>", tag.name),
+        Event::ElementEnd(tag) => println!("</{}>", tag.name),
+        _ => ()
+    }
+}
+```
+
+This should print:
+```
+<a>
+</a>
+```
+
+Build `Element`s from `Parser` `Event`s:
+```rust
+use xml::{Parser, ElementBuilder};
+
+let mut p = xml::Parser::new();
+let mut e = xml::ElementBuilder::new();
+
+p.feed_str("<a href='//example.com'/>");
+for elem in p.filter_map(|x| e.handle_event(x)) {
+    match elem {
+        Ok(e) => println!("{}", e),
+        Err(e) => println!("{}", e),
+    }
+}
+```
+
 License
 -------
 
