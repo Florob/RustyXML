@@ -8,6 +8,7 @@
 #![crate_type = "lib" ]
 #![forbid(non_camel_case_types)]
 #![warn(missing_docs)]
+#![feature(core)]
 
 // These are unstable for now
 #![cfg_attr(test, feature(test))]
@@ -26,6 +27,7 @@ pub use element_builder::BuilderError;
 
 use std::char;
 use std::fmt;
+use std::num;
 use std::collections::HashMap;
 
 mod parser;
@@ -77,9 +79,9 @@ pub fn unescape(input: &str) -> Result<String, String> {
                     "amp"  => result.push('&'),
                     ent => {
                         let val = if ent.starts_with("#x") {
-                            u32::from_str_radix(&ent[2..], 16).ok()
+                            num::from_str_radix(&ent[2..], 16).ok()
                         } else if ent.starts_with("#") {
-                            u32::from_str_radix(&ent[1..], 10).ok()
+                            num::from_str_radix(&ent[1..], 10).ok()
                         } else {
                             None
                         };
