@@ -1,7 +1,13 @@
 [package]
 name = "RustyXML"
-version = "0.0.1"
+version = "0.1.0"
 authors = [ "Florian Zeitz <florob@babelmonkeys.de>" ]
+license = "MIT"
+homepage = "https://github.com/Florob/RustyXML"
+repository = "https://github.com/Florob/RustyXML"
+description = "A SAX-like streaming XML parser, and a DOM-like interface based on that"
+keywords = [ "XML", "parser" ]
+readme = "README.md"
 
 [lib]
 name = "xml"
