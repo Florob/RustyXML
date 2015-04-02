@@ -7,7 +7,7 @@
 use super::{Event, Xml, Element, StartTag, EndTag};
 use parser::ParserError;
 use std::collections::HashMap;
-use std::error::{Error, FromError};
+use std::error::Error;
 use std::fmt;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -48,8 +48,8 @@ impl fmt::Display for BuilderError {
     }
 }
 
-impl FromError<ParserError> for BuilderError {
-    fn from_error(err: ParserError) -> BuilderError { BuilderError::Parser(err) }
+impl From<ParserError> for BuilderError {
+    fn from(err: ParserError) -> BuilderError { BuilderError::Parser(err) }
 }
 
 /// An Element Builder, building `Element`s from `Event`s as produced by `Parser`
@@ -103,7 +103,7 @@ impl ElementBuilder {
                         e: Result<Event, ParserError>) -> Option<Result<Element, BuilderError>> {
         let e = match e {
             Ok(o) => o,
-            Err(e) => return Some(Err(FromError::from_error(e)))
+            Err(e) => return Some(Err(From::from(e)))
         };
         match e {
             Event::PI(cont) => {
