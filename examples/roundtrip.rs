@@ -4,9 +4,6 @@
 // This project is MIT licensed.
 // Please see the COPYING file for more information.
 
-// These are unstable for now
-#![feature(exit_status)]
-
 extern crate xml;
 use std::fs::File;
 use std::io::Read;
@@ -25,8 +22,7 @@ fn main() {
         Ok(file) => file,
         Err(err) => {
             println!("Couldn't open file: {}", err);
-            std::env::set_exit_status(1);
-            return;
+            std::process::exit(1);
         }
     };
 
@@ -36,8 +32,7 @@ fn main() {
     let mut string = String::new();
     if let Err(err) = rdr.read_to_string(&mut string) {
         println!("Reading failed: {}", err);
-        std::env::set_exit_status(1);
-        return;
+        std::process::exit(1);
     };
 
     p.feed_str(&string);
