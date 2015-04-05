@@ -10,7 +10,7 @@
 #![warn(missing_docs)]
 
 // Required for benchmarks
-#![cfg_attr(test, feature(test))]
+#![cfg_attr(feature = "bench", feature(test))]
 
 /*!
  * An XML parsing library
@@ -243,6 +243,7 @@ mod lib_tests {
 }
 
 #[cfg(test)]
+#[cfg(feature = "bench")]
 mod lib_bench {
     extern crate test;
 

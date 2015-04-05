@@ -11,3 +11,6 @@ readme = "README.md"
 
 [lib]
 name = "xml"
+
+[features]
+bench = []
