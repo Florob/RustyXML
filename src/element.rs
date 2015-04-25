@@ -11,6 +11,7 @@ use parser::Parser;
 use std::fmt;
 use std::slice;
 use std::collections::HashMap;
+use std::iter::IntoIterator;
 use std::str::FromStr;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -89,7 +90,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
     }
 }
 
-impl fmt::Display for Element{
+impl fmt::Display for Element {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt_elem(self, None, &HashMap::new(), f)
     }
@@ -121,8 +122,9 @@ impl<'a, 'b> Iterator for ChildElements<'a, 'b> {
 impl Element {
     /// Create a new `Element`, with specified name and namespace.
     /// Attributes are specified as a `Vec` of `(name, namespace, value)` tuples.
-    pub fn new(name: String, ns: Option<String>,
-               attrs: Vec<(String, Option<String>, String)>) -> Element {
+    pub fn new<A>(name: String, ns: Option<String>, attrs: A) -> Element
+        where A: IntoIterator<Item=(String, Option<String>, String)>
+    {
         let mut prefixes = HashMap::with_capacity(2);
         prefixes.insert("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
         prefixes.insert("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
