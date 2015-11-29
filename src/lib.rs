@@ -91,7 +91,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
                 }
                 result.push_str(&sub[idx+1..]);
             }
-            None => return Err("&".to_string() + sub)
+            None => return Err("&".to_owned() + sub)
         }
     }
     Ok(result)
@@ -173,22 +173,22 @@ mod lib_tests {
 
     #[test]
     fn test_show_element() {
-        let elem = Element::new("a".to_string(), None, vec![]);
+        let elem = Element::new("a".to_owned(), None, vec![]);
         assert_eq!(format!("{}", elem), "<a/>");
 
-        let elem = Element::new("a".to_string(), None,
-                                vec![("href".to_string(), None,
-                                      "http://rust-lang.org".to_string())]);
+        let elem = Element::new("a".to_owned(), None,
+                                vec![("href".to_owned(), None,
+                                      "http://rust-lang.org".to_owned())]);
         assert_eq!(format!("{}", elem), "<a href='http://rust-lang.org'/>");
 
-        let mut elem = Element::new("a".to_string(), None, vec![]);
-        elem.tag(Element::new("b".to_string(), None, vec![]));
+        let mut elem = Element::new("a".to_owned(), None, vec![]);
+        elem.tag(Element::new("b".to_owned(), None, vec![]));
         assert_eq!(format!("{}", elem), "<a><b/></a>");
 
-        let mut elem = Element::new("a".to_string(), None,
-                                    vec![("href".to_string(), None,
-                                          "http://rust-lang.org".to_string())]);
-        elem.tag(Element::new("b".to_string(), None, vec![]));
+        let mut elem = Element::new("a".to_owned(), None,
+                                    vec![("href".to_owned(), None,
+                                          "http://rust-lang.org".to_owned())]);
+        elem.tag(Element::new("b".to_owned(), None, vec![]));
         assert_eq!(format!("{}", elem), "<a href='http://rust-lang.org'><b/></a>");
     }
 
@@ -200,44 +200,44 @@ mod lib_tests {
         let elem: Element = "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>".parse().unwrap();
         assert_eq!(format!("{}", elem), "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>");
 
-        let elem = Element::new("a".to_string(), Some("urn:test".to_string()),
-                                vec![("href".to_string(), None,
-                                      "http://rust-lang.org".to_string())]);
+        let elem = Element::new("a".to_owned(), Some("urn:test".to_owned()),
+                                vec![("href".to_owned(), None,
+                                      "http://rust-lang.org".to_owned())]);
         assert_eq!(format!("{}", elem), "<a xmlns='urn:test' href='http://rust-lang.org'/>");
     }
 
     #[test]
     fn test_show_characters() {
-        let chars = Xml::CharacterNode("some text".to_string());
+        let chars = Xml::CharacterNode("some text".to_owned());
         assert_eq!(format!("{}", chars), "some text");
     }
 
     #[test]
     fn test_show_cdata() {
-        let chars = Xml::CDATANode("some text".to_string());
+        let chars = Xml::CDATANode("some text".to_owned());
         assert_eq!(format!("{}", chars), "<![CDATA[some text]]>");
     }
 
     #[test]
     fn test_show_comment() {
-        let chars = Xml::CommentNode("some text".to_string());
+        let chars = Xml::CommentNode("some text".to_owned());
         assert_eq!(format!("{}", chars), "<!--some text-->");
     }
 
     #[test]
     fn test_show_pi() {
-        let chars = Xml::PINode("xml version='1.0'".to_string());
+        let chars = Xml::PINode("xml version='1.0'".to_owned());
         assert_eq!(format!("{}", chars), "<?xml version='1.0'?>");
     }
 
     #[test]
     fn test_content_str() {
-        let mut elem = Element::new("a".to_string(), None, vec![]);
-        elem.pi("processing information".to_string())
-            .cdata("<hello/>".to_string())
-            .tag_stay(Element::new("b".to_string(), None, vec![]))
-            .text("World".to_string())
-            .comment("Nothing to see".to_string());
+        let mut elem = Element::new("a".to_owned(), None, vec![]);
+        elem.pi("processing information".to_owned())
+            .cdata("<hello/>".to_owned())
+            .tag_stay(Element::new("b".to_owned(), None, vec![]))
+            .text("World".to_owned())
+            .comment("Nothing to see".to_owned());
         assert_eq!(elem.content_str(), "<hello/>World");
     }
 }

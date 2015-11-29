@@ -75,8 +75,8 @@ impl ElementBuilder {
     /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
         let mut prefixes = HashMap::with_capacity(2);
-        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
-        prefixes.insert("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
+        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_owned(), "xml".to_owned());
+        prefixes.insert("http://www.w3.org/2000/xmlns/".to_owned(), "xmlns".to_owned());
         ElementBuilder {
             stack: Vec::new(),
             default_ns: Vec::new(),
@@ -121,14 +121,14 @@ impl ElementBuilder {
                     children: Vec::new()
                 };
 
-                if let Some(default) = self.default_ns.last().map(|x| x.clone()) {
+                if let Some(default) = self.default_ns.last().cloned() {
                     self.default_ns.push(default)
                 }
 
                 for (&(ref name, ref ns), value) in &elem.attributes {
-                    if ns.is_none() && *name == "xmlns" {
+                    if ns.is_none() && name == "xmlns" {
                         self.default_ns.pop();
-                        if value.len() == 0 {
+                        if value.is_empty() {
                             self.default_ns.push(None);
                         } else {
                             self.default_ns.push(Some(value.clone()));
@@ -136,7 +136,7 @@ impl ElementBuilder {
                         continue;
                     }
 
-                    if ns.as_ref().map_or(false, |x| *x == "http://www.w3.org/2000/xmlns/") {
+                    if ns.as_ref().map_or(false, |x| x == "http://www.w3.org/2000/xmlns/") {
                         elem.prefixes.insert(value.clone(), name.clone());
                     }
                 }

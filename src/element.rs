@@ -36,11 +36,11 @@ pub struct Element {
 fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<String, String>,
             f: &mut fmt::Formatter) -> fmt::Result {
     let mut all_prefixes = all_prefixes.clone();
-    all_prefixes.extend(elem.prefixes.iter().map(|(k, v)| (k.clone(), v.clone()) ));
+    all_prefixes.extend(elem.prefixes.clone().into_iter());
 
     // Do we need a prefix?
     try!(if elem.ns != elem.default_ns {
-        let prefix = all_prefixes.get(elem.ns.as_ref().map(|x| &x[..]).unwrap_or(""))
+        let prefix = all_prefixes.get(elem.ns.as_ref().map_or("", |x| &x[..]))
                                  .expect("No namespace prefix bound");
         write!(f, "<{}:{}", *prefix, elem.name)
     } else {
@@ -48,13 +48,13 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
     });
 
     // Do we need to set the default namespace ?
-    if !elem.attributes.iter().any(|(&(ref name, _), _)| *name == "xmlns") {
+    if !elem.attributes.iter().any(|(&(ref name, _), _)| name == "xmlns") {
         match (parent, &elem.default_ns) {
             // No parent, namespace is not empty
             (None, &Some(ref ns)) => try!(write!(f, " xmlns='{}'", *ns)),
             // Parent and child namespace differ
             (Some(parent), ns) if parent.default_ns != *ns => {
-                try!(write!(f, " xmlns='{}'", ns.as_ref().map(|x| &x[..]).unwrap_or("")))
+                try!(write!(f, " xmlns='{}'", ns.as_ref().map_or("", |x| &x[..])))
             },
             _ => ()
         }
@@ -70,7 +70,7 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
         });
     }
 
-    if elem.children.len() == 0 {
+    if elem.children.is_empty() {
         write!(f, "/>")
     } else {
         try!(write!(f, ">"));
@@ -126,8 +126,8 @@ impl Element {
         where A: IntoIterator<Item=(String, Option<String>, String)>
     {
         let mut prefixes = HashMap::with_capacity(2);
-        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_string(), "xml".to_string());
-        prefixes.insert("http://www.w3.org/2000/xmlns/".to_string(), "xmlns".to_string());
+        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_owned(), "xml".to_owned());
+        prefixes.insert("http://www.w3.org/2000/xmlns/".to_owned(), "xmlns".to_owned());
 
         let attributes: HashMap<_, _> = attrs.into_iter()
                                              .map(|(name, ns, value)| ((name, ns), value))
@@ -160,7 +160,7 @@ impl Element {
     /// Gets an attribute with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
     pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a str> {
-        self.attributes.get(&(name.to_string(), ns.map(|x| x.to_string()))).map(|x| &x[..])
+        self.attributes.get(&(name.to_owned(), ns.map(|x| x.to_owned()))).map(|x| &x[..])
     }
 
     /// Sets the attribute with the specified name and namespace.
@@ -173,7 +173,7 @@ impl Element {
     /// Remove the attribute with the specified name and namespace.
     /// Returns the original value.
     pub fn remove_attribute(&mut self, name: &str, ns: Option<&str>) -> Option<String> {
-        self.attributes.remove(&(name.to_string(), ns.map(|x| x.to_string())))
+        self.attributes.remove(&(name.to_owned(), ns.map(|x| x.to_owned())))
     }
 
     /// Gets the first child `Element` with the specified name and namespace. When no child
@@ -197,11 +197,10 @@ impl Element {
     pub fn tag(&mut self, child: Element) -> &mut Element {
         self.children.push(Xml::ElementNode(child));
         let error = "Internal error: Could not get reference to new element!";
-        let elem = match self.children.last_mut().expect(error) {
-            &mut Xml::ElementNode(ref mut elem) => elem,
+        match *self.children.last_mut().expect(error) {
+            Xml::ElementNode(ref mut elem) => elem,
             _ => panic!(error)
-        };
-        elem
+        }
     }
 
     /// Appends a child element. Returns a mutable reference to self.
@@ -258,14 +257,14 @@ mod tests {
     fn test_get_children() {
         let elem: Element = "<a><b/><c/><b/></a>".parse().unwrap();
         assert_eq!(elem.get_children("b", None).collect::<Vec<_>>(),
-                   vec![&Element::new("b".to_string(), None, vec![]),
-                        &Element::new("b".to_string(), None, vec![])]);
+                   vec![&Element::new("b".to_owned(), None, vec![]),
+                        &Element::new("b".to_owned(), None, vec![])]);
     }
 
     #[test]
     fn test_get_child() {
         let elem: Element = "<a><b/><c/><b/></a>".parse().unwrap();
         assert_eq!(elem.get_child("b", None),
-                   Some(&Element::new("b".to_string(), None, vec![])));
+                   Some(&Element::new("b".to_owned(), None, vec![])));
     }
 }
