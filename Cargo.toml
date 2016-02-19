@@ -2,7 +2,7 @@
 name = "RustyXML"
 version = "0.1.1"
 authors = [ "Florian Zeitz <florob@babelmonkeys.de>" ]
-license = "MIT"
+license = "MIT/Apache-2.0"
 homepage = "https://github.com/Florob/RustyXML"
 repository = "https://github.com/Florob/RustyXML"
 documentation = "https://docs.babelmonkeys.de/RustyXML/xml/"
