@@ -1,6 +1,10 @@
 RustyXML
 ========
 
+[![Build Status](https://travis-ci.org/Florob/RustyXML.svg?branch=master)](https://travis-ci.org/Florob/RustyXML)
+
+[Documentation](https://docs.babelmonkeys.de/RustyXML/xml)
+
 RustyXML is a namespace aware XML parser written in Rust.
 Right now it provides a basic SAX-like API, and an ElementBuilder based on that.
 
@@ -11,7 +15,7 @@ The current limitations are:
 * Incomplete error checking
 * Unstable API
 
-This project tracks Rust's master branch.
+This project tracks Rust stable.
 
 Examples
 --------
@@ -65,10 +69,33 @@ for elem in p.filter_map(|x| e.handle_event(x)) {
 }
 ```
 
+Build `Element`s by hand:
+```rust
+let mut reply = xml::Element::new("iq".into(), Some("jabber:client".into()),
+                                  vec![("type".into(), None, "error".into()),
+                                       ("id".into(), None, "42".into())]);
+reply.tag(xml::Element::new("error".into(), Some("jabber:client".into()),
+                            vec![("type".into(), None, "cancel".into())]))
+     .tag_stay(xml::Element::new("forbidden".into(),
+                                 Some("urn:ietf:params:xml:ns:xmpp-stanzas".into()),
+                                 vec![]))
+     .tag(xml::Element::new("text".into(),
+                            Some("urn:ietf:params:xml:ns:xmpp-stanzas".into()),
+                            vec![]))
+     .text("Permission denied".into());
+```
+Result (some whitespace added for readability):
+```xml
+<iq xmlns='jabber:client' id='42' type='error'>
+  <error type='cancel'>
+    <forbidden xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>
+    <text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'>Permission denied</text>
+  </error>
+</iq>
+```
+
 License
 -------
 
 This project is MIT licensed.
 Please see the COPYING file for more information.
-
-[![Build Status](https://travis-ci.org/Florob/RustyXML.svg?branch=master)](https://travis-ci.org/Florob/RustyXML)

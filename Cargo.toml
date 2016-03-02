@@ -5,6 +5,7 @@ authors = [ "Florian Zeitz <florob@babelmonkeys.de>" ]
 license = "MIT"
 homepage = "https://github.com/Florob/RustyXML"
 repository = "https://github.com/Florob/RustyXML"
+documentation = "https://docs.babelmonkeys.de/RustyXML/xml/"
 description = "A SAX-like streaming XML parser, and a DOM-like interface based on that"
 keywords = [ "XML", "parser" ]
 readme = "README.md"
