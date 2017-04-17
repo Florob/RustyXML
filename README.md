@@ -23,7 +23,8 @@ Parse a string into an `Element` struct:
 ```rust
 use xml::Element;
 
-let elem: Option<Element> = "<a href='//example.com'/>".parse();
+let p: Element = "<p><a href='//example.com'/></p>".parse().unwrap();
+let href = p.get_child("a", None).unwrap().get_attribute("href", None).unwrap();
 ```
 
 Get events from parsing string data:
