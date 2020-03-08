@@ -33,7 +33,7 @@ impl Error for BuilderError {
         }
     }
 
-    fn cause(&self) -> Option<&dyn Error> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match *self {
             BuilderError::Parser(ref err) => Some(err),
             _ => None,
