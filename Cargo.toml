@@ -1,6 +1,6 @@
 [package]
 name = "RustyXML"
-version = "0.2.0"
+version = "0.3.0"
 authors = [ "Florian Zeitz <florob@babelmonkeys.de>" ]
 license = "MIT/Apache-2.0"
 homepage = "https://github.com/Florob/RustyXML"
