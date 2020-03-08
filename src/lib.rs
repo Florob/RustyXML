@@ -80,7 +80,7 @@ pub fn unescape(input: &str) -> Result<String, String> {
                     ent => {
                         let val = if ent.starts_with("#x") {
                             u32::from_str_radix(&ent[2..], 16).ok()
-                        } else if ent.starts_with("#") {
+                        } else if ent.starts_with('#') {
                             u32::from_str_radix(&ent[1..], 10).ok()
                         } else {
                             None
