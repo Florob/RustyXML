@@ -13,7 +13,7 @@ use std::io::Read;
 
 fn main() {
     let mut args = std::env::args();
-    let name = args.next().unwrap_or("xmldemo".to_string());
+    let name = args.next().unwrap_or_else(|| "roundtrip".to_string());
     let path = args.next();
     let path = if let Some(ref path) = path {
         path
