@@ -191,11 +191,21 @@ impl Iterator for Parser {
 
 #[inline]
 // Parse a QName to get Prefix and LocalPart
-fn parse_qname(qname: &str) -> (Option<String>, String) {
+fn parse_qname(mut qname: String) -> (Option<String>, String) {
     if let Some(i) = qname.find(':') {
-        (Some(qname[..i].to_owned()), qname[i + 1..].to_owned())
+        let local = qname.split_off(i + 1);
+        qname.pop();
+        (Some(qname), local)
     } else {
-        (None, qname.to_owned())
+        (None, qname)
+    }
+}
+
+fn unescape_owned(input: String) -> Result<String, String> {
+    if input.find('&').is_none() {
+        Ok(input)
+    } else {
+        unescape(&input)
     }
 }
 
@@ -213,6 +223,10 @@ impl Parser {
             }
         }
         None
+    }
+
+    fn take_buf(&mut self) -> String {
+        self.buf.split_off(0)
     }
 
     fn error(&self, msg: &'static str) -> Result<Option<Event>, ParserError> {
@@ -254,11 +268,10 @@ impl Parser {
             '<' if self.buf.is_empty() => self.st = State::TagOpened,
             '<' => {
                 self.st = State::TagOpened;
-                let buf = match unescape(&self.buf) {
+                let buf = match unescape_owned(self.take_buf()) {
                     Ok(unescaped) => unescaped,
                     Err(_) => return self.error("Found invalid entity"),
                 };
-                self.buf.truncate(0);
                 return Ok(Some(Event::Characters(buf)));
             }
             _ => self.buf.push(c),
@@ -296,7 +309,7 @@ impl Parser {
                 self.level = 0;
                 self.st = State::OutsideTag;
                 let _ = self.buf.pop();
-                let buf = mem::replace(&mut self.buf, String::new());
+                let buf = self.take_buf();
                 return Ok(Some(Event::PI(buf)));
             }
             _ => self.buf.push(c),
@@ -311,8 +324,7 @@ impl Parser {
     fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             '/' | '>' => {
-                let (prefix, name) = parse_qname(&self.buf);
-                self.buf.truncate(0);
+                let (prefix, name) = parse_qname(self.take_buf());
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(&pre) {
@@ -338,8 +350,7 @@ impl Parser {
             }
             ' ' | '\t' | '\r' | '\n' => {
                 self.namespaces.push(HashMap::new());
-                self.name = Some(parse_qname(&self.buf));
-                self.buf.truncate(0);
+                self.name = Some(parse_qname(self.take_buf()));
                 self.st = State::InTag;
             }
             _ => self.buf.push(c),
@@ -353,8 +364,7 @@ impl Parser {
     fn in_close_tag_name(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             ' ' | '\t' | '\r' | '\n' | '>' => {
-                let (prefix, name) = parse_qname(&self.buf);
-                self.buf.truncate(0);
+                let (prefix, name) = parse_qname(self.take_buf());
 
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
@@ -452,8 +462,7 @@ impl Parser {
         match c {
             '=' => {
                 self.level = 0;
-                self.attr = Some(parse_qname(&self.buf));
-                self.buf.truncate(0);
+                self.attr = Some(parse_qname(self.take_buf()));
                 self.st = State::ExpectDelimiter;
             }
             ' ' | '\t' | '\r' | '\n' => self.level = 1,
@@ -475,11 +484,10 @@ impl Parser {
             let attr = self.attr.take();
             let (prefix, name) =
                 attr.expect("Internal error: In attribute value, but no attribute name set");
-            let value = match unescape(&self.buf) {
+            let value = match unescape_owned(self.take_buf()) {
                 Ok(unescaped) => unescaped,
                 Err(_) => return self.error("Found invalid entity"),
             };
-            self.buf.truncate(0);
 
             let last = self
                 .namespaces
@@ -601,7 +609,7 @@ impl Parser {
                 self.level = 0;
                 let len = self.buf.len();
                 self.buf.truncate(len - 2);
-                let buf = mem::replace(&mut self.buf, String::new());
+                let buf = self.take_buf();
                 return Ok(Some(Event::CDATA(buf)));
             }
             _ => {
@@ -652,7 +660,7 @@ impl Parser {
             self.st = State::OutsideTag;
             let len = self.buf.len();
             self.buf.truncate(len - 2);
-            let buf = mem::replace(&mut self.buf, String::new());
+            let buf = self.take_buf();
             Ok(Some(Event::Comment(buf)))
         }
     }
