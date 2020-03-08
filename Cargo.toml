@@ -9,6 +9,7 @@ documentation = "https://docs.babelmonkeys.de/RustyXML/xml/"
 description = "A SAX-like streaming XML parser, and a DOM-like interface based on that"
 keywords = [ "XML", "parser" ]
 readme = "README.md"
+edition = "2018"
 
 [lib]
 name = "xml"

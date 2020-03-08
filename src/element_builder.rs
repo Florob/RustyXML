@@ -8,7 +8,7 @@
 // except according to those terms.
 
 use super::{Event, Xml, Element, StartTag, EndTag};
-use parser::ParserError;
+use crate::parser::ParserError;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
@@ -33,7 +33,7 @@ impl Error for BuilderError {
         }
     }
 
-    fn cause(&self) -> Option<&Error> {
+    fn cause(&self) -> Option<&dyn Error> {
         match *self {
             BuilderError::Parser(ref err) => Some(err),
             _ => None

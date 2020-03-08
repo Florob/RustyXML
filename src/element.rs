@@ -7,9 +7,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use {escape, Xml};
-use element_builder::{BuilderError, ElementBuilder};
-use parser::Parser;
+use crate::{escape, Xml};
+use crate::element_builder::{BuilderError, ElementBuilder};
+use crate::parser::Parser;
 
 use std::fmt;
 use std::slice;
@@ -42,55 +42,57 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
     all_prefixes.extend(elem.prefixes.clone().into_iter());
 
     // Do we need a prefix?
-    try!(if elem.ns != elem.default_ns {
+    if elem.ns != elem.default_ns {
         let prefix = all_prefixes.get(elem.ns.as_ref().map_or("", |x| &x[..]))
                                  .expect("No namespace prefix bound");
-        write!(f, "<{}:{}", *prefix, elem.name)
+        write!(f, "<{}:{}", *prefix, elem.name)?;
     } else {
-        write!(f, "<{}", elem.name)
-    });
+        write!(f, "<{}", elem.name)?;
+    }
 
     // Do we need to set the default namespace ?
     if !elem.attributes.iter().any(|(&(ref name, _), _)| name == "xmlns") {
         match (parent, &elem.default_ns) {
             // No parent, namespace is not empty
-            (None, &Some(ref ns)) => try!(write!(f, " xmlns='{}'", *ns)),
+            (None, &Some(ref ns)) => write!(f, " xmlns='{}'", *ns)?,
             // Parent and child namespace differ
             (Some(parent), ns) if parent.default_ns != *ns => {
-                try!(write!(f, " xmlns='{}'", ns.as_ref().map_or("", |x| &x[..])))
+                write!(f, " xmlns='{}'", ns.as_ref().map_or("", |x| &x[..]))?
             },
             _ => ()
         }
     }
 
     for (&(ref name, ref ns), value) in &elem.attributes {
-        try!(match *ns {
+        match *ns {
             Some(ref ns) => {
                 let prefix = all_prefixes.get(ns).expect("No namespace prefix bound");
-                write!(f, " {}:{}='{}'", *prefix, name, escape(&value))
+                write!(f, " {}:{}='{}'", *prefix, name, escape(&value))?
             }
-            None => write!(f, " {}='{}'", name, escape(&value))
-        });
+            None => write!(f, " {}='{}'", name, escape(&value))?,
+        }
     }
 
     if elem.children.is_empty() {
-        write!(f, "/>")
+        write!(f, "/>")?;
     } else {
-        try!(write!(f, ">"));
+        write!(f, ">")?;
         for child in &elem.children {
-            try!(match *child {
-                Xml::ElementNode(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f),
-                ref o => fmt::Display::fmt(o, f)
-            });
+            match *child {
+                Xml::ElementNode(ref child) => fmt_elem(child, Some(elem), &all_prefixes, f)?,
+                ref o => fmt::Display::fmt(o, f)?,
+            }
         }
         if elem.ns != elem.default_ns {
             let prefix = all_prefixes.get(elem.ns.as_ref().unwrap())
                                      .expect("No namespace prefix bound");
-            write!(f, "</{}:{}>", *prefix, elem.name)
+            write!(f, "</{}:{}>", *prefix, elem.name)?;
         } else {
-            write!(f, "</{}>", elem.name)
+            write!(f, "</{}>", elem.name)?;
         }
     }
+
+    Ok(())
 }
 
 impl fmt::Display for Element {

@@ -19,13 +19,13 @@
  * An XML parsing library
  */
 
-pub use parser::Event;
-pub use parser::Parser;
-pub use parser::ParserError;
-pub use element::ChildElements;
-pub use element::Element;
-pub use element_builder::ElementBuilder;
-pub use element_builder::BuilderError;
+pub use crate::parser::Event;
+pub use crate::parser::Parser;
+pub use crate::parser::ParserError;
+pub use crate::element::ChildElements;
+pub use crate::element::Element;
+pub use crate::element_builder::ElementBuilder;
+pub use crate::element_builder::BuilderError;
 
 use std::char;
 use std::fmt;

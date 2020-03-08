@@ -649,7 +649,7 @@ impl Parser {
     fn in_doctype(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         static DOCTYPE_PATTERN: [char; 6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {
-            0...5 => if c == DOCTYPE_PATTERN[self.level as usize] {
+            0..=5 => if c == DOCTYPE_PATTERN[self.level as usize] {
                 self.level += 1;
             } else {
                 return self.error("Invalid DOCTYPE");
