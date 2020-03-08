@@ -131,11 +131,11 @@ impl ElementBuilder {
                 attributes,
             }) => {
                 let mut elem = Element {
-                    name: name.clone(),
-                    ns: ns.clone(),
+                    name,
+                    ns,
                     default_ns: None,
                     prefixes: self.prefixes.clone(),
-                    attributes: attributes,
+                    attributes,
                     children: Vec::new(),
                 };
 
