@@ -233,7 +233,7 @@ impl Parser {
         Err(ParserError {
             line: self.line,
             col: self.col,
-            msg: msg,
+            msg,
         })
     }
 
@@ -342,9 +342,9 @@ impl Parser {
                 };
 
                 return Ok(Some(Event::ElementStart(StartTag {
-                    name: name,
-                    ns: ns,
-                    prefix: prefix,
+                    name,
+                    ns,
+                    prefix,
                     attributes: HashMap::new(),
                 })));
             }
@@ -381,11 +381,7 @@ impl Parser {
                     State::ExpectSpaceOrClose
                 };
 
-                Ok(Some(Event::ElementEnd(EndTag {
-                    name: name,
-                    ns: ns,
-                    prefix: prefix,
-                })))
+                Ok(Some(Event::ElementEnd(EndTag { name, ns, prefix })))
             }
             _ => {
                 self.buf.push(c);
@@ -441,9 +437,9 @@ impl Parser {
                 };
 
                 return Ok(Some(Event::ElementStart(StartTag {
-                    name: name,
-                    ns: ns,
-                    prefix: prefix,
+                    name,
+                    ns,
+                    prefix,
                     attributes: attributes_map,
                 })));
             }
@@ -542,11 +538,7 @@ impl Parser {
                     },
                 };
                 self.namespaces.pop();
-                Ok(Some(Event::ElementEnd(EndTag {
-                    name: name,
-                    ns: ns,
-                    prefix: prefix,
-                })))
+                Ok(Some(Event::ElementEnd(EndTag { name, ns, prefix })))
             }
             _ => self.error("Expected '>' to close tag"),
         }

@@ -158,11 +158,11 @@ impl Element {
             .collect();
 
         Element {
-            name: name,
+            name,
             ns: ns.clone(),
             default_ns: ns,
-            prefixes: prefixes,
-            attributes: attributes,
+            prefixes,
+            attributes,
             children: Vec::new(),
         }
     }
@@ -221,8 +221,8 @@ impl Element {
     ) -> ChildElements<'a, 'b> {
         ChildElements {
             elems: self.children.iter(),
-            name: name,
-            ns: ns,
+            name,
+            ns,
         }
     }
 

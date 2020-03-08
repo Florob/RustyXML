@@ -91,7 +91,7 @@ impl ElementBuilder {
         ElementBuilder {
             stack: Vec::new(),
             default_ns: Vec::new(),
-            prefixes: prefixes,
+            prefixes,
         }
     }
 
