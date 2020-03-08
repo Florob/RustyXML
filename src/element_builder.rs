@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use super::{Event, Xml, Element, StartTag, EndTag};
+use super::{Element, EndTag, Event, StartTag, Xml};
 use crate::parser::ParserError;
 use std::collections::HashMap;
 use std::error::Error;
@@ -21,7 +21,7 @@ pub enum BuilderError {
     /// Elements were improperly nested, e.g. <a><b></a></b>
     ImproperNesting,
     /// No element was found
-    NoElement
+    NoElement,
 }
 
 impl Error for BuilderError {
@@ -29,14 +29,14 @@ impl Error for BuilderError {
         match *self {
             BuilderError::Parser(ref err) => err.description(),
             BuilderError::ImproperNesting => "Elements not properly nested",
-            BuilderError::NoElement => "No elements found"
+            BuilderError::NoElement => "No elements found",
         }
     }
 
     fn cause(&self) -> Option<&dyn Error> {
         match *self {
             BuilderError::Parser(ref err) => Some(err),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -46,13 +46,15 @@ impl fmt::Display for BuilderError {
         match *self {
             BuilderError::Parser(ref err) => err.fmt(f),
             BuilderError::ImproperNesting => write!(f, "Elements not properly nested"),
-            BuilderError::NoElement => write!(f, "No elements found")
+            BuilderError::NoElement => write!(f, "No elements found"),
         }
     }
 }
 
 impl From<ParserError> for BuilderError {
-    fn from(err: ParserError) -> BuilderError { BuilderError::Parser(err) }
+    fn from(err: ParserError) -> BuilderError {
+        BuilderError::Parser(err)
+    }
 }
 
 /// An Element Builder, building `Element`s from `Event`s as produced by `Parser`
@@ -71,19 +73,25 @@ impl From<ParserError> for BuilderError {
 pub struct ElementBuilder {
     stack: Vec<Element>,
     default_ns: Vec<Option<String>>,
-    prefixes: HashMap<String, String>
+    prefixes: HashMap<String, String>,
 }
 
 impl ElementBuilder {
     /// Returns a new `ElementBuilder`
     pub fn new() -> ElementBuilder {
         let mut prefixes = HashMap::with_capacity(2);
-        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_owned(), "xml".to_owned());
-        prefixes.insert("http://www.w3.org/2000/xmlns/".to_owned(), "xmlns".to_owned());
+        prefixes.insert(
+            "http://www.w3.org/XML/1998/namespace".to_owned(),
+            "xml".to_owned(),
+        );
+        prefixes.insert(
+            "http://www.w3.org/2000/xmlns/".to_owned(),
+            "xmlns".to_owned(),
+        );
         ElementBuilder {
             stack: Vec::new(),
             default_ns: Vec::new(),
-            prefixes: prefixes
+            prefixes: prefixes,
         }
     }
 
@@ -102,11 +110,13 @@ impl ElementBuilder {
     /// While no root element has been finished `None` is returned.
     /// Once sufficent data has been received an `Element` is returned as `Some(Ok(elem))`.
     /// Upon Error `Some(Err("message"))` is returned.
-    pub fn handle_event(&mut self,
-                        e: Result<Event, ParserError>) -> Option<Result<Element, BuilderError>> {
+    pub fn handle_event(
+        &mut self,
+        e: Result<Event, ParserError>,
+    ) -> Option<Result<Element, BuilderError>> {
         let e = match e {
             Ok(o) => o,
-            Err(e) => return Some(Err(From::from(e)))
+            Err(e) => return Some(Err(From::from(e))),
         };
         match e {
             Event::PI(cont) => {
@@ -114,14 +124,19 @@ impl ElementBuilder {
                     elem.children.push(Xml::PINode(cont));
                 }
             }
-            Event::ElementStart(StartTag { name, ns, prefix: _, attributes }) => {
+            Event::ElementStart(StartTag {
+                name,
+                ns,
+                prefix: _,
+                attributes,
+            }) => {
                 let mut elem = Element {
                     name: name.clone(),
                     ns: ns.clone(),
                     default_ns: None,
                     prefixes: self.prefixes.clone(),
                     attributes: attributes,
-                    children: Vec::new()
+                    children: Vec::new(),
                 };
 
                 if let Some(default) = self.default_ns.last().cloned() {
@@ -139,7 +154,10 @@ impl ElementBuilder {
                         continue;
                     }
 
-                    if ns.as_ref().map_or(false, |x| x == "http://www.w3.org/2000/xmlns/") {
+                    if ns
+                        .as_ref()
+                        .map_or(false, |x| x == "http://www.w3.org/2000/xmlns/")
+                    {
                         elem.prefixes.insert(value.clone(), name.clone());
                     }
                 }
@@ -147,10 +165,14 @@ impl ElementBuilder {
 
                 self.stack.push(elem);
             }
-            Event::ElementEnd(EndTag { name, ns, prefix: _ }) => {
+            Event::ElementEnd(EndTag {
+                name,
+                ns,
+                prefix: _,
+            }) => {
                 let elem = match self.stack.pop() {
                     Some(elem) => elem,
-                    None => return Some(Err(BuilderError::ImproperNesting))
+                    None => return Some(Err(BuilderError::ImproperNesting)),
                 };
                 self.default_ns.pop();
                 if elem.name != name || elem.ns != ns {
@@ -158,7 +180,7 @@ impl ElementBuilder {
                 } else {
                     match self.stack.last_mut() {
                         Some(e) => e.children.push(Xml::ElementNode(elem)),
-                        None => return Some(Ok(elem))
+                        None => return Some(Ok(elem)),
                     }
                 }
             }

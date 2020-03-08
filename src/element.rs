@@ -7,14 +7,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{escape, Xml};
 use crate::element_builder::{BuilderError, ElementBuilder};
 use crate::parser::Parser;
+use crate::{escape, Xml};
 
-use std::fmt;
-use std::slice;
 use std::collections::HashMap;
+use std::fmt;
 use std::iter::IntoIterator;
+use std::slice;
 use std::str::FromStr;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -33,33 +33,42 @@ pub struct Element {
     pub prefixes: HashMap<String, String>,
     #[doc(hidden)]
     // The element's default namespace
-    pub default_ns: Option<String>
+    pub default_ns: Option<String>,
 }
 
-fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<String, String>,
-            f: &mut fmt::Formatter) -> fmt::Result {
+fn fmt_elem(
+    elem: &Element,
+    parent: Option<&Element>,
+    all_prefixes: &HashMap<String, String>,
+    f: &mut fmt::Formatter,
+) -> fmt::Result {
     let mut all_prefixes = all_prefixes.clone();
     all_prefixes.extend(elem.prefixes.clone().into_iter());
 
     // Do we need a prefix?
     if elem.ns != elem.default_ns {
-        let prefix = all_prefixes.get(elem.ns.as_ref().map_or("", |x| &x[..]))
-                                 .expect("No namespace prefix bound");
+        let prefix = all_prefixes
+            .get(elem.ns.as_ref().map_or("", |x| &x[..]))
+            .expect("No namespace prefix bound");
         write!(f, "<{}:{}", *prefix, elem.name)?;
     } else {
         write!(f, "<{}", elem.name)?;
     }
 
     // Do we need to set the default namespace ?
-    if !elem.attributes.iter().any(|(&(ref name, _), _)| name == "xmlns") {
+    if !elem
+        .attributes
+        .iter()
+        .any(|(&(ref name, _), _)| name == "xmlns")
+    {
         match (parent, &elem.default_ns) {
             // No parent, namespace is not empty
             (None, &Some(ref ns)) => write!(f, " xmlns='{}'", *ns)?,
             // Parent and child namespace differ
             (Some(parent), ns) if parent.default_ns != *ns => {
                 write!(f, " xmlns='{}'", ns.as_ref().map_or("", |x| &x[..]))?
-            },
-            _ => ()
+            }
+            _ => (),
         }
     }
 
@@ -84,8 +93,9 @@ fn fmt_elem(elem: &Element, parent: Option<&Element>, all_prefixes: &HashMap<Str
             }
         }
         if elem.ns != elem.default_ns {
-            let prefix = all_prefixes.get(elem.ns.as_ref().unwrap())
-                                     .expect("No namespace prefix bound");
+            let prefix = all_prefixes
+                .get(elem.ns.as_ref().unwrap())
+                .expect("No namespace prefix bound");
             write!(f, "</{}:{}>", *prefix, elem.name)?;
         } else {
             write!(f, "</{}>", elem.name)?;
@@ -105,7 +115,7 @@ impl fmt::Display for Element {
 pub struct ChildElements<'a, 'b> {
     elems: slice::Iter<'a, Xml>,
     name: &'b str,
-    ns: Option<&'b str>
+    ns: Option<&'b str>,
 }
 
 impl<'a, 'b> Iterator for ChildElements<'a, 'b> {
@@ -113,14 +123,17 @@ impl<'a, 'b> Iterator for ChildElements<'a, 'b> {
 
     fn next(&mut self) -> Option<&'a Element> {
         let (name, ns) = (self.name, self.ns);
-        self.elems.by_ref().filter_map(|child| {
-            if let Xml::ElementNode(ref elem) = *child {
-                if name == elem.name && ns == elem.ns.as_ref().map(|x| &x[..]) {
-                    return Some(elem);
+        self.elems
+            .by_ref()
+            .filter_map(|child| {
+                if let Xml::ElementNode(ref elem) = *child {
+                    if name == elem.name && ns == elem.ns.as_ref().map(|x| &x[..]) {
+                        return Some(elem);
+                    }
                 }
-            }
-            None
-        }).next()
+                None
+            })
+            .next()
     }
 }
 
@@ -128,15 +141,23 @@ impl Element {
     /// Create a new `Element`, with specified name and namespace.
     /// Attributes are specified as a `Vec` of `(name, namespace, value)` tuples.
     pub fn new<A>(name: String, ns: Option<String>, attrs: A) -> Element
-        where A: IntoIterator<Item=(String, Option<String>, String)>
+    where
+        A: IntoIterator<Item = (String, Option<String>, String)>,
     {
         let mut prefixes = HashMap::with_capacity(2);
-        prefixes.insert("http://www.w3.org/XML/1998/namespace".to_owned(), "xml".to_owned());
-        prefixes.insert("http://www.w3.org/2000/xmlns/".to_owned(), "xmlns".to_owned());
+        prefixes.insert(
+            "http://www.w3.org/XML/1998/namespace".to_owned(),
+            "xml".to_owned(),
+        );
+        prefixes.insert(
+            "http://www.w3.org/2000/xmlns/".to_owned(),
+            "xmlns".to_owned(),
+        );
 
-        let attributes: HashMap<_, _> = attrs.into_iter()
-                                             .map(|(name, ns, value)| ((name, ns), value))
-                                             .collect();
+        let attributes: HashMap<_, _> = attrs
+            .into_iter()
+            .map(|(name, ns, value)| ((name, ns), value))
+            .collect();
 
         Element {
             name: name,
@@ -144,7 +165,7 @@ impl Element {
             default_ns: ns,
             prefixes: prefixes,
             attributes: attributes,
-            children: Vec::new()
+            children: Vec::new(),
         }
     }
 
@@ -154,9 +175,8 @@ impl Element {
         for child in &self.children {
             match *child {
                 Xml::ElementNode(ref elem) => res.push_str(&elem.content_str()),
-                Xml::CharacterNode(ref data)
-                | Xml::CDATANode(ref data) => res.push_str(&data),
-                _ => ()
+                Xml::CharacterNode(ref data) | Xml::CDATANode(ref data) => res.push_str(&data),
+                _ => (),
             }
         }
         res
@@ -165,20 +185,27 @@ impl Element {
     /// Gets an attribute with the specified name and namespace. When an attribute with the
     /// specified name does not exist `None` is returned.
     pub fn get_attribute<'a>(&'a self, name: &str, ns: Option<&str>) -> Option<&'a str> {
-        self.attributes.get(&(name.to_owned(), ns.map(|x| x.to_owned()))).map(|x| &x[..])
+        self.attributes
+            .get(&(name.to_owned(), ns.map(|x| x.to_owned())))
+            .map(|x| &x[..])
     }
 
     /// Sets the attribute with the specified name and namespace.
     /// Returns the original value.
-    pub fn set_attribute(&mut self, name: String, ns: Option<String>,
-                         value: String) -> Option<String> {
+    pub fn set_attribute(
+        &mut self,
+        name: String,
+        ns: Option<String>,
+        value: String,
+    ) -> Option<String> {
         self.attributes.insert((name, ns), value)
     }
 
     /// Remove the attribute with the specified name and namespace.
     /// Returns the original value.
     pub fn remove_attribute(&mut self, name: &str, ns: Option<&str>) -> Option<String> {
-        self.attributes.remove(&(name.to_owned(), ns.map(|x| x.to_owned())))
+        self.attributes
+            .remove(&(name.to_owned(), ns.map(|x| x.to_owned())))
     }
 
     /// Gets the first child `Element` with the specified name and namespace. When no child
@@ -189,12 +216,15 @@ impl Element {
 
     /// Get all children `Element` with the specified name and namespace. When no child
     /// with the specified name exists an empty vetor is returned.
-    pub fn get_children<'a, 'b>(&'a self, name: &'b str,
-                                ns: Option<&'b str>) -> ChildElements<'a, 'b> {
+    pub fn get_children<'a, 'b>(
+        &'a self,
+        name: &'b str,
+        ns: Option<&'b str>,
+    ) -> ChildElements<'a, 'b> {
         ChildElements {
             elems: self.children.iter(),
             name: name,
-            ns: ns
+            ns: ns,
         }
     }
 
@@ -204,7 +234,7 @@ impl Element {
         let error = "Internal error: Could not get reference to new element!";
         match *self.children.last_mut().expect(error) {
             Xml::ElementNode(ref mut elem) => elem,
-            _ => panic!(error)
+            _ => panic!(error),
         }
     }
 
@@ -261,15 +291,21 @@ mod tests {
     #[test]
     fn test_get_children() {
         let elem: Element = "<a><b/><c/><b/></a>".parse().unwrap();
-        assert_eq!(elem.get_children("b", None).collect::<Vec<_>>(),
-                   vec![&Element::new("b".to_owned(), None, vec![]),
-                        &Element::new("b".to_owned(), None, vec![])]);
+        assert_eq!(
+            elem.get_children("b", None).collect::<Vec<_>>(),
+            vec![
+                &Element::new("b".to_owned(), None, vec![]),
+                &Element::new("b".to_owned(), None, vec![])
+            ],
+        );
     }
 
     #[test]
     fn test_get_child() {
         let elem: Element = "<a><b/><c/><b/></a>".parse().unwrap();
-        assert_eq!(elem.get_child("b", None),
-                   Some(&Element::new("b".to_owned(), None, vec![])));
+        assert_eq!(
+            elem.get_child("b", None),
+            Some(&Element::new("b".to_owned(), None, vec![])),
+        );
     }
 }

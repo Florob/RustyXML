@@ -11,7 +11,7 @@
 // ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
-use super::{unescape, StartTag, EndTag};
+use super::{unescape, EndTag, StartTag};
 use std::collections::{HashMap, VecDeque};
 use std::error::Error;
 use std::fmt;
@@ -32,9 +32,8 @@ pub enum Event {
     /// Event indicating CDATA was found
     CDATA(String),
     /// Event indicating a comment was found
-    Comment(String)
+    Comment(String),
 }
-
 
 #[derive(PartialEq, Debug, Clone)]
 #[allow(missing_copy_implementations)]
@@ -45,7 +44,7 @@ pub struct ParserError {
     /// The column number at which the error occurred
     pub col: u32,
     /// A message describing the type of the error
-    pub msg: &'static str
+    pub msg: &'static str,
 }
 
 impl Error for ParserError {
@@ -56,7 +55,11 @@ impl Error for ParserError {
 
 impl fmt::Display for ParserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Parse error; Line: {}, Column: {}, Reason: {}", self.line, self.col, self.msg)
+        write!(
+            f,
+            "Parse error; Line: {}, Column: {}, Reason: {}",
+            self.line, self.col, self.msg,
+        )
     }
 }
 
@@ -79,7 +82,7 @@ enum State {
     InCommentOpening,
     InComment1,
     InComment2,
-    InDoctype
+    InDoctype,
 }
 
 /// A streaming XML parser
@@ -112,7 +115,7 @@ pub struct Parser {
     name: Option<(Option<String>, String)>,
     attr: Option<(Option<String>, String)>,
     delim: Option<char>,
-    level: u8
+    level: u8,
 }
 
 impl Parser {
@@ -120,8 +123,14 @@ impl Parser {
     pub fn new() -> Parser {
         let mut ns = HashMap::with_capacity(2);
         // Add standard namespaces
-        ns.insert("xml".to_owned(), "http://www.w3.org/XML/1998/namespace".to_owned());
-        ns.insert("xmlns".to_owned(), "http://www.w3.org/2000/xmlns/".to_owned());
+        ns.insert(
+            "xml".to_owned(),
+            "http://www.w3.org/XML/1998/namespace".to_owned(),
+        );
+        ns.insert(
+            "xmlns".to_owned(),
+            "http://www.w3.org/2000/xmlns/".to_owned(),
+        );
 
         Parser {
             line: 1,
@@ -135,7 +144,7 @@ impl Parser {
             name: None,
             attr: None,
             delim: None,
-            level: 0
+            level: 0,
         }
     }
 
@@ -156,7 +165,7 @@ impl Iterator for Parser {
         loop {
             let c = match self.data.pop_front() {
                 Some(c) => c,
-                None => return None
+                None => return None,
             };
 
             if c == '\n' {
@@ -184,7 +193,7 @@ impl Iterator for Parser {
 // Parse a QName to get Prefix and LocalPart
 fn parse_qname(qname: &str) -> (Option<String>, String) {
     if let Some(i) = qname.find(':') {
-        (Some(qname[..i].to_owned()), qname[i+1..].to_owned())
+        (Some(qname[..i].to_owned()), qname[i + 1..].to_owned())
     } else {
         (None, qname.to_owned())
     }
@@ -207,7 +216,11 @@ impl Parser {
     }
 
     fn error(&self, msg: &'static str) -> Result<Option<Event>, ParserError> {
-        Err(ParserError { line: self.line, col: self.col, msg: msg })
+        Err(ParserError {
+            line: self.line,
+            col: self.col,
+            msg: msg,
+        })
     }
 
     fn parse_character(&mut self, c: char) -> Result<Option<Event>, ParserError> {
@@ -243,12 +256,12 @@ impl Parser {
                 self.st = State::TagOpened;
                 let buf = match unescape(&self.buf) {
                     Ok(unescaped) => unescaped,
-                    Err(_) => return self.error("Found invalid entity")
+                    Err(_) => return self.error("Found invalid entity"),
                 };
                 self.buf.truncate(0);
                 return Ok(Some(Event::Characters(buf)));
             }
-            _ => self.buf.push(c)
+            _ => self.buf.push(c),
         }
         Ok(None)
     }
@@ -286,7 +299,7 @@ impl Parser {
                 let buf = mem::replace(&mut self.buf, String::new());
                 return Ok(Some(Event::PI(buf)));
             }
-            _ => self.buf.push(c)
+            _ => self.buf.push(c),
         }
         Ok(None)
     }
@@ -297,16 +310,15 @@ impl Parser {
     // ' ' or '\t' or '\r' or '\n' => InTag
     fn in_tag_name(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
-            '/'
-            | '>' => {
+            '/' | '>' => {
                 let (prefix, name) = parse_qname(&self.buf);
                 self.buf.truncate(0);
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(&pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
-                        ns => ns
-                    }
+                        ns => ns,
+                    },
                 };
 
                 self.namespaces.push(HashMap::new());
@@ -321,19 +333,16 @@ impl Parser {
                     name: name,
                     ns: ns,
                     prefix: prefix,
-                    attributes: HashMap::new()
+                    attributes: HashMap::new(),
                 })));
             }
-            ' '
-            | '\t'
-            | '\r'
-            | '\n' => {
+            ' ' | '\t' | '\r' | '\n' => {
                 self.namespaces.push(HashMap::new());
                 self.name = Some(parse_qname(&self.buf));
                 self.buf.truncate(0);
                 self.st = State::InTag;
             }
-            _ => self.buf.push(c)
+            _ => self.buf.push(c),
         }
         Ok(None)
     }
@@ -343,11 +352,7 @@ impl Parser {
     // ' ' or '\t' or '\r' or '\n' => ExpectSpaceOrClose, producing ElementEnd
     fn in_close_tag_name(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
-            ' '
-            | '\t'
-            | '\r'
-            | '\n'
-            | '>' => {
+            ' ' | '\t' | '\r' | '\n' | '>' => {
                 let (prefix, name) = parse_qname(&self.buf);
                 self.buf.truncate(0);
 
@@ -355,8 +360,8 @@ impl Parser {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(&pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
-                        ns => ns
-                    }
+                        ns => ns,
+                    },
                 };
 
                 self.namespaces.pop();
@@ -366,7 +371,11 @@ impl Parser {
                     State::ExpectSpaceOrClose
                 };
 
-                Ok(Some(Event::ElementEnd(EndTag { name: name, ns: ns, prefix: prefix })))
+                Ok(Some(Event::ElementEnd(EndTag {
+                    name: name,
+                    ns: ns,
+                    prefix: prefix,
+                })))
             }
             _ => {
                 self.buf.push(c);
@@ -381,16 +390,18 @@ impl Parser {
     // ' ' or '\t' or '\r' or '\n' => InAttrName
     fn in_tag(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
-            '/'
-            | '>' => {
+            '/' | '>' => {
                 let attributes = mem::replace(&mut self.attributes, Vec::new());
-                let (prefix, name) = self.name.take().expect("Internal error: No element name set");
+                let (prefix, name) = self
+                    .name
+                    .take()
+                    .expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(&pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
-                        ns => ns
-                    }
+                        ns => ns,
+                    },
                 };
 
                 let mut attributes_map: HashMap<(String, Option<String>), String> = HashMap::new();
@@ -401,9 +412,11 @@ impl Parser {
                     let ns = match ns {
                         None => None,
                         Some(ref prefix) => match self.namespace_for_prefix(&prefix) {
-                            None => return self.error("Unbound namespace prefix in attribute name"),
-                            ns => ns
-                        }
+                            None => {
+                                return self.error("Unbound namespace prefix in attribute name")
+                            }
+                            ns => ns,
+                        },
                     };
                     if attributes_map.insert((name, ns), value).is_some() {
                         return self.error("Duplicate attribute");
@@ -421,13 +434,10 @@ impl Parser {
                     name: name,
                     ns: ns,
                     prefix: prefix,
-                    attributes: attributes_map
+                    attributes: attributes_map,
                 })));
             }
-            ' '
-            | '\t'
-            | '\r'
-            | '\n' => (),
+            ' ' | '\t' | '\r' | '\n' => (),
             _ => {
                 self.buf.push(c);
                 self.st = State::InAttrName;
@@ -446,12 +456,9 @@ impl Parser {
                 self.buf.truncate(0);
                 self.st = State::ExpectDelimiter;
             }
-            ' '
-            | '\t'
-            | '\r'
-            | '\n' => self.level = 1,
+            ' ' | '\t' | '\r' | '\n' => self.level = 1,
             _ if self.level == 0 => self.buf.push(c),
-            _ => return self.error("Space occured in attribute name")
+            _ => return self.error("Space occured in attribute name"),
         }
         Ok(None)
     }
@@ -459,7 +466,10 @@ impl Parser {
     // Inside an attribute value
     // delimiter => InTag, adds attribute
     fn in_attr_value(&mut self, c: char) -> Result<Option<Event>, ParserError> {
-        if c == self.delim.expect("Internal error: In attribute value, but no delimiter set") {
+        if c == self
+            .delim
+            .expect("Internal error: In attribute value, but no delimiter set")
+        {
             self.delim = None;
             self.st = State::InTag;
             let attr = self.attr.take();
@@ -467,11 +477,14 @@ impl Parser {
                 attr.expect("Internal error: In attribute value, but no attribute name set");
             let value = match unescape(&self.buf) {
                 Ok(unescaped) => unescaped,
-                Err(_) => return self.error("Found invalid entity")
+                Err(_) => return self.error("Found invalid entity"),
             };
             self.buf.truncate(0);
 
-            let last = self.namespaces.last_mut().expect("Internal error: Empty namespace stack");
+            let last = self
+                .namespaces
+                .last_mut()
+                .expect("Internal error: Empty namespace stack");
             match prefix {
                 None if name == "xmlns" => {
                     last.insert(String::new(), value.clone());
@@ -479,7 +492,7 @@ impl Parser {
                 Some(ref prefix) if prefix == "xmlns" => {
                     last.insert(name.clone(), value.clone());
                 }
-                _ => ()
+                _ => (),
             }
 
             self.attributes.push((name, prefix, value));
@@ -493,16 +506,12 @@ impl Parser {
     // '"' or '\'' => InAttrValue, sets delimiter
     fn expect_delimiter(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
-            '"'
-            | '\'' => {
+            '"' | '\'' => {
                 self.delim = Some(c);
                 self.st = State::InAttrValue;
             }
-            ' '
-            | '\t'
-            | '\r'
-            | '\n' => (),
-            _ => return self.error("Attribute value not enclosed in ' or \"")
+            ' ' | '\t' | '\r' | '\n' => (),
+            _ => return self.error("Attribute value not enclosed in ' or \""),
         }
         Ok(None)
     }
@@ -513,35 +522,39 @@ impl Parser {
         match c {
             '>' => {
                 self.st = State::OutsideTag;
-                let (prefix, name) = self.name.take().expect("Internal error: No element name set");
+                let (prefix, name) = self
+                    .name
+                    .take()
+                    .expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(&pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
-                        ns => ns
-                    }
+                        ns => ns,
+                    },
                 };
                 self.namespaces.pop();
-                Ok(Some(Event::ElementEnd(EndTag { name: name, ns: ns, prefix: prefix })))
+                Ok(Some(Event::ElementEnd(EndTag {
+                    name: name,
+                    ns: ns,
+                    prefix: prefix,
+                })))
             }
-            _ => self.error("Expected '>' to close tag")
-       }
+            _ => self.error("Expected '>' to close tag"),
+        }
     }
 
     // Expect closing '>' of a start tag
     // '>' => OutsideTag
     fn expect_space_or_close(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
-            ' '
-            | '\t'
-            | '\r'
-            | '\n' => Ok(None),
+            ' ' | '\t' | '\r' | '\n' => Ok(None),
             '>' => {
                 self.st = State::OutsideTag;
                 Ok(None)
             }
-            _ => self.error("Expected '>' to close tag, or LWS")
-       }
+            _ => self.error("Expected '>' to close tag, or LWS"),
+        }
     }
 
     // After an '!' trying to determine the type of the following construct
@@ -553,7 +566,7 @@ impl Parser {
             '-' => State::InCommentOpening,
             '[' => State::InCDATAOpening,
             'D' => State::InDoctype,
-            _ => return self.error("Malformed XML")
+            _ => return self.error("Malformed XML"),
         };
         Ok(None)
     }
@@ -565,7 +578,7 @@ impl Parser {
         if c == CDATA_PATTERN[self.level as usize] {
             self.level += 1;
         } else {
-            return self.error("Invalid CDATA opening sequence")
+            return self.error("Invalid CDATA opening sequence");
         }
 
         if self.level == 6 {
@@ -589,7 +602,7 @@ impl Parser {
                 let len = self.buf.len();
                 self.buf.truncate(len - 2);
                 let buf = mem::replace(&mut self.buf, String::new());
-                return Ok(Some(Event::CDATA(buf)))
+                return Ok(Some(Event::CDATA(buf)));
             }
             _ => {
                 self.buf.push(c);
@@ -649,18 +662,17 @@ impl Parser {
     fn in_doctype(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         static DOCTYPE_PATTERN: [char; 6] = ['O', 'C', 'T', 'Y', 'P', 'E'];
         match self.level {
-            0..=5 => if c == DOCTYPE_PATTERN[self.level as usize] {
-                self.level += 1;
-            } else {
-                return self.error("Invalid DOCTYPE");
-            },
+            0..=5 => {
+                if c == DOCTYPE_PATTERN[self.level as usize] {
+                    self.level += 1;
+                } else {
+                    return self.error("Invalid DOCTYPE");
+                }
+            }
             6 => {
                 match c {
-                    ' '
-                    | '\t'
-                    | '\r'
-                    | '\n' => (),
-                    _ => return self.error("Invalid DOCTYPE")
+                    ' ' | '\t' | '\r' | '\n' => (),
+                    _ => return self.error("Invalid DOCTYPE"),
                 }
                 self.level += 1;
             }
@@ -668,7 +680,7 @@ impl Parser {
                 self.level = 0;
                 self.st = State::OutsideTag;
             }
-            _ => ()
+            _ => (),
         }
         Ok(None)
     }
@@ -678,8 +690,8 @@ impl Parser {
 mod parser_tests {
     use std::collections::HashMap;
 
+    use super::super::{EndTag, Event, ParserError, StartTag};
     use super::Parser;
-    use super::super::{Event, ParserError, StartTag, EndTag};
 
     #[test]
     fn test_start_tag() {
@@ -688,12 +700,15 @@ mod parser_tests {
         p.feed_str("<a>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(Event::ElementStart(StartTag {
-                name: "a".to_owned(),
-                ns: None,
-                prefix: None,
-                attributes: HashMap::new()
-            })));
+            assert_eq!(
+                event,
+                Ok(Event::ElementStart(StartTag {
+                    name: "a".to_owned(),
+                    ns: None,
+                    prefix: None,
+                    attributes: HashMap::new()
+                })),
+            );
         }
         assert_eq!(i, 1u8);
     }
@@ -705,11 +720,14 @@ mod parser_tests {
         p.feed_str("</a>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(Event::ElementEnd(EndTag {
-                name: "a".to_owned(),
-                ns: None,
-                prefix: None
-            })));
+            assert_eq!(
+                event,
+                Ok(Event::ElementEnd(EndTag {
+                    name: "a".to_owned(),
+                    ns: None,
+                    prefix: None
+                })),
+            );
         }
         assert_eq!(i, 1u8);
     }
@@ -720,19 +738,22 @@ mod parser_tests {
         p.feed_str("<register />");
 
         let v: Vec<Result<Event, ParserError>> = p.collect();
-        assert_eq!(v, vec![
-            Ok(Event::ElementStart(StartTag {
-                name: "register".to_owned(),
-                ns: None,
-                prefix: None,
-                attributes: HashMap::new()
-            })),
-            Ok(Event::ElementEnd(EndTag {
-                name: "register".to_owned(),
-                ns: None,
-                prefix: None,
-            }))
-        ]);
+        assert_eq!(
+            v,
+            vec![
+                Ok(Event::ElementStart(StartTag {
+                    name: "register".to_owned(),
+                    ns: None,
+                    prefix: None,
+                    attributes: HashMap::new()
+                })),
+                Ok(Event::ElementEnd(EndTag {
+                    name: "register".to_owned(),
+                    ns: None,
+                    prefix: None,
+                }))
+            ],
+        );
     }
 
     #[test]
@@ -741,19 +762,22 @@ mod parser_tests {
         p.feed_str("<register/>");
 
         let v: Vec<Result<Event, ParserError>> = p.collect();
-        assert_eq!(v, vec![
-            Ok(Event::ElementStart(StartTag {
-                name: "register".to_owned(),
-                ns: None,
-                prefix: None,
-                attributes: HashMap::new()
-            })),
-            Ok(Event::ElementEnd(EndTag {
-                name: "register".to_owned(),
-                ns: None,
-                prefix: None,
-            }))
-        ]);
+        assert_eq!(
+            v,
+            vec![
+                Ok(Event::ElementStart(StartTag {
+                    name: "register".to_owned(),
+                    ns: None,
+                    prefix: None,
+                    attributes: HashMap::new()
+                })),
+                Ok(Event::ElementEnd(EndTag {
+                    name: "register".to_owned(),
+                    ns: None,
+                    prefix: None,
+                }))
+            ],
+        );
     }
 
     #[test]
@@ -763,21 +787,29 @@ mod parser_tests {
 
         let v: Vec<Result<Event, ParserError>> = p.collect();
         let mut attr: HashMap<(String, Option<String>), String> = HashMap::new();
-        attr.insert(("foo".to_owned(), Some("http://www.w3.org/2000/xmlns/".to_owned())),
-                    "urn:foo".to_owned());
-        assert_eq!(v, vec![
-            Ok(Event::ElementStart(StartTag {
-                name: "a".to_owned(),
-                ns: Some("urn:foo".to_owned()),
-                prefix: Some("foo".to_owned()),
-                attributes: attr,
-            })),
-            Ok(Event::ElementEnd(EndTag {
-                name: "a".to_owned(),
-                ns: Some("urn:foo".to_owned()),
-                prefix: Some("foo".to_owned()),
-            }))
-        ]);
+        attr.insert(
+            (
+                "foo".to_owned(),
+                Some("http://www.w3.org/2000/xmlns/".to_owned()),
+            ),
+            "urn:foo".to_owned(),
+        );
+        assert_eq!(
+            v,
+            vec![
+                Ok(Event::ElementStart(StartTag {
+                    name: "a".to_owned(),
+                    ns: Some("urn:foo".to_owned()),
+                    prefix: Some("foo".to_owned()),
+                    attributes: attr,
+                })),
+                Ok(Event::ElementEnd(EndTag {
+                    name: "a".to_owned(),
+                    ns: Some("urn:foo".to_owned()),
+                    prefix: Some("foo".to_owned()),
+                }))
+            ],
+        );
     }
 
     #[test]
@@ -787,7 +819,10 @@ mod parser_tests {
         p.feed_str("<?xml version='1.0' encoding='utf-8'?>");
         for event in p {
             i += 1;
-            assert_eq!(event, Ok(Event::PI("xml version='1.0' encoding='utf-8'".to_owned())));
+            assert_eq!(
+                event,
+                Ok(Event::PI("xml version='1.0' encoding='utf-8'".to_owned())),
+            );
         }
         assert_eq!(i, 1u8);
     }
@@ -810,8 +845,12 @@ mod parser_tests {
         p.feed_str("<![CDATA[<html><head><title>x</title></head><body/></html>]]>");
         for event in p {
             i += 1;
-            assert_eq!(event,
-                       Ok(Event::CDATA("<html><head><title>x</title></head><body/></html>".to_owned())));
+            assert_eq!(
+                event,
+                Ok(Event::CDATA(
+                    "<html><head><title>x</title></head><body/></html>".to_owned()
+                )),
+            );
         }
         assert_eq!(i, 1u8);
     }
@@ -824,8 +863,10 @@ mod parser_tests {
         for event in p {
             i += 1;
             if i == 2 {
-                assert_eq!(event,
-                           Ok(Event::Characters("Hello World, it's a nice day".to_owned())));
+                assert_eq!(
+                    event,
+                    Ok(Event::Characters("Hello World, it's a nice day".to_owned())),
+                );
             }
         }
         assert_eq!(i, 3u8);

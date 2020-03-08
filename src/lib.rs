@@ -8,10 +8,9 @@
 // except according to those terms.
 
 #![crate_name = "xml"]
-#![crate_type = "lib" ]
+#![crate_type = "lib"]
 #![forbid(non_camel_case_types)]
 #![warn(missing_docs)]
-
 // Required for benchmarks
 #![cfg_attr(feature = "bench", feature(test))]
 
@@ -19,21 +18,21 @@
  * An XML parsing library
  */
 
+pub use crate::element::ChildElements;
+pub use crate::element::Element;
+pub use crate::element_builder::BuilderError;
+pub use crate::element_builder::ElementBuilder;
 pub use crate::parser::Event;
 pub use crate::parser::Parser;
 pub use crate::parser::ParserError;
-pub use crate::element::ChildElements;
-pub use crate::element::Element;
-pub use crate::element_builder::ElementBuilder;
-pub use crate::element_builder::BuilderError;
 
 use std::char;
-use std::fmt;
 use std::collections::HashMap;
+use std::fmt;
 
-mod parser;
 mod element;
 mod element_builder;
+mod parser;
 
 // General functions
 
@@ -49,7 +48,7 @@ pub fn escape(input: &str) -> String {
             '>' => result.push_str("&gt;"),
             '\'' => result.push_str("&apos;"),
             '"' => result.push_str("&quot;"),
-            o => result.push(o)
+            o => result.push(o),
         }
     }
     result
@@ -75,9 +74,9 @@ pub fn unescape(input: &str) -> Result<String, String> {
                 match ent {
                     "quot" => result.push('"'),
                     "apos" => result.push('\''),
-                    "gt"   => result.push('>'),
-                    "lt"   => result.push('<'),
-                    "amp"  => result.push('&'),
+                    "gt" => result.push('>'),
+                    "lt" => result.push('<'),
+                    "amp" => result.push('&'),
                     ent => {
                         let val = if ent.starts_with("#x") {
                             u32::from_str_radix(&ent[2..], 16).ok()
@@ -88,13 +87,13 @@ pub fn unescape(input: &str) -> Result<String, String> {
                         };
                         match val.and_then(char::from_u32) {
                             Some(c) => result.push(c),
-                            None => return Err(format!("&{};", ent))
+                            None => return Err(format!("&{};", ent)),
                         }
                     }
                 }
-                result.push_str(&sub[idx+1..]);
+                result.push_str(&sub[idx + 1..]);
             }
-            None => return Err("&".to_owned() + sub)
+            None => return Err("&".to_owned() + sub),
         }
     }
     Ok(result)
@@ -113,7 +112,7 @@ pub enum Xml {
     /// A XML Comment
     CommentNode(String),
     /// Processing Information
-    PINode(String)
+    PINode(String),
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -126,7 +125,7 @@ pub struct StartTag {
     /// The tag's prefix
     pub prefix: Option<String>,
     /// The tag's attributes
-    pub attributes: HashMap<(String, Option<String>), String>
+    pub attributes: HashMap<(String, Option<String>), String>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -137,7 +136,7 @@ pub struct EndTag {
     /// The tag's namespace
     pub ns: Option<String>,
     /// The tag's prefix
-    pub prefix: Option<String>
+    pub prefix: Option<String>,
 }
 
 impl fmt::Display for Xml {
@@ -147,14 +146,14 @@ impl fmt::Display for Xml {
             Xml::CharacterNode(ref data) => write!(f, "{}", escape(&data)),
             Xml::CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", &data),
             Xml::CommentNode(ref data) => write!(f, "<!--{}-->", &data),
-            Xml::PINode(ref data) => write!(f, "<?{}?>", &data)
+            Xml::PINode(ref data) => write!(f, "<?{}?>", &data),
         }
     }
 }
 
 #[cfg(test)]
 mod lib_tests {
-    use super::{Xml, Element, escape, unescape};
+    use super::{escape, unescape, Element, Xml};
 
     #[test]
     fn test_escape() {
@@ -165,7 +164,10 @@ mod lib_tests {
     #[test]
     fn test_unescape() {
         let unesc = unescape("&amp;lt;&lt;&gt;&apos;&quot;&#x201c;&#x201d;&#38;&#34;");
-        assert_eq!(unesc.as_ref().map(|x| &x[..]), Ok("&lt;<>'\"\u{201c}\u{201d}&\""));
+        assert_eq!(
+            unesc.as_ref().map(|x| &x[..]),
+            Ok("&lt;<>'\"\u{201c}\u{201d}&\""),
+        );
     }
 
     #[test]
@@ -179,20 +181,27 @@ mod lib_tests {
         let elem = Element::new("a".to_owned(), None, vec![]);
         assert_eq!(format!("{}", elem), "<a/>");
 
-        let elem = Element::new("a".to_owned(), None,
-                                vec![("href".to_owned(), None,
-                                      "http://rust-lang.org".to_owned())]);
+        let elem = Element::new(
+            "a".to_owned(),
+            None,
+            vec![("href".to_owned(), None, "http://rust-lang.org".to_owned())],
+        );
         assert_eq!(format!("{}", elem), "<a href='http://rust-lang.org'/>");
 
         let mut elem = Element::new("a".to_owned(), None, vec![]);
         elem.tag(Element::new("b".to_owned(), None, vec![]));
         assert_eq!(format!("{}", elem), "<a><b/></a>");
 
-        let mut elem = Element::new("a".to_owned(), None,
-                                    vec![("href".to_owned(), None,
-                                          "http://rust-lang.org".to_owned())]);
+        let mut elem = Element::new(
+            "a".to_owned(),
+            None,
+            vec![("href".to_owned(), None, "http://rust-lang.org".to_owned())],
+        );
         elem.tag(Element::new("b".to_owned(), None, vec![]));
-        assert_eq!(format!("{}", elem), "<a href='http://rust-lang.org'><b/></a>");
+        assert_eq!(
+            format!("{}", elem),
+            "<a href='http://rust-lang.org'><b/></a>",
+        );
     }
 
     #[test]
@@ -200,13 +209,23 @@ mod lib_tests {
         let elem: Element = "<a xmlns='urn:test'/>".parse().unwrap();
         assert_eq!(format!("{}", elem), "<a xmlns='urn:test'/>");
 
-        let elem: Element = "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>".parse().unwrap();
-        assert_eq!(format!("{}", elem), "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>");
+        let elem: Element = "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            format!("{}", elem),
+            "<a xmlns='urn:test'><b xmlns='urn:toast'/></a>",
+        );
 
-        let elem = Element::new("a".to_owned(), Some("urn:test".to_owned()),
-                                vec![("href".to_owned(), None,
-                                      "http://rust-lang.org".to_owned())]);
-        assert_eq!(format!("{}", elem), "<a xmlns='urn:test' href='http://rust-lang.org'/>");
+        let elem = Element::new(
+            "a".to_owned(),
+            Some("urn:test".to_owned()),
+            vec![("href".to_owned(), None, "http://rust-lang.org".to_owned())],
+        );
+        assert_eq!(
+            format!("{}", elem),
+            "<a xmlns='urn:test' href='http://rust-lang.org'/>",
+        );
     }
 
     #[test]
@@ -250,25 +269,21 @@ mod lib_tests {
 mod lib_bench {
     extern crate test;
 
-    use std::iter::repeat;
     use self::test::Bencher;
     use super::{escape, unescape};
+    use std::iter::repeat;
 
     #[bench]
     fn bench_escape(bh: &mut Bencher) {
         let input: String = repeat("&<>'\"").take(100).collect();
-        bh.iter(|| {
-            escape(&input)
-        });
+        bh.iter(|| escape(&input));
         bh.bytes = input.len() as u64;
     }
 
     #[bench]
     fn bench_unescape(bh: &mut Bencher) {
         let input: String = repeat("&amp;&lt;&gt;&apos;&quot;").take(50).collect();
-        bh.iter(|| {
-            unescape(&input)
-        });
+        bh.iter(|| unescape(&input));
         bh.bytes = input.len() as u64;
     }
 }
