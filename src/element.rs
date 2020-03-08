@@ -275,10 +275,9 @@ impl FromStr for Element {
         let mut e = ElementBuilder::new();
 
         p.feed_str(data);
-        for event in p.filter_map(|x| e.handle_event(x)) {
-            return event;
-        }
-        Err(BuilderError::NoElement)
+        p.filter_map(|x| e.handle_event(x))
+            .next()
+            .unwrap_or(Err(BuilderError::NoElement))
     }
 }
 
