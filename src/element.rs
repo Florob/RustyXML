@@ -229,10 +229,9 @@ impl Element {
     /// Appends a child element. Returns a reference to the added element.
     pub fn tag(&mut self, child: Element) -> &mut Element {
         self.children.push(Xml::ElementNode(child));
-        let error = "Internal error: Could not get reference to new element!";
-        match *self.children.last_mut().expect(error) {
-            Xml::ElementNode(ref mut elem) => elem,
-            _ => panic!(error),
+        match self.children.last_mut() {
+            Some(Xml::ElementNode(ref mut elem)) => elem,
+            _ => unreachable!("Could not get reference to just added element!"),
         }
     }
 
