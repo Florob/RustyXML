@@ -143,10 +143,10 @@ impl fmt::Display for Xml {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Xml::ElementNode(ref elem) => elem.fmt(f),
-            Xml::CharacterNode(ref data) => write!(f, "{}", escape(&data)),
-            Xml::CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", &data),
-            Xml::CommentNode(ref data) => write!(f, "<!--{}-->", &data),
-            Xml::PINode(ref data) => write!(f, "<?{}?>", &data),
+            Xml::CharacterNode(ref data) => write!(f, "{}", escape(data)),
+            Xml::CDATANode(ref data) => write!(f, "<![CDATA[{}]]>", data),
+            Xml::CommentNode(ref data) => write!(f, "<!--{}-->", data),
+            Xml::PINode(ref data) => write!(f, "<?{}?>", data),
         }
     }
 }

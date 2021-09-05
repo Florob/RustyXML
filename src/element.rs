@@ -74,9 +74,9 @@ fn fmt_elem(
         match *ns {
             Some(ref ns) => {
                 let prefix = all_prefixes.get(ns).expect("No namespace prefix bound");
-                write!(f, " {}:{}='{}'", *prefix, name, escape(&value))?
+                write!(f, " {}:{}='{}'", *prefix, name, escape(value))?
             }
-            None => write!(f, " {}='{}'", name, escape(&value))?,
+            None => write!(f, " {}='{}'", name, escape(value))?,
         }
     }
 
@@ -173,7 +173,7 @@ impl Element {
         for child in &self.children {
             match *child {
                 Xml::ElementNode(ref elem) => res.push_str(&elem.content_str()),
-                Xml::CharacterNode(ref data) | Xml::CDATANode(ref data) => res.push_str(&data),
+                Xml::CharacterNode(ref data) | Xml::CDATANode(ref data) => res.push_str(data),
                 _ => (),
             }
         }

@@ -327,7 +327,7 @@ impl Parser {
                 let (prefix, name) = parse_qname(self.take_buf());
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(&pre) {
+                    Some(ref pre) => match self.namespace_for_prefix(pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns,
                     },
@@ -368,7 +368,7 @@ impl Parser {
 
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(&pre) {
+                    Some(ref pre) => match self.namespace_for_prefix(pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns,
                     },
@@ -404,7 +404,7 @@ impl Parser {
                     .expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(&pre) {
+                    Some(ref pre) => match self.namespace_for_prefix(pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns,
                     },
@@ -417,7 +417,7 @@ impl Parser {
                 for (name, ns, value) in attributes {
                     let ns = match ns {
                         None => None,
-                        Some(ref prefix) => match self.namespace_for_prefix(&prefix) {
+                        Some(ref prefix) => match self.namespace_for_prefix(prefix) {
                             None => {
                                 return self.error("Unbound namespace prefix in attribute name")
                             }
@@ -532,7 +532,7 @@ impl Parser {
                     .expect("Internal error: No element name set");
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
-                    Some(ref pre) => match self.namespace_for_prefix(&pre) {
+                    Some(ref pre) => match self.namespace_for_prefix(pre) {
                         None => return self.error("Unbound namespace prefix in tag name"),
                         ns => ns,
                     },
