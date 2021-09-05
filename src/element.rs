@@ -121,17 +121,14 @@ impl<'a, 'b> Iterator for ChildElements<'a, 'b> {
 
     fn next(&mut self) -> Option<&'a Element> {
         let (name, ns) = (self.name, self.ns);
-        self.elems
-            .by_ref()
-            .filter_map(|child| {
-                if let Xml::ElementNode(ref elem) = *child {
-                    if name == elem.name && ns == elem.ns.as_ref().map(|x| &x[..]) {
-                        return Some(elem);
-                    }
+        self.elems.by_ref().find_map(|child| {
+            if let Xml::ElementNode(ref elem) = *child {
+                if name == elem.name && ns == elem.ns.as_ref().map(|x| &x[..]) {
+                    return Some(elem);
                 }
-                None
-            })
-            .next()
+            }
+            None
+        })
     }
 }
 
@@ -274,8 +271,7 @@ impl FromStr for Element {
         let mut e = ElementBuilder::new();
 
         p.feed_str(data);
-        p.filter_map(|x| e.handle_event(x))
-            .next()
+        p.find_map(|x| e.handle_event(x))
             .unwrap_or(Err(BuilderError::NoElement))
     }
 }
