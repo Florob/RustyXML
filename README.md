@@ -94,6 +94,14 @@ Result (some whitespace added for readability):
 </iq>
 ```
 
+Attribute Order
+---------------
+
+By default the order of attributes is not tracked. Therefore during serialization and iteration
+their order will be random. This can be changed by enabling the `ordered_attrs` feature.
+With this feature enabled the order attributes were encountered while parsing,
+or added to an `Element` will be preserved.
+
 License
 -------
 

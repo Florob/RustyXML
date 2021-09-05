@@ -7,8 +7,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use super::{Element, EndTag, Event, StartTag, Xml};
 use crate::parser::ParserError;
+use crate::{Element, EndTag, Event, StartTag, Xml};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;

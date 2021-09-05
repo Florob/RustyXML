@@ -11,7 +11,7 @@
 // ObjFW, Copyright (c) 2008-2013 Jonathan Schleifer.
 // Permission to license this derived work under MIT license has been granted by ObjFW's author.
 
-use super::{unescape, EndTag, StartTag};
+use crate::{unescape, AttrMap, EndTag, StartTag};
 use std::collections::{HashMap, VecDeque};
 use std::error::Error;
 use std::fmt;
@@ -345,7 +345,7 @@ impl Parser {
                     name,
                     ns,
                     prefix,
-                    attributes: HashMap::new(),
+                    attributes: AttrMap::new(),
                 })));
             }
             ' ' | '\t' | '\r' | '\n' => {
@@ -410,7 +410,7 @@ impl Parser {
                     },
                 };
 
-                let mut attributes_map: HashMap<(String, Option<String>), String> = HashMap::new();
+                let mut attributes_map: AttrMap<(String, Option<String>), String> = AttrMap::new();
 
                 // At this point attribute namespaces are really just prefixes,
                 // map them to the actual namespace
@@ -688,10 +688,8 @@ impl Parser {
 
 #[cfg(test)]
 mod parser_tests {
-    use std::collections::HashMap;
-
-    use super::super::{EndTag, Event, ParserError, StartTag};
     use super::Parser;
+    use crate::{AttrMap, EndTag, Event, ParserError, StartTag};
 
     #[test]
     fn test_start_tag() {
@@ -706,7 +704,7 @@ mod parser_tests {
                     name: "a".to_owned(),
                     ns: None,
                     prefix: None,
-                    attributes: HashMap::new()
+                    attributes: AttrMap::new()
                 })),
             );
         }
@@ -745,7 +743,7 @@ mod parser_tests {
                     name: "register".to_owned(),
                     ns: None,
                     prefix: None,
-                    attributes: HashMap::new()
+                    attributes: AttrMap::new()
                 })),
                 Ok(Event::ElementEnd(EndTag {
                     name: "register".to_owned(),
@@ -769,7 +767,7 @@ mod parser_tests {
                     name: "register".to_owned(),
                     ns: None,
                     prefix: None,
-                    attributes: HashMap::new()
+                    attributes: AttrMap::new()
                 })),
                 Ok(Event::ElementEnd(EndTag {
                     name: "register".to_owned(),
@@ -786,7 +784,7 @@ mod parser_tests {
         p.feed_str("<foo:a xmlns:foo='urn:foo'/>");
 
         let v: Vec<Result<Event, ParserError>> = p.collect();
-        let mut attr: HashMap<(String, Option<String>), String> = HashMap::new();
+        let mut attr: AttrMap<(String, Option<String>), String> = AttrMap::new();
         attr.insert(
             (
                 "foo".to_owned(),
@@ -881,5 +879,30 @@ mod parser_tests {
             i += 1;
         }
         assert_eq!(i, 0u8);
+    }
+
+    #[test]
+    #[cfg(feature = "ordered_attrs")]
+    fn test_attribute_order() {
+        let input = "<a href='/' title='Home' target='_blank'>";
+        let expected_attributes = vec![
+            (("href".to_owned(), None), "/".to_owned()),
+            (("title".to_owned(), None), "Home".to_owned()),
+            (("target".to_owned(), None), "_blank".to_owned()),
+        ];
+
+        // Run this 5 times to make it unlikely this test succeeds at random
+        for _ in 0..5 {
+            let mut p = Parser::new();
+            p.feed_str(input);
+            if let Some(Ok(Event::ElementStart(tag))) = p.next() {
+                for (expected, actual) in expected_attributes.iter().zip(tag.attributes) {
+                    assert_eq!(expected, &actual);
+                }
+            } else {
+                panic!("Missing ElementStart event");
+            }
+            assert!(p.next().is_none());
+        }
     }
 }

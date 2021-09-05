@@ -9,7 +9,7 @@
 
 use crate::element_builder::{BuilderError, ElementBuilder};
 use crate::parser::Parser;
-use crate::{escape, Xml};
+use crate::{escape, AttrMap, Xml};
 
 use std::collections::HashMap;
 use std::fmt;
@@ -25,7 +25,7 @@ pub struct Element {
     /// The element's namespace
     pub ns: Option<String>,
     /// The element's attributes
-    pub attributes: HashMap<(String, Option<String>), String>,
+    pub attributes: AttrMap<(String, Option<String>), String>,
     /// The element's child `Xml` nodes
     pub children: Vec<Xml>,
     /// The prefixes set for known namespaces
@@ -149,7 +149,7 @@ impl Element {
             "xmlns".to_owned(),
         );
 
-        let attributes: HashMap<_, _> = attrs
+        let attributes: AttrMap<_, _> = attrs
             .into_iter()
             .map(|(name, ns, value)| ((name, ns), value))
             .collect();
@@ -299,5 +299,48 @@ mod tests {
             elem.get_child("b", None),
             Some(&Element::new("b".to_owned(), None, vec![])),
         );
+    }
+
+    #[test]
+    #[cfg(feature = "ordered_attrs")]
+    fn test_attribute_order_new() {
+        let input_attributes = vec![
+            ("href".to_owned(), None, "/".to_owned()),
+            ("title".to_owned(), None, "Home".to_owned()),
+            ("target".to_owned(), None, "_blank".to_owned()),
+        ];
+
+        // Run this 5 times to make it unlikely this test succeeds at random
+        for _ in 0..5 {
+            let elem = Element::new("a".to_owned(), None, input_attributes.clone());
+            for (expected, actual) in input_attributes.iter().zip(elem.attributes) {
+                assert_eq!(expected.0, (actual.0).0);
+                assert_eq!(expected.1, (actual.0).1);
+                assert_eq!(expected.2, actual.1);
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "ordered_attrs")]
+    fn test_attribute_order_added() {
+        let input_attributes = vec![
+            ("href".to_owned(), None, "/".to_owned()),
+            ("title".to_owned(), None, "Home".to_owned()),
+            ("target".to_owned(), None, "_blank".to_owned()),
+        ];
+
+        // Run this 5 times to make it unlikely this test succeeds at random
+        for _ in 0..5 {
+            let mut elem = Element::new("a".to_owned(), None, vec![]);
+            for attr in &input_attributes {
+                elem.set_attribute(attr.0.clone(), attr.1.clone(), attr.2.clone());
+            }
+            for (expected, actual) in input_attributes.iter().zip(elem.attributes) {
+                assert_eq!(expected.0, (actual.0).0);
+                assert_eq!(expected.1, (actual.0).1);
+                assert_eq!(expected.2, actual.1);
+            }
+        }
     }
 }

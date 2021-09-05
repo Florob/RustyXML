@@ -27,8 +27,12 @@ pub use crate::parser::Parser;
 pub use crate::parser::ParserError;
 
 use std::char;
-use std::collections::HashMap;
 use std::fmt;
+
+#[cfg(feature = "ordered_attrs")]
+pub use indexmap::IndexMap as AttrMap;
+#[cfg(not(feature = "ordered_attrs"))]
+pub use std::collections::HashMap as AttrMap;
 
 mod element;
 mod element_builder;
@@ -125,7 +129,7 @@ pub struct StartTag {
     /// The tag's prefix
     pub prefix: Option<String>,
     /// The tag's attributes
-    pub attributes: HashMap<(String, Option<String>), String>,
+    pub attributes: AttrMap<(String, Option<String>), String>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

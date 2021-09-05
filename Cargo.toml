@@ -14,5 +14,9 @@ edition = "2018"
 [lib]
 name = "xml"
 
+[dependencies]
+indexmap = { version = "1.7.0", optional = true }
+
 [features]
+ordered_attrs = ["indexmap"]
 bench = []
