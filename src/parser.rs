@@ -436,7 +436,7 @@ impl Parser {
     fn in_tag(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         match c {
             '/' | '>' => {
-                let attributes = mem::replace(&mut self.attributes, Vec::new());
+                let attributes = mem::take(&mut self.attributes);
                 let (prefix, name) = self
                     .name
                     .take()
