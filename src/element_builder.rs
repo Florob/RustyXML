@@ -108,7 +108,7 @@ impl ElementBuilder {
     /// Let the builder process an `Event` to ultimately build an `Element`.
     ///
     /// While no root element has been finished `None` is returned.
-    /// Once sufficent data has been received an `Element` is returned as `Some(Ok(elem))`.
+    /// Once sufficient data has been received an `Element` is returned as `Some(Ok(elem))`.
     /// Upon Error `Some(Err("message"))` is returned.
     pub fn handle_event(
         &mut self,
