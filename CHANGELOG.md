@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Order of attributes can now optionally be tracked.
   This can be enabled via the `ordered_attrs` feature.
+### Changed
+- Error types no longer implementat the deprecated `Error::description` method
 
 ## [0.3.0] - 2020-03-08
 ### Added

@@ -25,14 +25,6 @@ pub enum BuilderError {
 }
 
 impl Error for BuilderError {
-    fn description(&self) -> &str {
-        match *self {
-            BuilderError::Parser(ref err) => err.description(),
-            BuilderError::ImproperNesting => "Elements not properly nested",
-            BuilderError::NoElement => "No elements found",
-        }
-    }
-
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match *self {
             BuilderError::Parser(ref err) => Some(err),

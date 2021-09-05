@@ -47,11 +47,7 @@ pub struct ParserError {
     pub msg: &'static str,
 }
 
-impl Error for ParserError {
-    fn description(&self) -> &str {
-        self.msg
-    }
-}
+impl Error for ParserError {}
 
 impl fmt::Display for ParserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
