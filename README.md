@@ -15,7 +15,7 @@ The current limitations are:
 * Incomplete error checking
 * Unstable API
 
-This project tracks Rust stable.
+The Minimal Supported Rust Version for this crate is Rust 1.40.0.
 
 Examples
 --------
