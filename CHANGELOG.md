@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Order of attributes can now optionally be tracked.
   This can be enabled via the `ordered_attrs` feature.
 ### Changed
+- Minimal Supported Rust Version is now 1.40.
 - Error types no longer implementat the deprecated `Error::description` method
+- `ParserError`'s `msg` field has been replaced by a `kind` field.
+  This new field contains a `ParserErrorKind` enum that can be matched on.
 
 ## [0.3.0] - 2020-03-08
 ### Added

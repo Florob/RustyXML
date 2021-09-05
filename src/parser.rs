@@ -43,19 +43,62 @@ pub struct ParserError {
     pub line: u32,
     /// The column number at which the error occurred
     pub col: u32,
-    /// A message describing the type of the error
-    pub msg: &'static str,
+    /// The kind of error encountered
+    pub kind: ParserErrorKind,
 }
 
 impl Error for ParserError {}
 
 impl fmt::Display for ParserError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "Parse error; Line: {}, Column: {}, Reason: {}",
-            self.line, self.col, self.msg,
+            self.line, self.col, self.kind,
         )
+    }
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+#[non_exhaustive]
+pub enum ParserErrorKind {
+    UnboundNsPrefixInTagName,
+    UnboundNsPrefixInAttributeName,
+    SpaceInAttributeName,
+    DuplicateAttribute,
+    UndelimitedAttribute,
+    InvalidEntity,
+    InvalidCdataStart,
+    InvalidCommentStart,
+    InvalidCommentContent,
+    InvalidDoctype,
+    ExpectedTagClose,
+    ExpectedLwsOrTagClose,
+    MalformedXml,
+}
+
+impl fmt::Display for ParserErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg = match *self {
+            ParserErrorKind::UnboundNsPrefixInTagName => "Unbound namespace prefix in tag name",
+            ParserErrorKind::UnboundNsPrefixInAttributeName => {
+                "Unbound namespace prefix in attribute name"
+            }
+            ParserErrorKind::SpaceInAttributeName => "Space occured in attribute name",
+            ParserErrorKind::DuplicateAttribute => "Duplicate attribute",
+            ParserErrorKind::UndelimitedAttribute => "Attribute value not enclosed in ' or \"",
+            ParserErrorKind::InvalidEntity => "Found invalid entity",
+            ParserErrorKind::InvalidCdataStart => "Invalid CDATA opening sequence",
+            ParserErrorKind::InvalidCommentContent => {
+                "No more than one adjacent '-' allowed in a comment"
+            }
+            ParserErrorKind::InvalidDoctype => "Invalid DOCTYPE",
+            ParserErrorKind::InvalidCommentStart => "Expected 2nd '-' to start comment",
+            ParserErrorKind::ExpectedTagClose => "Expected '>' to close tag",
+            ParserErrorKind::ExpectedLwsOrTagClose => "Expected '>' to close tag, or LWS",
+            ParserErrorKind::MalformedXml => "Malformed XML",
+        };
+        msg.fmt(f)
     }
 }
 
@@ -225,11 +268,11 @@ impl Parser {
         self.buf.split_off(0)
     }
 
-    fn error(&self, msg: &'static str) -> Result<Option<Event>, ParserError> {
+    fn error(&self, kind: ParserErrorKind) -> Result<Option<Event>, ParserError> {
         Err(ParserError {
             line: self.line,
             col: self.col,
-            msg,
+            kind,
         })
     }
 
@@ -266,7 +309,7 @@ impl Parser {
                 self.st = State::TagOpened;
                 let buf = match unescape_owned(self.take_buf()) {
                     Ok(unescaped) => unescaped,
-                    Err(_) => return self.error("Found invalid entity"),
+                    Err(_) => return self.error(ParserErrorKind::InvalidEntity),
                 };
                 return Ok(Some(Event::Characters(buf)));
             }
@@ -324,7 +367,7 @@ impl Parser {
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(pre) {
-                        None => return self.error("Unbound namespace prefix in tag name"),
+                        None => return self.error(ParserErrorKind::UnboundNsPrefixInTagName),
                         ns => ns,
                     },
                 };
@@ -365,7 +408,7 @@ impl Parser {
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(pre) {
-                        None => return self.error("Unbound namespace prefix in tag name"),
+                        None => return self.error(ParserErrorKind::UnboundNsPrefixInTagName),
                         ns => ns,
                     },
                 };
@@ -401,7 +444,7 @@ impl Parser {
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(pre) {
-                        None => return self.error("Unbound namespace prefix in tag name"),
+                        None => return self.error(ParserErrorKind::UnboundNsPrefixInTagName),
                         ns => ns,
                     },
                 };
@@ -415,13 +458,13 @@ impl Parser {
                         None => None,
                         Some(ref prefix) => match self.namespace_for_prefix(prefix) {
                             None => {
-                                return self.error("Unbound namespace prefix in attribute name")
+                                return self.error(ParserErrorKind::UnboundNsPrefixInAttributeName)
                             }
                             ns => ns,
                         },
                     };
                     if attributes_map.insert((name, ns), value).is_some() {
-                        return self.error("Duplicate attribute");
+                        return self.error(ParserErrorKind::DuplicateAttribute);
                     }
                 }
 
@@ -459,7 +502,7 @@ impl Parser {
             }
             ' ' | '\t' | '\r' | '\n' => self.level = 1,
             _ if self.level == 0 => self.buf.push(c),
-            _ => return self.error("Space occured in attribute name"),
+            _ => return self.error(ParserErrorKind::SpaceInAttributeName),
         }
         Ok(None)
     }
@@ -478,7 +521,7 @@ impl Parser {
                 attr.expect("Internal error: In attribute value, but no attribute name set");
             let value = match unescape_owned(self.take_buf()) {
                 Ok(unescaped) => unescaped,
-                Err(_) => return self.error("Found invalid entity"),
+                Err(_) => return self.error(ParserErrorKind::InvalidEntity),
             };
 
             let last = self
@@ -511,7 +554,7 @@ impl Parser {
                 self.st = State::InAttrValue;
             }
             ' ' | '\t' | '\r' | '\n' => (),
-            _ => return self.error("Attribute value not enclosed in ' or \""),
+            _ => return self.error(ParserErrorKind::UndelimitedAttribute),
         }
         Ok(None)
     }
@@ -529,14 +572,14 @@ impl Parser {
                 let ns = match prefix {
                     None => self.namespace_for_prefix(""),
                     Some(ref pre) => match self.namespace_for_prefix(pre) {
-                        None => return self.error("Unbound namespace prefix in tag name"),
+                        None => return self.error(ParserErrorKind::UnboundNsPrefixInTagName),
                         ns => ns,
                     },
                 };
                 self.namespaces.pop();
                 Ok(Some(Event::ElementEnd(EndTag { name, ns, prefix })))
             }
-            _ => self.error("Expected '>' to close tag"),
+            _ => self.error(ParserErrorKind::ExpectedTagClose),
         }
     }
 
@@ -549,7 +592,7 @@ impl Parser {
                 self.st = State::OutsideTag;
                 Ok(None)
             }
-            _ => self.error("Expected '>' to close tag, or LWS"),
+            _ => self.error(ParserErrorKind::ExpectedLwsOrTagClose),
         }
     }
 
@@ -562,7 +605,7 @@ impl Parser {
             '-' => State::InCommentOpening,
             '[' => State::InCDATAOpening,
             'D' => State::InDoctype,
-            _ => return self.error("Malformed XML"),
+            _ => return self.error(ParserErrorKind::MalformedXml),
         };
         Ok(None)
     }
@@ -574,7 +617,7 @@ impl Parser {
         if c == CDATA_PATTERN[self.level as usize] {
             self.level += 1;
         } else {
-            return self.error("Invalid CDATA opening sequence");
+            return self.error(ParserErrorKind::InvalidCdataStart);
         }
 
         if self.level == 6 {
@@ -616,7 +659,7 @@ impl Parser {
             self.level = 0;
             Ok(None)
         } else {
-            self.error("Expected 2nd '-' to start comment")
+            self.error(ParserErrorKind::InvalidCommentStart)
         }
     }
 
@@ -643,7 +686,7 @@ impl Parser {
     // '>' => OutsideTag, producing Comment
     fn in_comment2(&mut self, c: char) -> Result<Option<Event>, ParserError> {
         if c != '>' {
-            self.error("No more than one adjacent '-' allowed in a comment")
+            self.error(ParserErrorKind::InvalidCommentContent)
         } else {
             self.st = State::OutsideTag;
             let len = self.buf.len();
@@ -662,13 +705,13 @@ impl Parser {
                 if c == DOCTYPE_PATTERN[self.level as usize] {
                     self.level += 1;
                 } else {
-                    return self.error("Invalid DOCTYPE");
+                    return self.error(ParserErrorKind::InvalidDoctype);
                 }
             }
             6 => {
                 match c {
                     ' ' | '\t' | '\r' | '\n' => (),
-                    _ => return self.error("Invalid DOCTYPE"),
+                    _ => return self.error(ParserErrorKind::InvalidDoctype),
                 }
                 self.level += 1;
             }
